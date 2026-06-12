@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import EmptyState from "@/components/ui/EmptyState";
+import Input from "@/components/ui/Input";
 import PageHeader from "@/components/ui/PageHeader";
 
 interface WebhookEvent {
@@ -22,6 +24,15 @@ interface WebhookEvent {
 interface WebhookResponse {
   success: boolean;
   data: WebhookEvent[];
+  message?: string;
+}
+
+interface SecretResponse {
+  success: boolean;
+  data?: {
+    configured: boolean;
+    updatedAt: string | null;
+  };
   message?: string;
 }
 
@@ -46,6 +57,74 @@ export default function WebhookMonitor() {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [endpointUrl, setEndpointUrl] = useState("/api/webhooks/chamados");
+  const [secretInput, setSecretInput] = useState("");
+  const [secretConfigured, setSecretConfigured] = useState(false);
+  const [secretUpdatedAt, setSecretUpdatedAt] = useState<string | null>(null);
+  const [secretMessage, setSecretMessage] = useState<string | null>(null);
+  const [secretError, setSecretError] = useState<string | null>(null);
+  const [isSecretLoading, setIsSecretLoading] = useState(true);
+  const [isSecretSaving, setIsSecretSaving] = useState(false);
+
+  const loadSecretStatus = useCallback(async () => {
+    try {
+      const response = await fetch("/api/webhooks/chamados/secret", {
+        cache: "no-store",
+      });
+      const result = (await response.json()) as SecretResponse;
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Nao foi possivel carregar o secret");
+      }
+
+      setSecretConfigured(Boolean(result.data?.configured));
+      setSecretUpdatedAt(result.data?.updatedAt || null);
+      setSecretError(null);
+    } catch (err: any) {
+      setSecretError(err.message || "Erro ao carregar o secret");
+    } finally {
+      setIsSecretLoading(false);
+    }
+  }, []);
+
+  async function saveSecret(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const secret = secretInput.trim();
+
+    if (!secret) {
+      setSecretError("Informe o secret da webhook");
+      setSecretMessage(null);
+      return;
+    }
+
+    setIsSecretSaving(true);
+    setSecretError(null);
+    setSecretMessage(null);
+
+    try {
+      const response = await fetch("/api/webhooks/chamados/secret", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ secret }),
+      });
+      const result = (await response.json()) as SecretResponse;
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Nao foi possivel salvar o secret");
+      }
+
+      setSecretInput("");
+      setSecretConfigured(true);
+      setSecretUpdatedAt(result.data?.updatedAt || new Date().toISOString());
+      setSecretMessage("Secret salvo com sucesso");
+    } catch (err: any) {
+      setSecretError(err.message || "Erro ao salvar o secret");
+    } finally {
+      setIsSecretSaving(false);
+    }
+  }
 
   const loadEventos = useCallback(async () => {
     try {
@@ -70,12 +149,13 @@ export default function WebhookMonitor() {
 
   useEffect(() => {
     setEndpointUrl(`${window.location.origin}/api/webhooks/chamados`);
+    loadSecretStatus();
     loadEventos();
 
     const interval = window.setInterval(loadEventos, 3000);
 
     return () => window.clearInterval(interval);
-  }, [loadEventos]);
+  }, [loadEventos, loadSecretStatus]);
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 animate-fade-in sm:space-y-8">
@@ -117,6 +197,65 @@ export default function WebhookMonitor() {
           )}
         </div>
       </section>
+
+      <form
+        onSubmit={saveSecret}
+        className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs"
+      >
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
+          <div className="min-w-0 flex-1">
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Secret da webhook
+              </span>
+              <span
+                className={`rounded-full px-2.5 py-1 text-xs font-bold ${
+                  secretConfigured
+                    ? "bg-emerald-50 text-emerald-700"
+                    : "bg-amber-50 text-amber-700"
+                }`}
+              >
+                {isSecretLoading
+                  ? "Verificando"
+                  : secretConfigured
+                  ? "Configurado"
+                  : "Nao configurado"}
+              </span>
+            </div>
+            <Input
+              id="webhook-secret"
+              type="password"
+              value={secretInput}
+              onChange={(event) => setSecretInput(event.target.value)}
+              placeholder={
+                secretConfigured
+                  ? "Digite um novo secret para substituir o atual"
+                  : "Digite o bearer token informado pelo sistema externo"
+              }
+              autoComplete="off"
+            />
+            {secretUpdatedAt && (
+              <p className="mt-2 text-xs font-medium text-slate-500">
+                Atualizado em: {formatDate(secretUpdatedAt)}
+              </p>
+            )}
+            {secretMessage && (
+              <p className="mt-2 text-xs font-bold text-emerald-700">
+                {secretMessage}
+              </p>
+            )}
+            {secretError && (
+              <p className="mt-2 text-xs font-bold text-red-600">
+                {secretError}
+              </p>
+            )}
+          </div>
+
+          <Button type="submit" isLoading={isSecretSaving}>
+            Salvar secret
+          </Button>
+        </div>
+      </form>
 
       {error && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
