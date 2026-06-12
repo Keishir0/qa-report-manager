@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma";
-import { randomUUID } from "crypto";
+import { createHmac, randomUUID, timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -36,6 +36,24 @@ function getBearerToken(request: NextRequest) {
   }
 
   return token;
+}
+
+function safeCompare(value: string | null, expected: string) {
+  if (!value) return false;
+
+  const valueBuffer = Buffer.from(value);
+  const expectedBuffer = Buffer.from(expected);
+
+  if (valueBuffer.length !== expectedBuffer.length) return false;
+
+  return timingSafeEqual(valueBuffer, expectedBuffer);
+}
+
+function validateSignature(request: NextRequest, rawBody: string, secret: string) {
+  const signature = request.headers.get("x-signature");
+  const localSignature = createHmac("sha256", secret).update(rawBody).digest("hex");
+
+  return safeCompare(signature, localSignature);
 }
 
 interface ExternalWebhookEventRow {
@@ -109,18 +127,22 @@ export async function POST(request: NextRequest) {
       return jsonError("Webhook nao configurado", 500);
     }
 
-    const token = getBearerToken(request);
-
-    if (token !== secret) {
-      return jsonError("Token invalido ou ausente", 401);
-    }
-
     let body: any;
+    let rawBody: string;
 
     try {
-      body = await request.json();
+      rawBody = await request.text();
+      body = JSON.parse(rawBody);
     } catch {
       return jsonError("JSON invalido", 400);
+    }
+
+    const token = getBearerToken(request);
+    const hasValidBearer = safeCompare(token, secret);
+    const hasValidSignature = validateSignature(request, rawBody, secret);
+
+    if (!hasValidBearer && !hasValidSignature) {
+      return jsonError("Token ou assinatura invalida", 401);
     }
 
     const { event, idchamado, idref } = body;
