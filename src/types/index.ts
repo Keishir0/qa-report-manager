@@ -70,6 +70,7 @@ export interface TestStepData {
 export interface TestReportData {
   id?: string;
   code: string;
+  sndeskChamadoId?: string | null;
   testDate: Date | string;
   systemName: string;
   branch: Branch | string;

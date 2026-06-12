@@ -10,6 +10,7 @@ generator client {
 model TestReport {
   id             String     @id @default(cuid())
   code           String     @unique
+  sndeskChamadoId String?   @unique @map("sndesk_chamado_id")
   testDate       DateTime
   systemName     String
   branch         String
@@ -22,6 +23,7 @@ model TestReport {
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
   steps          TestStep[]
+  pendingTicket  QaPendingTicket?
 
   @@map("test_reports")
 }
@@ -67,4 +69,23 @@ model WebhookSetting {
   updatedAt DateTime @updatedAt
 
   @@map("webhook_settings")
+}
+
+model QaPendingTicket {
+  id              String      @id @default(cuid())
+  idChamado       String      @unique
+  statusId        Int?
+  statusDescricao String?
+  statusCor       String?
+  chamadoSnapshot Json?
+  reportId        String?     @unique
+  state           String      @default("pendente")
+  lastError       String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  report          TestReport? @relation(fields: [reportId], references: [id], onDelete: SetNull)
+
+  @@index([state])
+  @@index([statusId])
+  @@map("qa_pending_tickets")
 }

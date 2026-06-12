@@ -1,4 +1,10 @@
 import prisma from "@/lib/prisma";
+import {
+  getSndeskChamado,
+  getSndeskConfig,
+  getSndeskStatus,
+  upsertPendingTicketFromSndesk,
+} from "@/lib/sndesk";
 import { createHmac, randomUUID, timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -82,6 +88,45 @@ async function getConfiguredSecret() {
   `;
 
   return setting?.value || null;
+}
+
+async function updateEventStatus(id: string, status: string) {
+  await prisma.$executeRaw`
+    UPDATE "external_webhook_events"
+    SET "status" = ${status}
+    WHERE "id" = ${id}
+  `;
+}
+
+async function processTicketPendingEvent(evento: ExternalWebhookEventRow) {
+  if (evento.event !== "setstatus") {
+    await updateEventStatus(evento.id, "recebido");
+    return;
+  }
+
+  const config = await getSndeskConfig();
+  const statusId = Number(evento.idRef);
+
+  if (!Number.isInteger(statusId)) {
+    await updateEventStatus(evento.id, "ignorado");
+    return;
+  }
+
+  if (!config.pendingStatusIds.includes(statusId)) {
+    await updateEventStatus(evento.id, "ignorado");
+    return;
+  }
+
+  const status = await getSndeskStatus(config, evento.idChamado);
+
+  if (!status?.idstatus || !config.pendingStatusIds.includes(Number(status.idstatus))) {
+    await updateEventStatus(evento.id, "ignorado");
+    return;
+  }
+
+  const chamado = await getSndeskChamado(config, evento.idChamado);
+  await upsertPendingTicketFromSndesk(evento.idChamado, status, chamado);
+  await updateEventStatus(evento.id, "pendencia_criada");
 }
 
 export async function GET(request: NextRequest) {
@@ -211,6 +256,13 @@ export async function POST(request: NextRequest) {
       idRef: evento.idRef,
       receivedAt: evento.receivedAt,
     });
+
+    try {
+      await processTicketPendingEvent(evento);
+    } catch (processingError: any) {
+      console.error("Erro ao processar pendencia de chamado:", processingError);
+      await updateEventStatus(evento.id, "erro").catch(() => {});
+    }
 
     return NextResponse.json(
       {

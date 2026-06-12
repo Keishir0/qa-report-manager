@@ -1,0 +1,69 @@
+import { requireQaAdmin } from "@/lib/adminAuth";
+import prisma from "@/lib/prisma";
+import { PendingTicketRow } from "@/lib/sndesk";
+import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
+
+function jsonError(message: string, status: number, details?: unknown) {
+  return NextResponse.json(
+    { success: false, message, ...(details ? { details } : {}) },
+    { status }
+  );
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const unauthorized = requireQaAdmin(request);
+    if (unauthorized) return unauthorized;
+
+    const reportId = request.nextUrl.searchParams.get("reportId");
+
+    const tickets = reportId
+      ? await prisma.$queryRaw<PendingTicketRow[]>`
+          SELECT
+            p."id",
+            p."idChamado",
+            p."statusId",
+            p."statusDescricao",
+            p."statusCor",
+            p."chamadoSnapshot",
+            p."reportId",
+            r."code" AS "reportCode",
+            p."state",
+            p."lastError",
+            p."createdAt",
+            p."updatedAt"
+          FROM "qa_pending_tickets" p
+          LEFT JOIN "test_reports" r ON r."id" = p."reportId"
+          WHERE p."reportId" = ${reportId}
+          ORDER BY p."updatedAt" DESC
+        `
+      : await prisma.$queryRaw<PendingTicketRow[]>`
+          SELECT
+            p."id",
+            p."idChamado",
+            p."statusId",
+            p."statusDescricao",
+            p."statusCor",
+            p."chamadoSnapshot",
+            p."reportId",
+            r."code" AS "reportCode",
+            p."state",
+            p."lastError",
+            p."createdAt",
+            p."updatedAt"
+          FROM "qa_pending_tickets" p
+          LEFT JOIN "test_reports" r ON r."id" = p."reportId"
+          ORDER BY p."updatedAt" DESC
+        `;
+
+    return NextResponse.json({
+      success: true,
+      data: tickets,
+    });
+  } catch (error: any) {
+    console.error("Error in GET /api/sndesk/pendencias:", error);
+    return jsonError("Internal Server Error", 500, error.message);
+  }
+}

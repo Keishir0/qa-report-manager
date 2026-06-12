@@ -95,6 +95,29 @@ Abaixo está a lista de comandos configurados no `package.json` para facilitar o
 
 ---
 
+## Integracao SNDesk para Pendencias de Teste
+
+Defina `QA_ADMIN_TOKEN` no `.env` para proteger as rotas administrativas da
+integracao. Com esse token, a tela **Pendencias** permite salvar no banco o
+dominio, token da API SNDesk, status, modelos de mensagem e flags de envio.
+
+```env
+QA_ADMIN_TOKEN=defina-um-token-administrativo-local
+```
+
+O `SNDESK_API_TOKEN` fica salvo no banco, mas nunca e retornado pelo endpoint de
+configuracao; a interface mostra apenas se existe token configurado. Placeholders
+disponiveis nos modelos: `{codigo_teste}`, `{id_chamado}`, `{status_geral}`,
+`{resumo}` e `{passos}`.
+
+As variaveis `SNDESK_BASE_URL`, `SNDESK_API_TOKEN`, `SNDESK_PENDING_STATUS_IDS`,
+`SNDESK_DEFAULT_USER_ID`, `SNDESK_APPROVE_STATUS_ID`, `SNDESK_REJECT_STATUS_ID`,
+`SNDESK_VISIBLE_CLIENT`, `SNDESK_EMAIL_CLIENT`, `SNDESK_EMAIL_TECHNICIAN`,
+`SNDESK_APPROVE_TEMPLATE` e `SNDESK_REJECT_TEMPLATE` continuam aceitas como
+fallback de ambiente, mas o uso normal e configurar pela tela.
+
+---
+
 ## 📁 Estrutura de Pastas Comentada
 
 Abaixo está disposta a estrutura organizacional de diretórios do projeto:

@@ -13,11 +13,20 @@ import { exportToExcel, exportToPDF } from "@/lib/export";
 import Toast from "@/components/ui/Toast";
 import Button from "@/components/ui/Button";
 import PageHeader from "@/components/ui/PageHeader";
+import Input from "@/components/ui/Input";
 
 interface ReportDetailPageProps {
   params: {
     id: string;
   };
+}
+
+interface PendingTicket {
+  id: string;
+  idChamado: string;
+  statusDescricao: string | null;
+  state: string;
+  lastError: string | null;
 }
 
 export default function ReportDetailPage({ params }: ReportDetailPageProps) {
@@ -33,6 +42,9 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
   const [showAddStep, setShowAddStep] = useState(false);
   const [isExportingExcel, setIsExportingExcel] = useState(false);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
+  const [sndeskAdminToken, setSndeskAdminToken] = useState("");
+  const [pendingTicket, setPendingTicket] = useState<PendingTicket | null>(null);
+  const [isSndeskLoading, setIsSndeskLoading] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   // Buscar detalhes do relatório
@@ -256,6 +268,66 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
       setToast({ message: "Erro ao gerar arquivo PDF.", type: "error" });
     } finally {
       setIsExportingPDF(false);
+    }
+  };
+
+  const loadReportPending = useCallback(async () => {
+    if (!sndeskAdminToken) {
+      setToast({ message: "Informe o QA_ADMIN_TOKEN para carregar a pendencia.", type: "error" });
+      return;
+    }
+
+    setIsSndeskLoading(true);
+    try {
+      const response = await fetch(`/api/sndesk/pendencias?reportId=${id}`, {
+        headers: {
+          "x-qa-admin-token": sndeskAdminToken,
+        },
+        cache: "no-store",
+      });
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Nao foi possivel carregar a pendencia.");
+      }
+
+      setPendingTicket(result.data[0] || null);
+    } catch (err: any) {
+      setToast({ message: err.message || "Erro ao carregar pendencia.", type: "error" });
+    } finally {
+      setIsSndeskLoading(false);
+    }
+  }, [id, sndeskAdminToken]);
+
+  const sendSndeskDecision = async (action: "aprovar" | "recusar") => {
+    if (!pendingTicket) return;
+
+    setIsSndeskLoading(true);
+    try {
+      const response = await fetch(
+        `/api/sndesk/pendencias/${pendingTicket.id}/${action}`,
+        {
+          method: "POST",
+          headers: {
+            "x-qa-admin-token": sndeskAdminToken,
+          },
+        }
+      );
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Nao foi possivel enviar ao SNDesk.");
+      }
+
+      setPendingTicket(result.data);
+      setToast({
+        message: action === "aprovar" ? "Aprovado no SNDesk." : "Recusado no SNDesk.",
+        type: "success",
+      });
+    } catch (err: any) {
+      setToast({ message: err.message || "Erro ao enviar ao SNDesk.", type: "error" });
+    } finally {
+      setIsSndeskLoading(false);
     }
   };
 
@@ -486,6 +558,65 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
             </div>
 
             {/* Descrição do Bug */}
+            {report.sndeskChamadoId && (
+              <div className="mb-6 rounded-xl border border-indigo-100 bg-indigo-50/30 p-4">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider block mb-1">
+                      Chamado SNDesk
+                    </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-mono text-sm font-extrabold text-slate-900">
+                        #{report.sndeskChamadoId}
+                      </span>
+                      {pendingTicket && (
+                        <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-slate-700">
+                          {pendingTicket.statusDescricao || pendingTicket.state}
+                        </span>
+                      )}
+                    </div>
+                    {pendingTicket?.lastError && (
+                      <p className="mt-2 text-xs font-bold text-red-600">
+                        {pendingTicket.lastError}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="grid gap-2 sm:grid-cols-[minmax(180px,240px)_auto_auto_auto]">
+                    <Input
+                      id="report-sndesk-admin-token"
+                      type="password"
+                      value={sndeskAdminToken}
+                      onChange={(event) => setSndeskAdminToken(event.target.value)}
+                      placeholder="QA_ADMIN_TOKEN"
+                      autoComplete="off"
+                    />
+                    <Button
+                      variant="secondary"
+                      onClick={loadReportPending}
+                      isLoading={isSndeskLoading}
+                    >
+                      Carregar
+                    </Button>
+                    <Button
+                      variant="primary"
+                      onClick={() => sendSndeskDecision("aprovar")}
+                      disabled={!pendingTicket || isSndeskLoading}
+                    >
+                      Aprovar
+                    </Button>
+                    <Button
+                      variant="danger"
+                      onClick={() => sendSndeskDecision("recusar")}
+                      disabled={!pendingTicket || isSndeskLoading}
+                    >
+                      Recusar
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2 mb-6">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                 Descrição do Bug / Comportamento Incorreto

@@ -86,6 +86,7 @@ export async function POST(request: NextRequest) {
       bugDescription,
       testType,
       generalStatus,
+      sndeskChamadoId,
       notes,
       steps,
     } = body;
@@ -115,6 +116,7 @@ export async function POST(request: NextRequest) {
     const report = await prisma.testReport.create({
       data: {
         code,
+        sndeskChamadoId: sndeskChamadoId ? String(sndeskChamadoId) : null,
         testDate: new Date(testDate),
         systemName,
         branch,

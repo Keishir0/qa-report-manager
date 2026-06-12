@@ -105,6 +105,25 @@ export default function Sidebar() {
         </svg>
       ),
     },
+    {
+      name: "Pendencias",
+      href: "/pendencias",
+      icon: (
+        <svg
+          className="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 12l2 2 4-4m4 2a7 7 0 11-14 0 7 7 0 0114 0z"
+          />
+        </svg>
+      ),
+    },
   ];
 
   return (
