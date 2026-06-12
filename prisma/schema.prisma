@@ -40,3 +40,21 @@ model TestStep {
 
   @@map("test_steps")
 }
+
+model ExternalWebhookEvent {
+  id         String   @id @default(cuid())
+  event      String
+  idChamado  String
+  idRef      String
+  customJson Json?    @map("json")
+  rawPayload Json
+  sourceIp   String?
+  userAgent  String?
+  status     String   @default("recebido")
+  receivedAt DateTime @default(now())
+
+  @@index([event])
+  @@index([idChamado])
+  @@index([receivedAt])
+  @@map("external_webhook_events")
+}

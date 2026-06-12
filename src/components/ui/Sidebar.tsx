@@ -86,6 +86,25 @@ export default function Sidebar() {
         </svg>
       ),
     },
+    {
+      name: "Webhooks",
+      href: "/webhooks",
+      icon: (
+        <svg
+          className="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M13.828 10.172a4 4 0 010 5.656l-2 2a4 4 0 01-5.656-5.656l1.172-1.172m9.314 2.828l1.172-1.172a4 4 0 00-5.656-5.656l-2 2a4 4 0 000 5.656"
+          />
+        </svg>
+      ),
+    },
   ];
 
   return (
