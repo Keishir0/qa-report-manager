@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -36,6 +37,19 @@ function getBearerToken(request: NextRequest) {
   return token;
 }
 
+interface ExternalWebhookEventRow {
+  id: string;
+  event: string;
+  idChamado: string;
+  idRef: string;
+  customJson: unknown;
+  rawPayload: unknown;
+  sourceIp: string | null;
+  userAgent: string | null;
+  status: string;
+  receivedAt: Date;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const limitParam = Number(request.nextUrl.searchParams.get("limit") || 50);
@@ -43,12 +57,22 @@ export async function GET(request: NextRequest) {
       ? Math.min(Math.max(limitParam, 1), 200)
       : 50;
 
-    const eventos = await prisma.externalWebhookEvent.findMany({
-      take: limit,
-      orderBy: {
-        receivedAt: "desc",
-      },
-    });
+    const eventos = await prisma.$queryRaw<ExternalWebhookEventRow[]>`
+      SELECT
+        "id",
+        "event",
+        "idChamado",
+        "idRef",
+        "json" AS "customJson",
+        "rawPayload",
+        "sourceIp",
+        "userAgent",
+        "status",
+        "receivedAt"
+      FROM "external_webhook_events"
+      ORDER BY "receivedAt" DESC
+      LIMIT ${limit}
+    `;
 
     return NextResponse.json({
       success: true,
@@ -102,18 +126,46 @@ export async function POST(request: NextRequest) {
       request.headers.get("x-real-ip") ||
       null;
 
-    const evento = await prisma.externalWebhookEvent.create({
-      data: {
-        event: String(event),
-        idChamado: String(idchamado),
-        idRef: String(idref),
-        customJson: body.json ?? null,
-        rawPayload: body,
-        sourceIp,
-        userAgent: request.headers.get("user-agent"),
-        status: "recebido",
-      },
-    });
+    const eventoId = randomUUID();
+    const customJson = body.json === undefined ? null : JSON.stringify(body.json);
+    const rawPayload = JSON.stringify(body);
+    const userAgent = request.headers.get("user-agent");
+
+    const [evento] = await prisma.$queryRaw<ExternalWebhookEventRow[]>`
+      INSERT INTO "external_webhook_events" (
+        "id",
+        "event",
+        "idChamado",
+        "idRef",
+        "json",
+        "rawPayload",
+        "sourceIp",
+        "userAgent",
+        "status"
+      )
+      VALUES (
+        ${eventoId},
+        ${String(event)},
+        ${String(idchamado)},
+        ${String(idref)},
+        ${customJson}::jsonb,
+        ${rawPayload}::jsonb,
+        ${sourceIp},
+        ${userAgent},
+        'recebido'
+      )
+      RETURNING
+        "id",
+        "event",
+        "idChamado",
+        "idRef",
+        "json" AS "customJson",
+        "rawPayload",
+        "sourceIp",
+        "userAgent",
+        "status",
+        "receivedAt"
+    `;
 
     console.log("Webhook de chamado recebido:", {
       event: evento.event,
