@@ -243,7 +243,7 @@ export default function ReportsListPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="mx-auto max-w-7xl space-y-6">
       {/* Header */}
       <PageHeader
         title="Relatórios de Testes"
@@ -318,7 +318,7 @@ export default function ReportsListPage() {
       </PageHeader>
 
       {/* Painel de Filtros e Busca */}
-      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
+      <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-xs sm:p-5">
         <div className="flex flex-col lg:flex-row gap-4 justify-between items-start lg:items-end">
           <div className="w-full lg:max-w-md">
             <Input
@@ -548,4 +548,3 @@ export default function ReportsListPage() {
     </div>
   );
 }
-

@@ -137,7 +137,7 @@ export default function StepRow({ step, onDelete, onUpdate }: StepRowProps) {
               />
             </div>
           </div>
-          <div className="mt-3 flex items-center justify-between">
+          <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2">
               <label className="text-xs font-semibold text-gray-500">
                 Status:
@@ -154,18 +154,18 @@ export default function StepRow({ step, onDelete, onUpdate }: StepRowProps) {
                 ))}
               </select>
             </div>
-            <div className="flex gap-2">
+            <div className="flex w-full gap-2 sm:w-auto">
               <button
                 onClick={handleCancel}
                 disabled={isLoading}
-                className="btn-secondary py-1 px-3 text-xs"
+                className="btn-secondary flex-1 px-3 py-1 text-xs sm:flex-none"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleSave}
                 disabled={isLoading}
-                className="btn-primary py-1 px-3 text-xs min-w-[70px]"
+                className="btn-primary min-w-[70px] flex-1 px-3 py-1 text-xs sm:flex-none"
               >
                 {isLoading ? "Salvando" : "Salvar"}
               </button>

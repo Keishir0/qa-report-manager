@@ -85,7 +85,7 @@ export default function StepForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="card p-5 bg-slate-50 border-dashed border-2 border-slate-300 mt-4 space-y-4"
+      className="card mt-4 space-y-4 border-2 border-dashed border-slate-300 bg-slate-50 p-4 sm:p-5"
     >
       <div className="flex items-center justify-between border-b border-gray-200 pb-2 mb-2">
         <h4 className="font-semibold text-gray-800 text-sm">
@@ -206,19 +206,19 @@ export default function StepForm({
         </div>
       </div>
 
-      <div className="flex gap-2 justify-end pt-3 border-t border-gray-200">
+      <div className="flex flex-col-reverse gap-2 border-t border-gray-200 pt-3 sm:flex-row sm:justify-end">
         <button
           type="button"
           disabled={isLoading}
           onClick={onCancel}
-          className="btn-secondary"
+          className="btn-secondary w-full sm:w-auto"
         >
           Cancelar
         </button>
         <button
           type="submit"
           disabled={isLoading}
-          className="btn-primary min-w-[100px]"
+          className="btn-primary w-full min-w-[100px] sm:w-auto"
         >
           {isLoading ? "Salvando..." : "Salvar Passo"}
         </button>

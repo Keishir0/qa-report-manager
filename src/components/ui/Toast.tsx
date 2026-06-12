@@ -19,7 +19,7 @@ export default function Toast({ message, type, onClose }: ToastProps) {
 
   return (
     <div
-      className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3.5 rounded-xl shadow-md border transition-all duration-300 transform translate-y-0 animate-bounce-short ${
+      className={`fixed inset-x-4 bottom-4 z-[60] flex max-w-md items-center gap-3 rounded-xl border px-4 py-3.5 shadow-md transition-all duration-300 transform translate-y-0 animate-bounce-short sm:inset-x-auto sm:bottom-6 sm:right-6 ${
         type === "success"
           ? "bg-green-50 text-green-800 border-green-200"
           : "bg-red-50 text-red-800 border-red-200"
@@ -58,7 +58,7 @@ export default function Toast({ message, type, onClose }: ToastProps) {
           </svg>
         </div>
       )}
-      <span className="text-sm font-semibold">{message}</span>
+      <span className="min-w-0 flex-1 text-sm font-semibold">{message}</span>
       <button
         onClick={onClose}
         className="text-gray-400 hover:text-gray-600 transition-colors ml-2"

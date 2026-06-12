@@ -16,7 +16,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(function Select(
   ref
 ) {
   return (
-    <div className="w-full">
+    <div className="min-w-0 w-full">
       {label && (
         <label
           htmlFor={id}
@@ -28,7 +28,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(function Select(
       <select
         id={id}
         ref={ref}
-        className={`w-full px-3.5 py-2 border rounded-lg text-sm bg-white transition-all duration-200 outline-none focus:ring-2 focus:ring-offset-0 ${
+        className={`min-w-0 max-w-full w-full px-3.5 py-2 border rounded-lg text-sm bg-white transition-all duration-200 outline-none focus:ring-2 focus:ring-offset-0 ${
           error
             ? "border-red-300 focus:border-red-500 focus:ring-red-500/20"
             : "border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/20"

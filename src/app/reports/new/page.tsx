@@ -49,7 +49,7 @@ export default function NewReportPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto animate-fade-in">
+    <div className="mx-auto min-w-0 max-w-5xl space-y-6 animate-fade-in">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2">
         <Link
@@ -88,7 +88,7 @@ export default function NewReportPage() {
       )}
 
       {/* Formulário */}
-      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
+      <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-xs sm:p-6">
         <ReportForm onSubmit={handleSubmit} isLoading={isLoading} />
       </div>
 
@@ -103,4 +103,3 @@ export default function NewReportPage() {
     </div>
   );
 }
-

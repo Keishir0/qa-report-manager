@@ -53,8 +53,8 @@ export default function DataTable({
           </div>
         )
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+        <div className="overflow-x-auto overscroll-x-contain">
+          <table className="w-full min-w-[860px] text-left border-collapse">
             <thead>
               <tr className="bg-slate-50 text-slate-500 font-bold text-[10px] border-b border-slate-200 uppercase tracking-wider">
                 {headers.map((h, i) => (

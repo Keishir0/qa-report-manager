@@ -45,7 +45,7 @@ export default async function DashboardPage() {
   const isPositiveTrend = approvalRate >= 80;
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 animate-fade-in">
+    <div className="mx-auto max-w-7xl space-y-6 animate-fade-in sm:space-y-8">
       {/* Header */}
       <PageHeader
         title="Dashboard"
@@ -76,7 +76,7 @@ export default async function DashboardPage() {
       </PageHeader>
 
       {/* Cards de Métricas */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 xl:grid-cols-6">
         {/* Total */}
         <MetricCard
           title="Total de Testes"
@@ -221,7 +221,7 @@ export default async function DashboardPage() {
 
       {/* Recentes */}
       <div className="space-y-4">
-        <div className="flex justify-between items-center px-1">
+        <div className="flex flex-col gap-2 px-1 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-lg font-extrabold text-slate-800">Testes Recentes</h2>
           {recentReports.length > 0 && (
             <Link
@@ -305,4 +305,3 @@ export default async function DashboardPage() {
     </div>
   );
 }
-

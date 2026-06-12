@@ -12,9 +12,9 @@ export default function PageHeader({
   children,
 }: PageHeaderProps) {
   return (
-    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-1">
-      <div>
-        <h1 className="text-2xl font-extrabold text-slate-900 leading-tight">
+    <div className="flex flex-col justify-between gap-4 pb-1 md:flex-row md:items-center">
+      <div className="min-w-0">
+        <h1 className="text-xl font-extrabold leading-tight text-slate-900 sm:text-2xl">
           {title}
         </h1>
         {description && (
@@ -23,7 +23,11 @@ export default function PageHeader({
           </p>
         )}
       </div>
-      {children && <div className="flex gap-2 items-center w-full sm:w-auto">{children}</div>}
+      {children && (
+        <div className="flex w-full flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center md:w-auto md:justify-end [&>*]:w-full sm:[&>*]:w-auto">
+          {children}
+        </div>
+      )}
     </div>
   );
 }

@@ -310,7 +310,7 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
       : 1;
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto animate-fade-in">
+    <div className="mx-auto max-w-6xl space-y-6 animate-fade-in sm:space-y-8">
       {/* Breadcrumb e Ações Principais */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <Link
@@ -333,7 +333,7 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
           Voltar para lista
         </Link>
 
-        <div className="flex gap-2.5 w-full sm:w-auto">
+        <div className="grid w-full grid-cols-2 gap-2.5 sm:flex sm:w-auto sm:flex-wrap sm:justify-end">
           <Button
             variant="secondary"
             onClick={handleExportExcel}
@@ -367,6 +367,7 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
               </svg>
             }
+            className="col-span-2 sm:col-span-1"
           >
             Duplicar Teste
           </Button>
@@ -374,10 +375,10 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
       </div>
 
       {/* Seção Principal: Card de Detalhes ou Formulário de Edição */}
-      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs sm:p-6">
         {isEditing ? (
           <div>
-            <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-100">
+            <div className="mb-6 flex flex-col gap-2 border-b border-slate-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="text-lg font-bold text-slate-800">
                 Editar Relatório: {report.code}
               </h2>
@@ -418,7 +419,7 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
                 </p>
               </div>
 
-              <div className="flex gap-2">
+              <div className="grid w-full grid-cols-2 gap-2 md:flex md:w-auto">
                 <Button
                   variant="secondary"
                   onClick={() => setIsEditing(true)}
@@ -511,7 +512,7 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
 
       {/* Seção de Passos do Teste */}
       <div className="space-y-4">
-        <div className="flex justify-between items-center px-1">
+        <div className="flex flex-col gap-3 px-1 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-lg font-extrabold text-slate-800">Passos do Teste ({sortedSteps.length})</h2>
             <p className="text-xs text-slate-500 font-medium mt-0.5">
@@ -553,8 +554,8 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+            <div className="overflow-x-auto overscroll-x-contain">
+              <table className="w-full min-w-[860px] text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50 text-slate-500 font-bold text-[10px] border-b border-slate-200 uppercase tracking-wider">
                     <th className="p-4 w-16 text-center">#</th>

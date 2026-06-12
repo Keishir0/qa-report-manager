@@ -241,9 +241,9 @@ export default function ReportForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="min-w-0 space-y-6">
       {initialData?.code && (
-        <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl max-w-[220px]">
+        <div className="w-full rounded-xl border border-slate-200 bg-slate-50 p-4 sm:max-w-[220px]">
           <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
             Código do Relatório
           </span>
@@ -255,8 +255,8 @@ export default function ReportForm({
 
       {/* Assistente de IA */}
       {isCreate && (
-        <div className="border border-indigo-200 rounded-xl p-5 bg-indigo-50/20 space-y-4 shadow-2xs">
-          <div className="flex items-center justify-between pb-3 border-b border-indigo-100">
+        <div className="space-y-4 rounded-xl border border-indigo-200 bg-indigo-50/20 p-4 shadow-2xs sm:p-5">
+          <div className="flex flex-col gap-3 border-b border-indigo-100 pb-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2">
               <span className="text-lg">✨</span>
               <h3 className="font-extrabold text-indigo-900 text-sm">Preenchimento Inteligente com IA</h3>
@@ -269,7 +269,7 @@ export default function ReportForm({
                 setAiError("");
                 setAiSuccessMessage("");
               }}
-              className="text-xs py-1.5 px-3"
+              className="w-full px-3 py-1.5 text-xs sm:w-auto"
             >
               {isAiPanelOpen ? "Fechar Painel" : "Abrir Assistente"}
             </Button>
@@ -295,13 +295,13 @@ export default function ReportForm({
                   {aiError}
                 </div>
               )}
-              <div className="flex justify-end">
+              <div className="flex justify-stretch sm:justify-end">
                 <Button
                   type="button"
                   onClick={handleAiGenerate}
                   isLoading={isAiGenerating}
                   variant="primary"
-                  className="bg-indigo-600 hover:bg-indigo-700 text-xs py-1.5 px-4"
+                  className="w-full bg-indigo-600 px-4 py-1.5 text-xs hover:bg-indigo-700 sm:w-auto"
                 >
                   Gerar Estrutura de Teste
                 </Button>
@@ -325,7 +325,7 @@ export default function ReportForm({
       )}
 
       {/* Seção 1: Identificação */}
-      <div className="border border-slate-200 rounded-xl p-5 bg-white space-y-4 shadow-2xs">
+      <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-2xs sm:p-5">
         <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
           <div className="w-6 h-6 rounded-full bg-indigo-50 text-indigo-600 font-bold text-xs flex items-center justify-center">
             1
@@ -383,7 +383,7 @@ export default function ReportForm({
       </div>
 
       {/* Seção 2: Localização do Teste */}
-      <div className="border border-slate-200 rounded-xl p-5 bg-white space-y-4 shadow-2xs">
+      <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-2xs sm:p-5">
         <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
           <div className="w-6 h-6 rounded-full bg-indigo-50 text-indigo-600 font-bold text-xs flex items-center justify-center">
             2
@@ -413,7 +413,7 @@ export default function ReportForm({
       </div>
 
       {/* Seção 3: Bug ou Cenário */}
-      <div className="border border-slate-200 rounded-xl p-5 bg-white space-y-4 shadow-2xs">
+      <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-2xs sm:p-5">
         <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
           <div className="w-6 h-6 rounded-full bg-indigo-50 text-indigo-600 font-bold text-xs flex items-center justify-center">
             3
@@ -445,7 +445,7 @@ export default function ReportForm({
 
       {/* Seção 4: Passos Dinâmicos (Apenas na Criação) */}
       {isCreate && (
-        <div className="border border-slate-200 rounded-xl p-5 bg-white space-y-6 shadow-2xs">
+        <div className="space-y-6 rounded-xl border border-slate-200 bg-white p-4 shadow-2xs sm:p-5">
           <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
             <div className="w-6 h-6 rounded-full bg-indigo-50 text-indigo-600 font-bold text-xs flex items-center justify-center">
               4
@@ -455,8 +455,8 @@ export default function ReportForm({
 
           {/* Tabela de Passos Locais */}
           {steps.length > 0 ? (
-            <div className="border border-slate-200 rounded-lg overflow-hidden bg-slate-50/20">
-              <table className="w-full text-left border-collapse">
+            <div className="overflow-x-auto overscroll-x-contain rounded-lg border border-slate-200 bg-slate-50/20">
+              <table className="w-full min-w-[860px] text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50 text-slate-500 font-bold text-[10px] uppercase border-b border-slate-200">
                     <th className="p-3 w-16 text-center">Nº</th>
@@ -586,8 +586,8 @@ export default function ReportForm({
               />
             </div>
 
-            <div className="flex justify-end pt-1">
-              <Button type="button" variant="secondary" onClick={handleAddStep}>
+            <div className="flex justify-stretch pt-1 sm:justify-end">
+              <Button type="button" variant="secondary" onClick={handleAddStep} className="w-full sm:w-auto">
                 Adicionar Passo à Lista
               </Button>
             </div>
@@ -596,7 +596,7 @@ export default function ReportForm({
       )}
 
       {/* Ações do Form */}
-      <div className="flex gap-3 justify-end pt-4 border-t border-slate-100">
+      <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end [&>*]:w-full sm:[&>*]:w-auto">
         <Link href="/reports" passHref legacyBehavior>
           <Button variant="secondary" disabled={isLoading}>
             Cancelar
@@ -614,4 +614,3 @@ export default function ReportForm({
     </form>
   );
 }
-
