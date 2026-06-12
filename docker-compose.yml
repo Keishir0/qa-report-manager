@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: qa-report-postgres
+    environment:
+      POSTGRES_USER: qa_user
+      POSTGRES_PASSWORD: qa_password
+      POSTGRES_DB: qa_report
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+
+volumes:
+  postgres_data:

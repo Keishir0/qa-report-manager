@@ -1,0 +1,42 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model TestReport {
+  id             String     @id @default(cuid())
+  code           String     @unique
+  testDate       DateTime
+  systemName     String
+  branch         String
+  screenPath     String
+  functionality  String
+  bugDescription String
+  testType       String
+  generalStatus  String
+  notes          String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  steps          TestStep[]
+
+  @@map("test_reports")
+}
+
+model TestStep {
+  id             String     @id @default(cuid())
+  reportId       String
+  stepNumber     Int
+  action         String
+  expectedResult String
+  actualResult   String
+  status         String
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  report         TestReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@map("test_steps")
+}
