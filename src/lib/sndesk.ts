@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { randomUUID } from "crypto";
+import { sanitizeSensitiveText } from "@/lib/serverLog";
 
 export const SNDESK_CONFIG_KEYS = {
   baseUrl: "sndesk_base_url",
@@ -477,7 +478,9 @@ export async function sendPendingDecision(id: string, action: "aprovar" | "recus
 }
 
 export async function markPendingError(id: string, error: unknown) {
-  const message = error instanceof Error ? error.message : "Erro desconhecido.";
+  const message = sanitizeSensitiveText(
+    error instanceof Error ? error.message : "Erro desconhecido."
+  );
 
   await prisma.$executeRaw`
     UPDATE "qa_pending_tickets"

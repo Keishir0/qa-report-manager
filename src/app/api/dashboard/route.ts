@@ -1,10 +1,14 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { requireApiAccess } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
+    const denied = await requireApiAccess(request);
+    if (denied) return denied;
+
     const [
       total,
       passed,
@@ -44,7 +48,7 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error("Error in GET /api/dashboard:", error);
     return NextResponse.json(
-      { error: "Internal Server Error", details: error.message },
+      { error: "Internal Server Error" },
       { status: 500 }
     );
   }

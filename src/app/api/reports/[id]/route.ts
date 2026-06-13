@@ -1,11 +1,15 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { requireApiAccess, WRITE_ROLES } from "@/lib/auth";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    const denied = await requireApiAccess(request);
+    if (denied) return denied;
+
     const { id } = params;
 
     const report = await prisma.testReport.findUnique({
@@ -30,7 +34,7 @@ export async function GET(
   } catch (error: any) {
     console.error(`Error in GET /api/reports/${params.id}:`, error);
     return NextResponse.json(
-      { error: "Internal Server Error", details: error.message },
+      { error: "Internal Server Error" },
       { status: 500 }
     );
   }
@@ -41,6 +45,9 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    const denied = await requireApiAccess(request, WRITE_ROLES);
+    if (denied) return denied;
+
     const { id } = params;
     const body = await request.json();
 
@@ -86,7 +93,7 @@ export async function PUT(
   } catch (error: any) {
     console.error(`Error in PUT /api/reports/${params.id}:`, error);
     return NextResponse.json(
-      { error: "Internal Server Error", details: error.message },
+      { error: "Internal Server Error" },
       { status: 500 }
     );
   }
@@ -97,6 +104,9 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const denied = await requireApiAccess(request, WRITE_ROLES);
+    if (denied) return denied;
+
     const { id } = params;
 
     const exists = await prisma.testReport.findUnique({
@@ -118,7 +128,7 @@ export async function DELETE(
   } catch (error: any) {
     console.error(`Error in DELETE /api/reports/${params.id}:`, error);
     return NextResponse.json(
-      { error: "Internal Server Error", details: error.message },
+      { error: "Internal Server Error" },
       { status: 500 }
     );
   }

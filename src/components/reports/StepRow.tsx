@@ -8,9 +8,15 @@ interface StepRowProps {
   step: TestStepData;
   onDelete: (id: string) => void;
   onUpdate: (updatedStep: TestStepData) => void;
+  canEdit?: boolean;
 }
 
-export default function StepRow({ step, onDelete, onUpdate }: StepRowProps) {
+export default function StepRow({
+  step,
+  onDelete,
+  onUpdate,
+  canEdit = true,
+}: StepRowProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [action, setAction] = useState(step.action);
   const [expectedResult, setExpectedResult] = useState(step.expectedResult);
@@ -194,7 +200,7 @@ export default function StepRow({ step, onDelete, onUpdate }: StepRowProps) {
         <StatusBadge status={step.status} size="sm" />
       </td>
       <td className="p-4 whitespace-nowrap text-right text-xs">
-        <div className="flex justify-end gap-2">
+        {canEdit ? <div className="flex justify-end gap-2">
           <button
             onClick={() => setIsEditing(true)}
             className="btn-secondary py-1 px-2.5 text-xs"
@@ -207,7 +213,7 @@ export default function StepRow({ step, onDelete, onUpdate }: StepRowProps) {
           >
             Excluir
           </button>
-        </div>
+        </div> : <span className="font-medium text-slate-400">Somente leitura</span>}
       </td>
     </tr>
   );

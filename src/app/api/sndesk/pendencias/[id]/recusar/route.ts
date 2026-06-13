@@ -1,6 +1,7 @@
 import { requireQaAdmin } from "@/lib/adminAuth";
 import { markPendingError, sendPendingDecision } from "@/lib/sndesk";
 import { NextRequest, NextResponse } from "next/server";
+import { logServerError } from "@/lib/serverLog";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const unauthorized = requireQaAdmin(request);
+    const unauthorized = await requireQaAdmin(request);
     if (unauthorized) return unauthorized;
 
     const ticket = await sendPendingDecision(params.id, "recusar");
@@ -25,9 +26,12 @@ export async function POST(
       success: true,
       data: ticket,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     await markPendingError(params.id, error).catch(() => {});
-    console.error(`Error in POST /api/sndesk/pendencias/${params.id}/recusar:`, error);
-    return jsonError("Erro ao recusar no SNDesk", 500, error.message);
+    logServerError(
+      `Error in POST /api/sndesk/pendencias/${params.id}/recusar`,
+      error
+    );
+    return jsonError("Erro ao recusar no SNDesk", 500);
   }
 }

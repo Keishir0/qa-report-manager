@@ -1,6 +1,8 @@
 import prisma from "@/lib/prisma";
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { ADMIN_ROLES, requireApiAccess } from "@/lib/auth";
+import { logServerError } from "@/lib/serverLog";
 
 export const dynamic = "force-dynamic";
 
@@ -25,8 +27,11 @@ interface WebhookSettingRow {
   updatedAt: Date;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const denied = await requireApiAccess(request, ADMIN_ROLES);
+    if (denied) return denied;
+
     const [setting] = await prisma.$queryRaw<WebhookSettingRow[]>`
       SELECT "id", "key", "value", "createdAt", "updatedAt"
       FROM "webhook_settings"
@@ -41,14 +46,17 @@ export async function GET() {
         updatedAt: setting?.updatedAt ?? null,
       },
     });
-  } catch (error: any) {
-    console.error("Error in GET /api/webhooks/chamados/secret:", error);
-    return jsonError("Internal Server Error", 500, error.message);
+  } catch (error: unknown) {
+    logServerError("Error in GET /api/webhooks/chamados/secret", error);
+    return jsonError("Internal Server Error", 500);
   }
 }
 
 export async function PUT(request: NextRequest) {
   try {
+    const denied = await requireApiAccess(request, ADMIN_ROLES);
+    if (denied) return denied;
+
     let body: any;
 
     try {
@@ -78,8 +86,8 @@ export async function PUT(request: NextRequest) {
         updatedAt: setting.updatedAt,
       },
     });
-  } catch (error: any) {
-    console.error("Error in PUT /api/webhooks/chamados/secret:", error);
-    return jsonError("Internal Server Error", 500, error.message);
+  } catch (error: unknown) {
+    logServerError("Error in PUT /api/webhooks/chamados/secret", error);
+    return jsonError("Internal Server Error", 500);
   }
 }

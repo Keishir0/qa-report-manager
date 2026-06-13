@@ -10,6 +10,8 @@ interface MetricCardProps {
     isPositive?: boolean;
   };
   statusColor?: "brand" | "green" | "red" | "amber" | "slate";
+  onClick?: () => void;
+  isActive?: boolean;
 }
 
 export default function MetricCard({
@@ -18,6 +20,8 @@ export default function MetricCard({
   icon,
   trend,
   statusColor = "brand",
+  onClick,
+  isActive = false,
 }: MetricCardProps) {
   const iconColors = {
     brand: "bg-indigo-50 text-indigo-600 border border-indigo-100",
@@ -27,8 +31,17 @@ export default function MetricCard({
     slate: "bg-slate-50 text-slate-600 border border-slate-100",
   };
 
-  return (
-    <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs flex flex-col justify-between min-h-[125px]">
+  const isInteractive = Boolean(onClick);
+  const card = (
+    <div
+      className={`flex min-h-[125px] flex-col justify-between rounded-xl border border-slate-200 bg-white p-5 shadow-xs transition-all duration-200 ${
+        isActive
+          ? "-translate-y-0.5 border-indigo-500 shadow-md ring-2 ring-indigo-500/20"
+          : isInteractive
+          ? "group-hover:-translate-y-0.5 group-hover:border-indigo-200 group-hover:shadow-md group-focus-visible:border-indigo-400 group-focus-visible:ring-2 group-focus-visible:ring-indigo-500/25"
+          : ""
+      }`}
+    >
       <div className="flex justify-between items-start">
         <div>
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
@@ -59,4 +72,21 @@ export default function MetricCard({
       )}
     </div>
   );
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className="group w-full cursor-pointer rounded-xl text-left outline-none"
+        aria-label={`Filtrar dashboard por ${title}`}
+        aria-pressed={isActive}
+        title={`Filtrar dashboard por ${title}`}
+      >
+        {card}
+      </button>
+    );
+  }
+
+  return card;
 }

@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import type { AuthUser } from "@/lib/auth";
 
-export default function Sidebar() {
+export default function Sidebar({ user }: { user: AuthUser }) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
     setIsOpen(false);
@@ -70,6 +72,7 @@ export default function Sidebar() {
     {
       name: "Novo Teste",
       href: "/reports/new",
+      roles: ["ADMIN", "QA"],
       icon: (
         <svg
           className="w-5 h-5"
@@ -89,6 +92,7 @@ export default function Sidebar() {
     {
       name: "Webhooks",
       href: "/webhooks",
+      roles: ["ADMIN"],
       icon: (
         <svg
           className="w-5 h-5"
@@ -108,6 +112,7 @@ export default function Sidebar() {
     {
       name: "Pendencias",
       href: "/pendencias",
+      roles: ["ADMIN"],
       icon: (
         <svg
           className="w-5 h-5"
@@ -124,7 +129,36 @@ export default function Sidebar() {
         </svg>
       ),
     },
-  ];
+    {
+      name: "Usuários",
+      href: "/usuarios",
+      roles: ["ADMIN"],
+      icon: (
+        <svg
+          className="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M17 20h5v-2a4 4 0 00-4-4h-1m0 6H7m10 0v-2c0-1.1-.3-2.1-.9-3M7 20H2v-2a4 4 0 014-4h1m0 6v-2c0-1.1.3-2.1.9-3m8.2 0a5 5 0 00-8.2 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+          />
+        </svg>
+      ),
+    },
+  ].filter((link) => !link.roles || link.roles.includes(user.role));
+
+  async function handleLogout() {
+    setIsLoggingOut(true);
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } finally {
+      window.location.href = "/login";
+    }
+  }
 
   return (
     <>
@@ -257,13 +291,22 @@ export default function Sidebar() {
       </div>
 
       {/* Footer */}
-      <div className="p-6 border-t border-gray-100 bg-gray-50/50">
-        <div className="flex items-center justify-between text-xs text-gray-400">
-          <span>Versão</span>
-          <span className="font-mono bg-gray-200/50 text-gray-600 px-1.5 py-0.5 rounded text-[10px]">
-            v0.1.0
-          </span>
+      <div className="border-t border-gray-100 bg-gray-50/50 p-5">
+        <div className="min-w-0">
+          <div className="truncate text-sm font-bold text-slate-800">{user.name}</div>
+          <div className="truncate text-xs font-medium text-slate-500">{user.email}</div>
+          <div className="mt-1 text-[10px] font-bold uppercase tracking-wider text-indigo-600">
+            {user.role}
+          </div>
         </div>
+        <button
+          type="button"
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          className="mt-4 flex w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isLoggingOut ? "Saindo..." : "Sair"}
+        </button>
       </div>
       </aside>
     </>

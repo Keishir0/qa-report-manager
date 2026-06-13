@@ -1,6 +1,7 @@
 import { requireQaAdmin } from "@/lib/adminAuth";
 import { getSndeskConfig, saveSndeskConfig } from "@/lib/sndesk";
 import { NextRequest, NextResponse } from "next/server";
+import { logServerError } from "@/lib/serverLog";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +41,7 @@ function publicConfig(config: Awaited<ReturnType<typeof getSndeskConfig>>) {
 
 export async function GET(request: NextRequest) {
   try {
-    const unauthorized = requireQaAdmin(request);
+    const unauthorized = await requireQaAdmin(request);
     if (unauthorized) return unauthorized;
 
     const config = await getSndeskConfig();
@@ -49,15 +50,15 @@ export async function GET(request: NextRequest) {
       success: true,
       data: publicConfig(config),
     });
-  } catch (error: any) {
-    console.error("Error in GET /api/sndesk/config:", error);
-    return jsonError("Internal Server Error", 500, error.message);
+  } catch (error: unknown) {
+    logServerError("Error in GET /api/sndesk/config", error);
+    return jsonError("Internal Server Error", 500);
   }
 }
 
 export async function PUT(request: NextRequest) {
   try {
-    const unauthorized = requireQaAdmin(request);
+    const unauthorized = await requireQaAdmin(request);
     if (unauthorized) return unauthorized;
 
     const body = await request.json();
@@ -81,8 +82,8 @@ export async function PUT(request: NextRequest) {
       success: true,
       data: publicConfig(config),
     });
-  } catch (error: any) {
-    console.error("Error in PUT /api/sndesk/config:", error);
-    return jsonError("Internal Server Error", 500, error.message);
+  } catch (error: unknown) {
+    logServerError("Error in PUT /api/sndesk/config", error);
+    return jsonError("Internal Server Error", 500);
   }
 }

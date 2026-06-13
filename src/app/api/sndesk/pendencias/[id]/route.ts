@@ -2,6 +2,7 @@ import { requireQaAdmin } from "@/lib/adminAuth";
 import prisma from "@/lib/prisma";
 import { refreshPendingTicket } from "@/lib/sndesk";
 import { NextRequest, NextResponse } from "next/server";
+import { logServerError } from "@/lib/serverLog";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const unauthorized = requireQaAdmin(request);
+    const unauthorized = await requireQaAdmin(request);
     if (unauthorized) return unauthorized;
 
     const body = await request.json();
@@ -71,8 +72,8 @@ export async function PATCH(
       success: true,
       data: ticket,
     });
-  } catch (error: any) {
-    console.error(`Error in PATCH /api/sndesk/pendencias/${params.id}:`, error);
-    return jsonError("Internal Server Error", 500, error.message);
+  } catch (error: unknown) {
+    logServerError(`Error in PATCH /api/sndesk/pendencias/${params.id}`, error);
+    return jsonError("Internal Server Error", 500);
   }
 }

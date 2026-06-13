@@ -1,29 +1,69 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
+model User {
+  id           String        @id @default(cuid())
+  name         String
+  email        String        @unique
+  passwordHash String
+  role         UserRole      @default(QA)
+  active       Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  sessions     AuthSession[]
+
+  @@map("users")
+}
+
+model AuthSession {
+  id         String   @id @default(cuid())
+  tokenHash  String   @unique
+  userId     String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+  ipAddress  String?
+  userAgent  String?
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("auth_sessions")
+}
+
+model LoginThrottle {
+  key             String    @id
+  attempts        Int       @default(0)
+  windowStartedAt DateTime  @default(now())
+  blockedUntil    DateTime?
+  updatedAt       DateTime  @updatedAt
+
+  @@map("login_throttles")
 }
 
 model TestReport {
-  id             String     @id @default(cuid())
-  code           String     @unique
-  sndeskChamadoId String?   @unique @map("sndesk_chamado_id")
-  testDate       DateTime
-  systemName     String
-  branch         String
-  screenPath     String
-  functionality  String
-  bugDescription String
-  testType       String
-  generalStatus  String
-  notes          String?
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
-  steps          TestStep[]
-  pendingTicket  QaPendingTicket?
+  id              String           @id @default(cuid())
+  code            String           @unique
+  testDate        DateTime
+  systemName      String
+  branch          String
+  screenPath      String
+  functionality   String
+  bugDescription  String
+  testType        String
+  generalStatus   String
+  notes           String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  sndeskChamadoId String?          @unique @map("sndesk_chamado_id")
+  pendingTicket   QaPendingTicket?
+  steps           TestStep[]
 
   @@map("test_reports")
 }
@@ -66,7 +106,7 @@ model WebhookSetting {
   key       String   @unique
   value     String
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @default(now()) @updatedAt
 
   @@map("webhook_settings")
 }
@@ -83,9 +123,15 @@ model QaPendingTicket {
   lastError       String?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
-  report          TestReport? @relation(fields: [reportId], references: [id], onDelete: SetNull)
+  report          TestReport? @relation(fields: [reportId], references: [id])
 
   @@index([state])
   @@index([statusId])
   @@map("qa_pending_tickets")
+}
+
+enum UserRole {
+  ADMIN
+  QA
+  VIEWER
 }

@@ -13,7 +13,7 @@ import { exportToExcel, exportToPDF } from "@/lib/export";
 import Toast from "@/components/ui/Toast";
 import Button from "@/components/ui/Button";
 import PageHeader from "@/components/ui/PageHeader";
-import Input from "@/components/ui/Input";
+import { useAuthUser } from "@/components/auth/AuthProvider";
 
 interface ReportDetailPageProps {
   params: {
@@ -32,6 +32,8 @@ interface PendingTicket {
 export default function ReportDetailPage({ params }: ReportDetailPageProps) {
   const { id } = params;
   const router = useRouter();
+  const user = useAuthUser();
+  const canWrite = user?.role === "ADMIN" || user?.role === "QA";
 
   const [report, setReport] = useState<TestReportData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,7 +44,6 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
   const [showAddStep, setShowAddStep] = useState(false);
   const [isExportingExcel, setIsExportingExcel] = useState(false);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
-  const [sndeskAdminToken, setSndeskAdminToken] = useState("");
   const [pendingTicket, setPendingTicket] = useState<PendingTicket | null>(null);
   const [isSndeskLoading, setIsSndeskLoading] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
@@ -77,11 +78,11 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
   useEffect(() => {
     if (report && typeof window !== "undefined") {
       const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get("edit") === "true") {
+      if (canWrite && urlParams.get("edit") === "true") {
         setIsEditing(true);
       }
     }
-  }, [report]);
+  }, [canWrite, report]);
 
   // Excluir relatório
   const handleDeleteReport = async () => {
@@ -272,17 +273,9 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
   };
 
   const loadReportPending = useCallback(async () => {
-    if (!sndeskAdminToken) {
-      setToast({ message: "Informe o QA_ADMIN_TOKEN para carregar a pendencia.", type: "error" });
-      return;
-    }
-
     setIsSndeskLoading(true);
     try {
       const response = await fetch(`/api/sndesk/pendencias?reportId=${id}`, {
-        headers: {
-          "x-qa-admin-token": sndeskAdminToken,
-        },
         cache: "no-store",
       });
       const result = await response.json();
@@ -297,7 +290,7 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
     } finally {
       setIsSndeskLoading(false);
     }
-  }, [id, sndeskAdminToken]);
+  }, [id]);
 
   const sendSndeskDecision = async (action: "aprovar" | "recusar") => {
     if (!pendingTicket) return;
@@ -308,9 +301,6 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
         `/api/sndesk/pendencias/${pendingTicket.id}/${action}`,
         {
           method: "POST",
-          headers: {
-            "x-qa-admin-token": sndeskAdminToken,
-          },
         }
       );
       const result = await response.json();
@@ -430,7 +420,7 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
           >
             PDF
           </Button>
-          <Button
+          {canWrite && <Button
             variant="secondary"
             onClick={handleDuplicateReport}
             disabled={isSaving}
@@ -442,13 +432,13 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
             className="col-span-2 sm:col-span-1"
           >
             Duplicar Teste
-          </Button>
+          </Button>}
         </div>
       </div>
 
       {/* Seção Principal: Card de Detalhes ou Formulário de Edição */}
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs sm:p-6">
-        {isEditing ? (
+        {isEditing && canWrite ? (
           <div>
             <div className="mb-6 flex flex-col gap-2 border-b border-slate-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="text-lg font-bold text-slate-800">
@@ -491,7 +481,7 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
                 </p>
               </div>
 
-              <div className="grid w-full grid-cols-2 gap-2 md:flex md:w-auto">
+              {canWrite && <div className="grid w-full grid-cols-2 gap-2 md:flex md:w-auto">
                 <Button
                   variant="secondary"
                   onClick={() => setIsEditing(true)}
@@ -516,7 +506,7 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
                 >
                   Excluir
                 </Button>
-              </div>
+              </div>}
             </div>
 
             {/* Grid de Metadados Estilizados */}
@@ -558,7 +548,7 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
             </div>
 
             {/* Descrição do Bug */}
-            {report.sndeskChamadoId && (
+            {report.sndeskChamadoId && user?.role === "ADMIN" && (
               <div className="mb-6 rounded-xl border border-indigo-100 bg-indigo-50/30 p-4">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                   <div className="min-w-0 flex-1">
@@ -582,15 +572,7 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
                     )}
                   </div>
 
-                  <div className="grid gap-2 sm:grid-cols-[minmax(180px,240px)_auto_auto_auto]">
-                    <Input
-                      id="report-sndesk-admin-token"
-                      type="password"
-                      value={sndeskAdminToken}
-                      onChange={(event) => setSndeskAdminToken(event.target.value)}
-                      placeholder="QA_ADMIN_TOKEN"
-                      autoComplete="off"
-                    />
+                  <div className="grid gap-2 sm:grid-cols-3">
                     <Button
                       variant="secondary"
                       onClick={loadReportPending}
@@ -650,7 +632,7 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
               Etapas detalhadas e validadas durante a execução deste caso.
             </p>
           </div>
-          {!showAddStep && (
+          {canWrite && !showAddStep && (
             <Button
               variant="primary"
               onClick={() => setShowAddStep(true)}
@@ -675,7 +657,7 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
               <p className="text-xs mt-1 mb-5 font-medium">
                 Adicione os passos de validação executados para completar este relatório.
               </p>
-              {!showAddStep && (
+              {canWrite && !showAddStep && (
                 <Button
                   variant="primary"
                   onClick={() => setShowAddStep(true)}
@@ -704,6 +686,7 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
                       step={step}
                       onDelete={handleStepDelete}
                       onUpdate={handleStepUpdate}
+                      canEdit={canWrite}
                     />
                   ))}
                 </tbody>
@@ -713,7 +696,7 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
         </div>
 
         {/* Formulário de Adição de Passo */}
-        {showAddStep && (
+        {canWrite && showAddStep && (
           <div className="animate-fade-in">
             <StepForm
               reportId={id}

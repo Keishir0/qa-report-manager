@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
@@ -67,7 +67,6 @@ function getCliente(ticket: PendingTicket) {
 }
 
 export default function PendenciasClient() {
-  const [adminToken, setAdminToken] = useState("");
   const [config, setConfig] = useState<SndeskConfigView | null>(null);
   const [tickets, setTickets] = useState<PendingTicket[]>([]);
   const [reports, setReports] = useState<TestReportData[]>([]);
@@ -89,15 +88,8 @@ export default function PendenciasClient() {
   });
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
-  const adminHeaders = useMemo<Record<string, string>>(() => {
-    const headers: Record<string, string> = {};
-    if (adminToken) headers["x-qa-admin-token"] = adminToken;
-    return headers;
-  }, [adminToken]);
-
   const loadConfig = useCallback(async () => {
     const response = await fetch("/api/sndesk/config", {
-      headers: adminHeaders,
       cache: "no-store",
     });
     const result = await response.json();
@@ -107,7 +99,7 @@ export default function PendenciasClient() {
     }
 
     setConfig(result.data);
-  }, [adminHeaders]);
+  }, []);
 
   useEffect(() => {
     if (!config) return;
@@ -129,7 +121,6 @@ export default function PendenciasClient() {
 
   const loadTickets = useCallback(async () => {
     const response = await fetch("/api/sndesk/pendencias", {
-      headers: adminHeaders,
       cache: "no-store",
     });
     const result = await response.json();
@@ -139,7 +130,7 @@ export default function PendenciasClient() {
     }
 
     setTickets(result.data);
-  }, [adminHeaders]);
+  }, []);
 
   const loadReports = useCallback(async () => {
     const response = await fetch("/api/reports", { cache: "no-store" });
@@ -148,11 +139,6 @@ export default function PendenciasClient() {
   }, []);
 
   const loadAll = useCallback(async () => {
-    if (!adminToken) {
-      setToast({ message: "Informe o QA_ADMIN_TOKEN para carregar as pendencias.", type: "error" });
-      return;
-    }
-
     setIsLoading(true);
     try {
       await Promise.all([loadConfig(), loadTickets(), loadReports()]);
@@ -161,7 +147,11 @@ export default function PendenciasClient() {
     } finally {
       setIsLoading(false);
     }
-  }, [adminToken, loadConfig, loadReports, loadTickets]);
+  }, [loadConfig, loadReports, loadTickets]);
+
+  useEffect(() => {
+    loadAll();
+  }, [loadAll]);
 
   async function callPendingAction(ticketId: string, path: string, options: RequestInit = {}) {
     setActionId(ticketId);
@@ -170,7 +160,6 @@ export default function PendenciasClient() {
         ...options,
         headers: {
           "Content-Type": "application/json",
-          ...adminHeaders,
         },
       });
       const result = await response.json();
@@ -223,18 +212,12 @@ export default function PendenciasClient() {
   }
 
   async function saveConfig() {
-    if (!adminToken) {
-      setToast({ message: "Informe o QA_ADMIN_TOKEN para salvar.", type: "error" });
-      return;
-    }
-
     setIsSavingConfig(true);
     try {
       const response = await fetch("/api/sndesk/config", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          ...adminHeaders,
         },
         body: JSON.stringify(configForm),
       });
@@ -265,26 +248,7 @@ export default function PendenciasClient() {
         </Button>
       </PageHeader>
 
-      <section className="grid gap-4 lg:grid-cols-[minmax(260px,360px)_1fr]">
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Acesso administrativo
-          </span>
-          <div className="mt-3 space-y-3">
-            <Input
-              id="qa-admin-token"
-              type="password"
-              value={adminToken}
-              onChange={(event) => setAdminToken(event.target.value)}
-              placeholder="QA_ADMIN_TOKEN"
-              autoComplete="off"
-            />
-            <Button variant="secondary" onClick={loadAll} className="w-full" isLoading={isLoading}>
-              Carregar pendencias
-            </Button>
-          </div>
-        </div>
-
+      <section>
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
             Configuracao SNDesk

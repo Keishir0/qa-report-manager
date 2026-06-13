@@ -1,8 +1,12 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { requireApiAccess, WRITE_ROLES } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
+    const denied = await requireApiAccess(request, WRITE_ROLES);
+    if (denied) return denied;
+
     const body = await request.json();
     const {
       reportId,
@@ -55,7 +59,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("Error in POST /api/steps:", error);
     return NextResponse.json(
-      { error: "Internal Server Error", details: error.message },
+      { error: "Internal Server Error" },
       { status: 500 }
     );
   }

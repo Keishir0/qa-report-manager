@@ -1,16 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { requireApiAccess, WRITE_ROLES } from "@/lib/auth";
+import { logServerError } from "@/lib/serverLog";
 
 export async function POST(request: NextRequest) {
   try {
+    const denied = await requireApiAccess(request, WRITE_ROLES);
+    if (denied) return denied;
+
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
         {
-          error: "Configuração ausente",
-          details: "A chave GEMINI_API_KEY não está configurada no servidor. Por favor, adicione-a ao arquivo .env do projeto.",
+          error: "Recurso de IA indisponível.",
         },
-        { status: 400 }
+        { status: 503 }
       );
     }
 
@@ -94,12 +98,11 @@ Retorne APENAS o JSON no formato abaixo:
     const parsedData = JSON.parse(cleanedText.trim());
 
     return NextResponse.json(parsedData);
-  } catch (error: any) {
-    console.error("Error in POST /api/ai/generate:", error);
+  } catch (error: unknown) {
+    logServerError("Error in POST /api/ai/generate", error);
     return NextResponse.json(
       {
         error: "Falha na geração com IA",
-        details: error.message || "Erro desconhecido ao processar requisição da IA.",
       },
       { status: 500 }
     );

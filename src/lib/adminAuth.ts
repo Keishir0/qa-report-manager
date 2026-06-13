@@ -1,29 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
+import { ADMIN_ROLES, requireApiAccess } from "@/lib/auth";
 
-export function requireQaAdmin(request: NextRequest) {
-  const expected = process.env.QA_ADMIN_TOKEN;
+export async function requireQaAdmin(request: NextRequest) {
+  const denied = await requireApiAccess(request, ADMIN_ROLES);
 
-  if (!expected) {
-    return NextResponse.json(
-      {
-        success: false,
-        message: "QA_ADMIN_TOKEN nao configurado no servidor.",
-      },
-      { status: 503 }
-    );
-  }
+  if (!denied) return null;
 
-  const token = request.headers.get("x-qa-admin-token") || "";
-
-  if (token !== expected) {
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Token administrativo invalido.",
-      },
-      { status: 401 }
-    );
-  }
-
-  return null;
+  return NextResponse.json(
+    {
+      success: false,
+      message:
+        denied.status === 401
+          ? "Nao autenticado."
+          : "Acesso restrito a administradores.",
+    },
+    { status: denied.status }
+  );
 }

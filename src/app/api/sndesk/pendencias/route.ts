@@ -2,6 +2,7 @@ import { requireQaAdmin } from "@/lib/adminAuth";
 import prisma from "@/lib/prisma";
 import { PendingTicketRow } from "@/lib/sndesk";
 import { NextRequest, NextResponse } from "next/server";
+import { logServerError } from "@/lib/serverLog";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,7 @@ function jsonError(message: string, status: number, details?: unknown) {
 
 export async function GET(request: NextRequest) {
   try {
-    const unauthorized = requireQaAdmin(request);
+    const unauthorized = await requireQaAdmin(request);
     if (unauthorized) return unauthorized;
 
     const reportId = request.nextUrl.searchParams.get("reportId");
@@ -62,8 +63,8 @@ export async function GET(request: NextRequest) {
       success: true,
       data: tickets,
     });
-  } catch (error: any) {
-    console.error("Error in GET /api/sndesk/pendencias:", error);
-    return jsonError("Internal Server Error", 500, error.message);
+  } catch (error: unknown) {
+    logServerError("Error in GET /api/sndesk/pendencias", error);
+    return jsonError("Internal Server Error", 500);
   }
 }

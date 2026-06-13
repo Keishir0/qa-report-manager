@@ -1,6 +1,7 @@
 import { requireQaAdmin } from "@/lib/adminAuth";
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { logServerError } from "@/lib/serverLog";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const unauthorized = requireQaAdmin(request);
+    const unauthorized = await requireQaAdmin(request);
     if (unauthorized) return unauthorized;
 
     const [ticket] = await prisma.$queryRaw<any[]>`
@@ -73,8 +74,11 @@ export async function POST(
       success: true,
       data: report,
     });
-  } catch (error: any) {
-    console.error(`Error in POST /api/sndesk/pendencias/${params.id}/relatorio:`, error);
-    return jsonError("Internal Server Error", 500, error.message);
+  } catch (error: unknown) {
+    logServerError(
+      `Error in POST /api/sndesk/pendencias/${params.id}/relatorio`,
+      error
+    );
+    return jsonError("Internal Server Error", 500);
   }
 }

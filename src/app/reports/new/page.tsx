@@ -1,18 +1,28 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ReportForm from "@/components/reports/ReportForm";
 import { TestReportData } from "@/types";
 import Toast from "@/components/ui/Toast";
 import PageHeader from "@/components/ui/PageHeader";
+import { useAuthUser } from "@/components/auth/AuthProvider";
 
 export default function NewReportPage() {
   const router = useRouter();
+  const user = useAuthUser();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  useEffect(() => {
+    if (user?.role === "VIEWER") {
+      router.replace("/reports");
+    }
+  }, [router, user]);
+
+  if (user?.role === "VIEWER") return null;
 
   const handleSubmit = async (
     formData: Omit<TestReportData, "id" | "code" | "createdAt" | "updatedAt">

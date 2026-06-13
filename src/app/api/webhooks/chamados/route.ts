@@ -7,6 +7,8 @@ import {
 } from "@/lib/sndesk";
 import { createHmac, randomUUID, timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { ADMIN_ROLES, requireApiAccess } from "@/lib/auth";
+import { logServerError } from "@/lib/serverLog";
 
 export const dynamic = "force-dynamic";
 
@@ -131,6 +133,9 @@ async function processTicketPendingEvent(evento: ExternalWebhookEventRow) {
 
 export async function GET(request: NextRequest) {
   try {
+    const denied = await requireApiAccess(request, ADMIN_ROLES);
+    if (denied) return denied;
+
     const limitParam = Number(request.nextUrl.searchParams.get("limit") || 50);
     const limit = Number.isFinite(limitParam)
       ? Math.min(Math.max(limitParam, 1), 200)
@@ -157,9 +162,9 @@ export async function GET(request: NextRequest) {
       success: true,
       data: eventos,
     });
-  } catch (error: any) {
-    console.error("Error in GET /api/webhooks/chamados:", error);
-    return jsonError("Internal Server Error", 500, error.message);
+  } catch (error: unknown) {
+    logServerError("Error in GET /api/webhooks/chamados", error);
+    return jsonError("Internal Server Error", 500);
   }
 }
 
@@ -259,20 +264,26 @@ export async function POST(request: NextRequest) {
 
     try {
       await processTicketPendingEvent(evento);
-    } catch (processingError: any) {
-      console.error("Erro ao processar pendencia de chamado:", processingError);
+    } catch (processingError: unknown) {
+      logServerError("Erro ao processar pendencia de chamado", processingError);
       await updateEventStatus(evento.id, "erro").catch(() => {});
     }
 
     return NextResponse.json(
       {
         success: true,
-        data: evento,
+        data: {
+          id: evento.id,
+          event: evento.event,
+          idChamado: evento.idChamado,
+          status: evento.status,
+          receivedAt: evento.receivedAt,
+        },
       },
       { status: 201 }
     );
-  } catch (error: any) {
-    console.error("Error in POST /api/webhooks/chamados:", error);
-    return jsonError("Internal Server Error", 500, error.message);
+  } catch (error: unknown) {
+    logServerError("Error in POST /api/webhooks/chamados", error);
+    return jsonError("Internal Server Error", 500);
   }
 }

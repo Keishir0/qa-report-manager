@@ -1,24 +1,24 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import Sidebar from "@/components/ui/Sidebar";
+import AppShell from "@/components/layout/AppShell";
+import { getCurrentUser } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "QA Report Manager",
   description: "Gerenciador de Relatórios de Testes e Bugs",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const user = await getCurrentUser();
+
   return (
     <html lang="pt-BR" className="h-full">
       <body className="min-h-full bg-slate-50">
-        <Sidebar />
-        <main className="min-w-0 px-4 pb-8 pt-20 sm:px-6 lg:ml-60 lg:p-8">
-          {children}
-        </main>
+        <AppShell user={user}>{children}</AppShell>
       </body>
     </html>
   );

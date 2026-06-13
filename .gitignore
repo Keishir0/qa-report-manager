@@ -8,6 +8,7 @@
 
 # next.js
 /.next/
+/.next-dev/
 /out/
 
 # production
@@ -45,5 +46,3 @@ next-env.d.ts
 # OS files
 .DS_Store
 Thumbs.db
-prisma/migrations/migration_lock.toml
-prisma/migrations/20260612142750_brunao/migration.sql

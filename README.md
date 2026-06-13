@@ -89,21 +89,62 @@ Abaixo está a lista de comandos configurados no `package.json` para facilitar o
 | `npm run lint` | Executa o linter do Next.js para análise estática do código. |
 | `npm run db:generate` | Gera o Prisma Client com os tipos do schema atualizados. |
 | `npm run db:migrate` | Cria e aplica migrações de desenvolvimento do banco de dados. |
+| `npm run db:deploy` | Aplica migrações pendentes em produção. |
 | `npm run db:push` | Sincroniza o banco de dados diretamente com o schema do Prisma sem migrações. |
 | `npm run db:seed` | Executa o script de inserção de dados iniciais do banco (`prisma/seed.ts`). |
 | `npm run db:studio` | Abre o editor visual de banco de dados do Prisma no navegador. |
+| `npm run auth:create-admin` | Cria ou redefine a conta administrativa pelas variáveis `ADMIN_*`. |
+| `npm run auth:create-user` | Cria ou redefine uma conta pelas variáveis `USER_*`. |
+
+---
+
+## Autenticação e permissões
+
+As senhas são armazenadas com `scrypt` e salt individual. O navegador recebe
+somente um cookie de sessão `HttpOnly`, enquanto o banco guarda o hash do token.
+Após 5 tentativas inválidas, o login fica bloqueado por 15 minutos.
+
+Perfis disponíveis:
+
+- `VIEWER`: consulta e exporta relatórios.
+- `QA`: também cria e edita relatórios e passos e usa a geração por IA.
+- `ADMIN`: também administra webhooks, configurações e pendências do SNDesk.
+
+Administradores também podem cadastrar contas pela tela **Usuários** no menu
+lateral. O comando `npm run auth:create-user` continua disponível para
+recuperação administrativa pelo terminal.
+
+Para criar ou redefinir uma conta:
+
+```env
+USER_NAME="Pessoa QA"
+USER_EMAIL="qa@empresa.com"
+USER_PASSWORD="senha-com-8-ou-mais"
+USER_ROLE="QA"
+```
+
+```bash
+npm run auth:create-user
+```
+
+Alterar a senha por esse comando encerra as sessões existentes da conta.
+
+Antes de publicar uma versão com mudanças no banco, execute
+`npm run db:deploy` contra o banco de produção. O comando `npm run build` não
+altera mais o schema automaticamente.
+
+Se o banco de produção já existia antes destas migrations e era atualizado por
+`prisma db push`, marque as migrations correspondentes ao schema já existente
+com `npx prisma migrate resolve --applied <nome-da-migration>` antes do primeiro
+`db:deploy`. Não marque uma migration cuja estrutura ainda não exista no banco.
 
 ---
 
 ## Integracao SNDesk para Pendencias de Teste
 
-Defina `QA_ADMIN_TOKEN` no `.env` para proteger as rotas administrativas da
-integracao. Com esse token, a tela **Pendencias** permite salvar no banco o
-dominio, token da API SNDesk, status, modelos de mensagem e flags de envio.
-
-```env
-QA_ADMIN_TOKEN=defina-um-token-administrativo-local
-```
+As rotas administrativas da integração exigem uma sessão com perfil `ADMIN`.
+A tela **Pendencias** permite salvar no banco o domínio, token da API SNDesk,
+status, modelos de mensagem e flags de envio.
 
 O `SNDESK_API_TOKEN` fica salvo no banco, mas nunca e retornado pelo endpoint de
 configuracao; a interface mostra apenas se existe token configurado. Placeholders

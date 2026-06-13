@@ -1,8 +1,12 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { requireApiAccess, WRITE_ROLES } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
+    const denied = await requireApiAccess(request);
+    if (denied) return denied;
+
     const { searchParams } = request.nextUrl;
     const dateFrom = searchParams.get("dateFrom");
     const dateTo = searchParams.get("dateTo");
@@ -68,7 +72,7 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error("Error in GET /api/reports:", error);
     return NextResponse.json(
-      { error: "Internal Server Error", details: error.message },
+      { error: "Internal Server Error" },
       { status: 500 }
     );
   }
@@ -76,6 +80,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const denied = await requireApiAccess(request, WRITE_ROLES);
+    if (denied) return denied;
+
     const body = await request.json();
     const {
       testDate,
@@ -149,7 +156,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("Error in POST /api/reports:", error);
     return NextResponse.json(
-      { error: "Internal Server Error", details: error.message },
+      { error: "Internal Server Error" },
       { status: 500 }
     );
   }
