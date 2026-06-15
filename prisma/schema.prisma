@@ -17,8 +17,25 @@ model User {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   sessions     AuthSession[]
+  aiGenerations AiGenerationLog[]
 
   @@map("users")
+}
+
+model AiGenerationLog {
+  id        String   @id @default(cuid())
+  userId    String
+  mode      String
+  provider  String
+  model     String
+  status    String
+  latencyMs Int
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([provider, status, createdAt])
+  @@map("ai_generation_logs")
 }
 
 model AuthSession {

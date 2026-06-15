@@ -13,7 +13,7 @@ A stack de tecnologia do projeto consiste em:
 - **Estilização**: Tailwind CSS (CSS Puro, sem bibliotecas de componentes externas)
 - **Banco de Dados**: PostgreSQL rodando via Docker
 - **ORM**: Prisma ORM
-- **Inteligência Artificial**: SDK Oficial do Google Gemini (`@google/generative-ai` com o modelo `gemini-flash-latest`)
+- **Inteligência Artificial**: Google Gemini com fallback automático para GPT-OSS via OpenRouter
 - **Exportações**: 
   - `xlsx` (SheetJS) para planilhas Excel
   - `jspdf` + `jspdf-autotable` para documentos PDF
@@ -41,10 +41,16 @@ Siga os comandos abaixo a partir da pasta raiz do projeto (`qa-report-manager`) 
    ```
 
 2. **Configurar Variáveis de Ambiente**:
-   Crie ou edite o arquivo `.env` na raiz do projeto e insira as configurações de banco de dados e a chave de acesso do Google Gemini:
+   Crie ou edite o arquivo `.env` na raiz do projeto e insira as configurações de banco de dados e as chaves dos provedores de IA:
    ```env
    DATABASE_URL=""
    GEMINI_API_KEY="SUA_GEMINI_API_KEY"
+   GEMINI_MODEL="gemini-2.5-flash"
+   OPENROUTER_API_KEY="SUA_OPENROUTER_API_KEY"
+   OPENROUTER_MODEL="openai/gpt-oss-120b:free"
+   OPENROUTER_TIMEOUT_MS="45000"
+   AI_COOLDOWN_SECONDS="10"
+   AI_DAILY_LIMIT="30"
    ```
 
 3. **Subir Banco de Dados via Docker**:

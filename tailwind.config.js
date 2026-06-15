@@ -8,8 +8,13 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["var(--font-inter)", "Inter", "sans-serif"],
-        mono: ["var(--font-jetbrains)", "JetBrains Mono", "monospace"],
+        sans: ["var(--font-open-sans)", "Open Sans", "Arial", "sans-serif"],
+        mono: [
+          "var(--font-jetbrains-mono)",
+          "JetBrains Mono",
+          "Consolas",
+          "monospace",
+        ],
       },
       colors: {
         brand: {

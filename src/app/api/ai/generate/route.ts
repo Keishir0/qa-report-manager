@@ -1,109 +1,191 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { requireApiAccess, WRITE_ROLES } from "@/lib/auth";
+import { ZodError } from "zod";
+import { getApiUser, WRITE_ROLES } from "@/lib/auth";
+import prisma from "@/lib/prisma";
+import { aiRequestSchema } from "@/lib/ai/schemas";
+import { findSensitiveContent } from "@/lib/ai/sensitive";
+import { generateAiContent } from "@/lib/ai/service";
 import { logServerError } from "@/lib/serverLog";
 
-export async function POST(request: NextRequest) {
-  try {
-    const denied = await requireApiAccess(request, WRITE_ROLES);
-    if (denied) return denied;
+export const maxDuration = 60;
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
+function boundedInteger(
+  value: string | undefined,
+  fallback: number,
+  minimum: number,
+  maximum: number
+) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed)
+    ? Math.min(Math.max(Math.trunc(parsed), minimum), maximum)
+    : fallback;
+}
+
+const cooldownSeconds = () =>
+  boundedInteger(process.env.AI_COOLDOWN_SECONDS, 10, 0, 300);
+
+const dailyLimit = () =>
+  boundedInteger(process.env.AI_DAILY_LIMIT, 30, 1, 1000);
+
+function startOfUtcDay() {
+  const now = new Date();
+  return new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  );
+}
+
+export async function POST(request: NextRequest) {
+  const user = await getApiUser(request);
+
+  if (!user) {
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+  }
+
+  if (!WRITE_ROLES.includes(user.role)) {
+    return NextResponse.json(
+      { error: "Você não tem permissão para esta ação." },
+      { status: 403 }
+    );
+  }
+
+  try {
+    const input = aiRequestSchema.parse(await request.json());
+    const sensitiveType = findSensitiveContent(input.text);
+
+    if (sensitiveType) {
       return NextResponse.json(
         {
-          error: "Recurso de IA indisponível.",
+          error: `O texto parece conter ${sensitiveType}. Remova ou masque esse dado antes de usar a IA.`,
+          code: "SENSITIVE_CONTENT",
+        },
+        { status: 422 }
+      );
+    }
+
+    const [lastGeneration, generationsToday] = await Promise.all([
+      prisma.aiGenerationLog.findFirst({
+        where: { userId: user.id },
+        orderBy: { createdAt: "desc" },
+        select: { createdAt: true },
+      }),
+      prisma.aiGenerationLog.count({
+        where: {
+          userId: user.id,
+          createdAt: { gte: startOfUtcDay() },
+        },
+      }),
+    ]);
+
+    const cooldownMs = cooldownSeconds() * 1000;
+    if (
+      lastGeneration &&
+      Date.now() - lastGeneration.createdAt.getTime() < cooldownMs
+    ) {
+      const retryAfter = Math.max(
+        1,
+        Math.ceil(
+          (cooldownMs -
+            (Date.now() - lastGeneration.createdAt.getTime())) /
+            1000
+        )
+      );
+
+      return NextResponse.json(
+        {
+          error: `Aguarde ${retryAfter}s antes de gerar novamente.`,
+          code: "AI_COOLDOWN",
+          retryAfter,
+        },
+        {
+          status: 429,
+          headers: { "Retry-After": String(retryAfter) },
+        }
+      );
+    }
+
+    if (generationsToday >= dailyLimit()) {
+      return NextResponse.json(
+        {
+          error:
+            "Seu limite diário de gerações com IA foi atingido. Tente novamente amanhã.",
+          code: "AI_DAILY_LIMIT",
+        },
+        { status: 429 }
+      );
+    }
+
+    const startedAt = Date.now();
+
+    try {
+      const result = await generateAiContent(input.mode, input.text);
+      const latencyMs = Date.now() - startedAt;
+
+      await prisma.aiGenerationLog.create({
+        data: {
+          userId: user.id,
+          mode: input.mode,
+          provider: result.provider,
+          model: result.model,
+          status: "success",
+          latencyMs,
+        },
+      });
+
+      return NextResponse.json({
+        data: result.data,
+        meta: {
+          provider: result.provider,
+          model: result.model,
+          fallbackUsed: result.fallbackUsed,
+          latencyMs,
+        },
+      });
+    } catch (error) {
+      const latencyMs = Date.now() - startedAt;
+
+      await prisma.aiGenerationLog
+        .create({
+          data: {
+            userId: user.id,
+            mode: input.mode,
+            provider: "unavailable",
+            model: `${process.env.GEMINI_MODEL || "gemini-2.5-flash"} | ${
+              process.env.OPENROUTER_MODEL || "openai/gpt-oss-120b:free"
+            }`,
+            status: "failed",
+            latencyMs,
+          },
+        })
+        .catch((logError) =>
+          logServerError("Error recording failed AI generation", logError)
+        );
+
+      logServerError("All AI providers failed", error);
+      return NextResponse.json(
+        {
+          error:
+            "Os serviços de IA estão indisponíveis no momento. Tente novamente em alguns instantes.",
+          code: "AI_PROVIDERS_UNAVAILABLE",
+          retryable: true,
         },
         { status: 503 }
       );
     }
-
-    const { text } = await request.json();
-    if (!text || text.trim() === "") {
+  } catch (error) {
+    if (error instanceof ZodError) {
       return NextResponse.json(
-        { error: "Entrada inválida", details: "Por favor, forneça uma descrição em texto do teste ou bug." },
+        {
+          error:
+            "Informe um texto válido de até 12.000 caracteres e o tipo de geração.",
+          code: "INVALID_AI_REQUEST",
+        },
         { status: 400 }
       );
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: "gemini-flash-latest",
-      generationConfig: {
-        responseMimeType: "application/json",
-      },
-    });
-
-    const systemInstruction = `
-Você é um assistente especialista em Controle de Qualidade (QA) e teste de software.
-Sua tarefa é analisar uma descrição informal ou relato de bug fornecido pelo usuário e convertê-lo em um JSON estruturado para preencher um formulário de relatório de testes.
-
-Você deve extrair ou deduzir as seguintes informações:
-1. systemName: O nome do sistema sob teste (ex: "SNDesk"). Se não conseguir identificar, use "Não identificado".
-2. branch: Um dos seguintes valores exatos: "Master", "Alfa", "Master / Alfa", "Homologação", "Produção", "Desenvolvimento". Se não for mencionado, deduza com base no contexto ou use "Desenvolvimento".
-3. testType: Um dos seguintes valores exatos: "Funcional", "Regressão", "Reteste", "Exploratório", "Interface / Visual", "Validação de campos", "Integração", "Permissão / Acesso", "Compatibilidade". Se não puder identificar, use "Funcional".
-4. generalStatus: Um dos seguintes valores exatos: "Passou", "Falhou", "Bloqueado", "Não executado". Se houver um bug mencionado, use "Falhou" ou "Bloqueado".
-5. screenPath: O caminho da tela ou menu (ex: "Configurações > Usuários"). Se não mencionado, use "Não informado".
-6. functionality: A funcionalidade sendo testada (ex: "Cadastro de novo usuário"). Se não mencionado, use "Geral".
-7. bugDescription: Descrição detalhada do bug ou cenário observado.
-8. notes: Observações ou notas adicionais de teste. Se não houver nada relevante, deixe como string vazia.
-9. steps: Um array de passos executados para reproduzir ou validar o teste. Cada passo deve conter:
-   - stepNumber: O número sequencial do passo (1, 2, 3, ...).
-   - action: A ação executada (ex: "Acessar a tela X").
-   - expectedResult: O resultado esperado (ex: "A tela deve carregar").
-   - actualResult: O resultado obtido (ex: "A tela exibiu erro 500").
-   - status: O status do passo (um dos valores exatos: "Passou", "Falhou", "Bloqueado", "Não executado").
-
-Retorne APENAS o JSON no formato abaixo:
-{
-  "systemName": string,
-  "branch": string,
-  "testType": string,
-  "generalStatus": string,
-  "screenPath": string,
-  "functionality": string,
-  "bugDescription": string,
-  "notes": string,
-  "steps": [
-    {
-      "stepNumber": number,
-      "action": string,
-      "expectedResult": string,
-      "actualResult": string,
-      "status": string
-    }
-  ]
-}
-`;
-
-    const prompt = `Analise o relato abaixo e monte a estrutura de teste correspondente:\n\n"${text}"`;
-
-    const result = await model.generateContent([
-      { text: systemInstruction },
-      { text: prompt },
-    ]);
-
-    const responseText = result.response.text();
-    if (!responseText) {
-      throw new Error("A IA gerou uma resposta vazia.");
-    }
-
-    // Limpar markdown code fences se estiverem presentes
-    let cleanedText = responseText.trim();
-    if (cleanedText.startsWith("```")) {
-      cleanedText = cleanedText.replace(/^```[a-zA-Z]*\s*/, "").replace(/\s*```$/, "");
-    }
-
-    // Tentar fazer o parse do JSON retornado
-    const parsedData = JSON.parse(cleanedText.trim());
-
-    return NextResponse.json(parsedData);
-  } catch (error: unknown) {
     logServerError("Error in POST /api/ai/generate", error);
     return NextResponse.json(
-      {
-        error: "Falha na geração com IA",
-      },
+      { error: "Não foi possível processar a solicitação de IA." },
       { status: 500 }
     );
   }

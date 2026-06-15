@@ -14,6 +14,7 @@ import Toast from "@/components/ui/Toast";
 import Button from "@/components/ui/Button";
 import PageHeader from "@/components/ui/PageHeader";
 import { useAuthUser } from "@/components/auth/AuthProvider";
+import AiStepAssistant from "@/components/reports/AiStepAssistant";
 
 interface ReportDetailPageProps {
   params: {
@@ -42,6 +43,7 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showAddStep, setShowAddStep] = useState(false);
+  const [showAiAssistant, setShowAiAssistant] = useState(false);
   const [isExportingExcel, setIsExportingExcel] = useState(false);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
   const [pendingTicket, setPendingTicket] = useState<PendingTicket | null>(null);
@@ -238,6 +240,15 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
     fetchReport();
     setToast({ message: "Passo de teste adicionado com sucesso!", type: "success" });
     setShowAddStep(false);
+  };
+
+  const handleAiStepsSaved = () => {
+    fetchReport();
+    setShowAiAssistant(false);
+    setToast({
+      message: "Passos gerados pela IA e adicionados com sucesso!",
+      type: "success",
+    });
   };
 
   // Exportar Excel
@@ -632,20 +643,52 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
               Etapas detalhadas e validadas durante a execução deste caso.
             </p>
           </div>
-          {canWrite && !showAddStep && (
-            <Button
-              variant="primary"
-              onClick={() => setShowAddStep(true)}
-              icon={
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-              }
-            >
-              Adicionar Passo
-            </Button>
+          {canWrite && (
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+              {!showAiAssistant && (
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setShowAiAssistant(true);
+                    setShowAddStep(false);
+                  }}
+                  icon={
+                    <svg className="h-4 w-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3l1.4 4.1L17.5 8.5l-4.1 1.4L12 14l-1.4-4.1-4.1-1.4 4.1-1.4L12 3zm6 10l.9 2.6 2.6.9-2.6.9L18 20l-.9-2.6-2.6-.9 2.6-.9L18 13z" />
+                    </svg>
+                  }
+                >
+                  Assistente IA
+                </Button>
+              )}
+              {!showAddStep && (
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    setShowAddStep(true);
+                    setShowAiAssistant(false);
+                  }}
+                  icon={
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                  }
+                >
+                  Adicionar Passo
+                </Button>
+              )}
+            </div>
           )}
         </div>
+
+        {canWrite && showAiAssistant && (
+          <AiStepAssistant
+            report={report}
+            nextStepNumber={nextStepNumber}
+            onSaved={handleAiStepsSaved}
+            onClose={() => setShowAiAssistant(false)}
+          />
+        )}
 
         {/* Tabela de Passos */}
         <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">

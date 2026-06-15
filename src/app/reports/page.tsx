@@ -455,14 +455,11 @@ export default function ReportsListPage() {
           />
         }
       >
-        {reports.map((report) => {
-          const isFailed = report.generalStatus === "Falhou";
-          const isBlocked = report.generalStatus === "Bloqueado";
-          const rowHighlightClass = isFailed
-            ? "bg-rose-50/20 hover:bg-rose-50/40 border-l-4 border-l-red-500"
-            : isBlocked
-            ? "bg-amber-50/20 hover:bg-amber-50/40 border-l-4 border-l-amber-500"
-            : "hover:bg-slate-50/50 border-l-4 border-l-transparent";
+        {reports.map((report, index) => {
+          const isAlternateRow = index % 2 === 1;
+          const rowHighlightClass = isAlternateRow
+            ? "bg-slate-50/80 hover:bg-slate-100"
+            : "bg-white hover:bg-slate-50";
 
           const stepsCount = report.steps?.length || 0;
 

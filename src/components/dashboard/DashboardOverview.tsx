@@ -213,8 +213,8 @@ export default function DashboardOverview({
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-extrabold text-slate-800">{tableTitle}</h2>
             {!isLoading && (
-              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-500">
-                {reports.length}
+              <span className="inline-flex items-center rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-1 text-xs font-bold tabular-nums text-indigo-700">
+                {reports.length} {reports.length === 1}
               </span>
             )}
           </div>
@@ -286,14 +286,11 @@ export default function DashboardOverview({
             />
           }
         >
-          {reports.map((report) => {
-            const isFailed = report.generalStatus === "Falhou";
-            const isBlocked = report.generalStatus === "Bloqueado";
-            const rowHighlightClass = isFailed
-              ? "border-l-4 border-l-red-500 bg-rose-50/20 hover:bg-rose-50/40"
-              : isBlocked
-                ? "border-l-4 border-l-amber-500 bg-amber-50/20 hover:bg-amber-50/40"
-                : "border-l-4 border-l-transparent hover:bg-slate-50/50";
+          {reports.map((report, index) => {
+            const isAlternateRow = index % 2 === 1;
+            const rowHighlightClass = isAlternateRow
+              ? "bg-slate-50/80 hover:bg-slate-100"
+              : "bg-white hover:bg-slate-50";
             const stepsCount = report.steps?.length || 0;
 
             return (

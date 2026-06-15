@@ -292,12 +292,35 @@ export default function Sidebar({ user }: { user: AuthUser }) {
 
       {/* Footer */}
       <div className="border-t border-gray-100 bg-gray-50/50 p-5">
-        <div className="min-w-0">
-          <div className="truncate text-sm font-bold text-slate-800">{user.name}</div>
-          <div className="truncate text-xs font-medium text-slate-500">{user.email}</div>
-          <div className="mt-1 text-[10px] font-bold uppercase tracking-wider text-indigo-600">
-            {user.role}
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <div className="truncate text-sm font-bold text-slate-800">{user.name}</div>
+            <div className="truncate text-xs font-medium text-slate-500">{user.email}</div>
+            <div className="mt-1 text-[10px] font-bold uppercase tracking-wider text-indigo-600">
+              {user.role}
+            </div>
           </div>
+          {user.role === "ADMIN" && (
+            <Link
+              href="/logs"
+              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+              title="Logs do Sistema"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+            </Link>
+          )}
         </div>
         <button
           type="button"

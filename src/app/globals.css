@@ -1,8 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --font-open-sans: "Open Sans";
+  --font-jetbrains-mono: "JetBrains Mono";
+}
 
 @layer components {
   .btn-primary {
@@ -25,13 +28,8 @@
   }
 }
 
-:root {
-  --font-inter: 'Inter', sans-serif;
-  --font-jetbrains: 'JetBrains Mono', monospace;
-}
-
 body {
-  font-family: var(--font-inter);
+  font-family: var(--font-open-sans), "Open Sans", Arial, sans-serif;
   background-color: #f8fafc;
   color: #0f172a;
 }

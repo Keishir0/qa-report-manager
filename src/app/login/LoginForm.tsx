@@ -23,10 +23,30 @@ export default function LoginForm({ nextPath }: { nextPath: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-      const result = await response.json();
+      const responseText = await response.text();
+      let result: { error?: string } = {};
+
+      if (responseText) {
+        try {
+          result = JSON.parse(responseText) as { error?: string };
+        } catch {
+          result = {};
+        }
+      }
 
       if (!response.ok) {
-        throw new Error(result.error || "Nao foi possivel entrar.");
+        throw new Error(
+          result.error ||
+            (response.status >= 500
+              ? "O serviço de autenticação está indisponível. Tente novamente em instantes."
+              : "Não foi possível entrar.")
+        );
+      }
+
+      if (!responseText) {
+        throw new Error(
+          "O servidor não confirmou a autenticação. Tente novamente."
+        );
       }
 
       router.replace(nextPath);
@@ -35,7 +55,7 @@ export default function LoginForm({ nextPath }: { nextPath: string }) {
       setError(
         loginError instanceof Error
           ? loginError.message
-          : "Nao foi possivel entrar."
+          : "Não foi possível entrar."
       );
     } finally {
       setIsLoading(false);

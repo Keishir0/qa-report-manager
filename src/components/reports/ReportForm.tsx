@@ -73,16 +73,18 @@ export default function ReportForm({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ text: aiInputText }),
+        body: JSON.stringify({ mode: "report", text: aiInputText }),
       });
 
-      const data = await response.json();
+      const result = await response.json();
 
       if (!response.ok) {
         throw new Error(
-          data.details || data.error || "Erro ao processar com IA."
+          result.details || result.error || "Erro ao processar com o assistente."
         );
       }
+
+      const data = result.data;
 
       // Preencher os campos do formulário com o JSON gerado
       if (data.systemName) setSystemName(data.systemName);
@@ -113,7 +115,10 @@ export default function ReportForm({
         );
       }
 
-      setAiSuccessMessage("✨ Formulário preenchido por IA com sucesso! Por favor, revise todos os campos e passos abaixo antes de salvar.");
+      setAiSuccessMessage(
+        result.meta?.fallbackUsed
+          ? "Formulário preenchido com sucesso com o Assistente! Revise os dados antes de salvar." : "Formulário preenchido com sucesso com o Assistente! Revise os dados antes de salvar."
+      );
       setIsAiPanelOpen(false);
       setAiInputText("");
     } catch (err: any) {
@@ -259,7 +264,7 @@ export default function ReportForm({
           <div className="flex flex-col gap-3 border-b border-indigo-100 pb-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2">
               <span className="text-lg">✨</span>
-              <h3 className="font-extrabold text-indigo-900 text-sm">Preenchimento Inteligente com IA</h3>
+              <h3 className="font-extrabold text-indigo-900 text-sm">Preenchimento inteligente com o Assistente</h3>
             </div>
             <Button
               type="button"
@@ -278,12 +283,10 @@ export default function ReportForm({
           {isAiPanelOpen ? (
             <div className="space-y-4 animate-fade-in">
               <p className="text-xs text-indigo-700 font-semibold leading-relaxed">
-                Descreva informalmente em linguagem natural o que aconteceu, qual sistema foi testado, qual branch,
-                e os passos que você seguiu. Nossa IA irá estruturar todo o formulário (incluindo a tabela de passos)
-                para sua verificação.
+                Descreva os testes que você realizou. Nosso Assistente irá estruturar todo o formulário para sua verificação.
               </p>
               <Textarea
-                placeholder="Ex: Fui testar o SNDesk na branch Alfa e achei um bug na tela de Cupom. Quando eu pus o cupom 'PROMO2026' na finalização da compra, a tela travou em branco e deu erro 500 no console. Esperava que desse mensagem amigável de cupom inválido. Passos: loguei, fui no carrinho, pus o cupom PROMO2026 e cliquei em aplicar..."
+                placeholder="Ex: Fui testar o SNDesk na branch Alfa e achei um bug na tela de Novo Chamado.  Quando cliquei para criar o chamado deu erro 500."
                 id="aiTextRelato"
                 rows={4}
                 value={aiInputText}
@@ -309,7 +312,7 @@ export default function ReportForm({
             </div>
           ) : (
             <p className="text-xs text-slate-500 font-medium">
-              Cole seu relato informal de bug/teste em linguagem natural e deixe que a IA preencha as seções e os passos sequenciais para você.
+              Cole seu relato de bug/teste e deixe que o Assistente preencha as seções e os passos sequenciais para você.
             </p>
           )}
 

@@ -117,6 +117,12 @@ export async function getCurrentUser() {
   return getUserFromSessionToken(cookies().get(SESSION_COOKIE_NAME)?.value);
 }
 
+export async function getApiUser(request: NextRequest) {
+  return getUserFromSessionToken(
+    request.cookies.get(SESSION_COOKIE_NAME)?.value
+  );
+}
+
 export async function requirePageUser(allowedRoles?: UserRole[]) {
   const user = await getCurrentUser();
 
@@ -130,9 +136,7 @@ export async function requireApiAccess(
   request: NextRequest,
   allowedRoles?: UserRole[]
 ) {
-  const user = await getUserFromSessionToken(
-    request.cookies.get(SESSION_COOKIE_NAME)?.value
-  );
+  const user = await getApiUser(request);
 
   if (!user) {
     return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });

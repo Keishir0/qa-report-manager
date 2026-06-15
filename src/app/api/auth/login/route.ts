@@ -10,6 +10,7 @@ import {
   spendPasswordHashTime,
   verifyPassword,
 } from "@/lib/password";
+import { logServerError } from "@/lib/serverLog";
 
 const WINDOW_MS = 15 * 60 * 1000;
 const BLOCK_MS = 15 * 60 * 1000;
@@ -58,7 +59,7 @@ async function registerFailure(key: string) {
   });
 }
 
-export async function POST(request: NextRequest) {
+async function handleLogin(request: NextRequest) {
   const contentLength = Number(request.headers.get("content-length") || 0);
 
   if (contentLength > 4096) {
@@ -129,4 +130,20 @@ export async function POST(request: NextRequest) {
   );
 
   return response;
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    return await handleLogin(request);
+  } catch (error) {
+    logServerError("Error in POST /api/auth/login", error);
+    return NextResponse.json(
+      {
+        error:
+          "O serviço de autenticação está indisponível. Verifique o banco de dados e tente novamente.",
+        code: "AUTH_SERVICE_UNAVAILABLE",
+      },
+      { status: 503 }
+    );
+  }
 }
