@@ -21,6 +21,13 @@ import Select from "@/components/ui/Select";
 import { useAuthUser } from "@/components/auth/AuthProvider";
 import ReportActionsMenu from "@/components/reports/ReportActionsMenu";
 
+interface UserOption {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
 export default function ReportsListPage() {
   const user = useAuthUser();
   const canWrite = user?.role === "ADMIN" || user?.role === "QA";
@@ -31,6 +38,7 @@ export default function ReportsListPage() {
   const [isExportingExcel, setIsExportingExcel] = useState(false);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [userOptions, setUserOptions] = useState<UserOption[]>([]);
 
   // Estados dos filtros
   const [dateFrom, setDateFrom] = useState("");
@@ -39,11 +47,15 @@ export default function ReportsListPage() {
   const [status, setStatus] = useState("");
   const [testType, setTestType] = useState("");
   const [system, setSystem] = useState("");
+  const [tester, setTester] = useState("");
+  const [dev, setDev] = useState("");
   const [search, setSearch] = useState("");
 
   // Debounces locais
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [debouncedSystem, setDebouncedSystem] = useState("");
+  const [debouncedTester, setDebouncedTester] = useState("");
+  const [debouncedDev, setDebouncedDev] = useState("");
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -58,6 +70,44 @@ export default function ReportsListPage() {
     }, 350);
     return () => clearTimeout(handler);
   }, [system]);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedTester(tester);
+    }, 350);
+    return () => clearTimeout(handler);
+  }, [tester]);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedDev(dev);
+    }, 350);
+    return () => clearTimeout(handler);
+  }, [dev]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadUserOptions() {
+      try {
+        const response = await fetch("/api/users/options", { cache: "no-store" });
+        if (!response.ok) return;
+
+        const result = await response.json();
+        if (isMounted && Array.isArray(result.data)) {
+          setUserOptions(result.data);
+        }
+      } catch {
+        if (isMounted) setUserOptions([]);
+      }
+    }
+
+    loadUserOptions();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Capturar erro vindo do redirecionamento de 404 da página [id] de forma segura no browser
   useEffect(() => {
@@ -84,6 +134,8 @@ export default function ReportsListPage() {
       if (status) params.append("status", status);
       if (testType) params.append("testType", testType);
       if (debouncedSystem) params.append("system", debouncedSystem);
+      if (debouncedTester) params.append("tester", debouncedTester);
+      if (debouncedDev) params.append("dev", debouncedDev);
       if (debouncedSearch) params.append("search", debouncedSearch);
 
       const response = await fetch(`/api/reports?${params.toString()}`);
@@ -97,7 +149,7 @@ export default function ReportsListPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [dateFrom, dateTo, branch, status, testType, debouncedSystem, debouncedSearch]);
+  }, [dateFrom, dateTo, branch, status, testType, debouncedSystem, debouncedTester, debouncedDev, debouncedSearch]);
 
   useEffect(() => {
     fetchReports();
@@ -111,6 +163,8 @@ export default function ReportsListPage() {
     setStatus("");
     setTestType("");
     setSystem("");
+    setTester("");
+    setDev("");
     setSearch("");
   };
 
@@ -322,8 +376,8 @@ export default function ReportsListPage() {
 
       {/* Painel de Filtros e Busca */}
       <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-xs sm:p-5">
-        <div className="flex flex-col lg:flex-row gap-4 justify-between items-start lg:items-end">
-          <div className="w-full lg:max-w-md">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div>
             <Input
               label="Busca Rápida"
               id="searchQuick"
@@ -333,13 +387,38 @@ export default function ReportsListPage() {
               className="w-full"
             />
           </div>
-          <div className="w-full lg:max-w-xs">
+          <div>
             <Input
               label="Filtrar por Sistema"
               id="filterSystem"
               placeholder="Nome do sistema..."
               value={system}
               onChange={(e) => setSystem(e.target.value)}
+              className="w-full"
+            />
+          </div>
+          <div>
+            <Select
+              label="Filtrar por QA"
+              id="filterTester"
+              value={tester}
+              onChange={(e) => setTester(e.target.value)}
+            >
+              <option value="">Todos os QAs</option>
+              {userOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.name} ({option.email})
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div>
+            <Input
+              label="Filtrar por Dev"
+              id="filterDev"
+              placeholder="Dev ou técnico SNDesk..."
+              value={dev}
+              onChange={(e) => setDev(e.target.value)}
               className="w-full"
             />
           </div>
@@ -402,7 +481,7 @@ export default function ReportsListPage() {
           </div>
         </div>
 
-        {(dateFrom || dateTo || branch || status || testType || system || search) && (
+        {(dateFrom || dateTo || branch || status || testType || system || tester || dev || search) && (
           <div className="flex justify-end">
             <button
               onClick={handleClearFilters}
@@ -437,6 +516,8 @@ export default function ReportsListPage() {
           "Tela / Menu",
           "Funcionalidade",
           "Tipo",
+          "Testado por",
+          "Dev",
           "Passos",
           "Status",
           "Ações",
@@ -481,6 +562,12 @@ export default function ReportsListPage() {
                 {report.functionality}
               </td>
               <td className="p-4 text-slate-600 whitespace-nowrap">{report.testType}</td>
+              <td className="p-4 min-w-[140px] font-semibold text-slate-800">
+                {report.testerName || "Nao informado"}
+              </td>
+              <td className="p-4 min-w-[140px] text-slate-600">
+                {report.sndeskTechnicianName || "Nao informado"}
+              </td>
               <td className="p-4 text-slate-500 font-medium">
                 {stepsCount} {stepsCount === 1 ? "passo" : "passos"}
               </td>

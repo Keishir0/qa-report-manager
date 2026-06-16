@@ -66,6 +66,35 @@ export async function PUT(
       updateData.testDate = new Date(updateData.testDate);
     }
 
+    if (Object.prototype.hasOwnProperty.call(updateData, "testerId")) {
+      const nextTesterId = updateData.testerId ? String(updateData.testerId) : null;
+      if (nextTesterId) {
+        const tester = await prisma.user.findFirst({
+          where: { id: nextTesterId, active: true },
+          select: { id: true, name: true },
+        });
+
+        if (!tester) {
+          return NextResponse.json(
+            { error: "Usuario testador nao encontrado." },
+            { status: 400 }
+          );
+        }
+
+        updateData.testerId = tester.id;
+        updateData.testerName = tester.name;
+      } else {
+        updateData.testerId = null;
+        updateData.testerName = null;
+      }
+    }
+
+    if (Object.prototype.hasOwnProperty.call(updateData, "sndeskTechnicianName")) {
+      updateData.sndeskTechnicianName = updateData.sndeskTechnicianName
+        ? String(updateData.sndeskTechnicianName).trim()
+        : null;
+    }
+
     const exists = await prisma.testReport.findUnique({
       where: { id },
     });

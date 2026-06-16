@@ -86,9 +86,7 @@ export default function PendenciasClient() {
   const [tickets, setTickets] = useState<PendingTicket[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
-  const [isRefreshingTickets, setIsRefreshingTickets] = useState(false);
   const [lastTicketsRefresh, setLastTicketsRefresh] = useState<Date | null>(null);
-  const [autoRefreshError, setAutoRefreshError] = useState<string | null>(null);
   const [isSavingConfig, setIsSavingConfig] = useState(false);
   const [actionId, setActionId] = useState<string | null>(null);
   const isPollingTickets = useRef(false);
@@ -138,25 +136,18 @@ export default function PendenciasClient() {
     }));
   }, [config]);
 
-  const loadTickets = useCallback(async (options?: { silent?: boolean }) => {
-    if (options?.silent) setIsRefreshingTickets(true);
+  const loadTickets = useCallback(async () => {
+    const response = await fetch("/api/sndesk/pendencias", {
+      cache: "no-store",
+    });
+    const result = await response.json();
 
-    try {
-      const response = await fetch("/api/sndesk/pendencias", {
-        cache: "no-store",
-      });
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.message || "Nao foi possivel carregar pendencias.");
-      }
-
-      setTickets(result.data);
-      setLastTicketsRefresh(new Date());
-      setAutoRefreshError(null);
-    } finally {
-      if (options?.silent) setIsRefreshingTickets(false);
+    if (!response.ok || !result.success) {
+      throw new Error(result.message || "Nao foi possivel carregar pendencias.");
     }
+
+    setTickets(result.data);
+    setLastTicketsRefresh(new Date());
   }, []);
 
   const loadAll = useCallback(async () => {
@@ -175,19 +166,16 @@ export default function PendenciasClient() {
   }, [loadAll]);
 
   useEffect(() => {
-    if (!autoRefreshEnabled) {
-      setIsRefreshingTickets(false);
-      return;
-    }
+    if (!autoRefreshEnabled) return;
 
     const interval = window.setInterval(async () => {
       if (document.hidden || isPollingTickets.current) return;
 
       isPollingTickets.current = true;
       try {
-        await loadTickets({ silent: true });
-      } catch (error: any) {
-        setAutoRefreshError(error.message || "Erro ao atualizar pendencias automaticamente.");
+        await loadTickets();
+      } catch {
+        // Mantem a atualizacao automatica silenciosa para nao interromper o usuario.
       } finally {
         isPollingTickets.current = false;
       }
@@ -468,25 +456,11 @@ export default function PendenciasClient() {
 
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-xs sm:px-5">
-          <div
-            className={`flex items-center gap-2 text-sm font-semibold ${
-              autoRefreshError ? "text-rose-700" : "text-slate-600"
-            }`}
-          >
+          <div className="flex items-center gap-2 text-sm font-semibold text-slate-600">
             {!autoRefreshEnabled ? (
               <>
                 <span className="h-2.5 w-2.5 rounded-full bg-slate-400" />
                 Atualizacao automatica pausada
-              </>
-            ) : isRefreshingTickets ? (
-              <>
-                <span className="h-3 w-3 animate-spin rounded-full border-2 border-indigo-200 border-t-indigo-600" />
-                Buscando novas pendencias...
-              </>
-            ) : autoRefreshError ? (
-              <>
-                <span className="h-2.5 w-2.5 rounded-full bg-rose-500" />
-                Atualizacao automatica falhou
               </>
             ) : (
               <>
@@ -524,6 +498,7 @@ export default function PendenciasClient() {
 
         <DataTable
         headers={[
+          "ID",
           "Chamado",
           "Cliente",
           "Status",
@@ -540,16 +515,18 @@ export default function PendenciasClient() {
             description="Quando o SNDesk enviar um status configurado para teste, a pendencia aparecera aqui."
           />
         }
-        className="[&_table]:min-w-[1040px]"
+        className="[&_table]:min-w-[1080px]"
       >
         {tickets.map((ticket) => (
           <tr key={ticket.id} className="text-sm transition-colors hover:bg-slate-50">
-            <td className="p-4 min-w-[300px]">
-              <div className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 font-mono text-[11px] font-bold text-slate-600">
+            <td className="p-4 whitespace-nowrap align-middle">
+              <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 font-mono text-[11px] font-bold text-slate-600">
                 #{ticket.idChamado}
-              </div>
+              </span>
+            </td>
+            <td className="p-4 min-w-[320px]">
               <div
-                className="mt-2 line-clamp-2 max-w-[340px] text-sm font-bold leading-snug text-slate-900"
+                className="line-clamp-2 max-w-[380px] text-sm font-bold leading-snug text-slate-900"
                 title={getChamadoTitle(ticket)}
               >
                 {getChamadoTitle(ticket)}
@@ -580,6 +557,7 @@ export default function PendenciasClient() {
                 onClick={() => createReport(ticket.id)}
                 disabled={Boolean(ticket.reportId)}
                 isLoading={actionId === ticket.id}
+                className="px-3 py-1.5 text-xs"
               >
                 Criar relatorio
               </Button>
@@ -602,6 +580,27 @@ export default function PendenciasClient() {
                 variant="secondary"
                 onClick={() => viewTicket(ticket)}
                 isLoading={actionId === ticket.id}
+                className="px-3 py-1.5 text-xs text-indigo-700"
+                icon={
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M2.25 12s3.75-6.75 9.75-6.75S21.75 12 21.75 12s-3.75 6.75-9.75 6.75S2.25 12 2.25 12Z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+                    />
+                  </svg>
+                }
               >
                 Ver
               </Button>

@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
-import { requireApiAccess, WRITE_ROLES } from "@/lib/auth";
+import { getApiUser, requireApiAccess, WRITE_ROLES } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,9 +14,12 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status");
     const testType = searchParams.get("testType");
     const system = searchParams.get("system");
+    const tester = searchParams.get("tester");
+    const dev = searchParams.get("dev");
     const search = searchParams.get("search");
 
     const where: any = {};
+    const andFilters: any[] = [];
 
     if (dateFrom || dateTo) {
       where.testDate = {};
@@ -44,14 +47,34 @@ export async function GET(request: NextRequest) {
       where.systemName = { contains: system, mode: "insensitive" };
     }
 
+    if (tester && tester.trim() !== "") {
+      andFilters.push({
+        testerId: tester,
+      });
+    }
+
+    if (dev && dev.trim() !== "") {
+      andFilters.push({
+        sndeskTechnicianName: { contains: dev, mode: "insensitive" },
+      });
+    }
+
     if (search && search.trim() !== "") {
-      where.OR = [
-        { code: { contains: search, mode: "insensitive" } },
-        { screenPath: { contains: search, mode: "insensitive" } },
-        { functionality: { contains: search, mode: "insensitive" } },
-        { bugDescription: { contains: search, mode: "insensitive" } },
-        { systemName: { contains: search, mode: "insensitive" } },
-      ];
+      andFilters.push({
+        OR: [
+          { code: { contains: search, mode: "insensitive" } },
+          { screenPath: { contains: search, mode: "insensitive" } },
+          { functionality: { contains: search, mode: "insensitive" } },
+          { bugDescription: { contains: search, mode: "insensitive" } },
+          { systemName: { contains: search, mode: "insensitive" } },
+          { testerName: { contains: search, mode: "insensitive" } },
+          { sndeskTechnicianName: { contains: search, mode: "insensitive" } },
+        ],
+      });
+    }
+
+    if (andFilters.length > 0) {
+      where.AND = andFilters;
     }
 
     const reports = await prisma.testReport.findMany({
@@ -82,6 +105,7 @@ export async function POST(request: NextRequest) {
   try {
     const denied = await requireApiAccess(request, WRITE_ROLES);
     if (denied) return denied;
+    const user = await getApiUser(request);
 
     const body = await request.json();
     const {
@@ -94,6 +118,8 @@ export async function POST(request: NextRequest) {
       testType,
       generalStatus,
       sndeskChamadoId,
+      testerId,
+      sndeskTechnicianName,
       notes,
       steps,
     } = body;
@@ -119,6 +145,19 @@ export async function POST(request: NextRequest) {
     const count = await prisma.testReport.count();
     const nextNumber = count + 1;
     const code = `QA-${String(nextNumber).padStart(3, "0")}`;
+    const tester = testerId
+      ? await prisma.user.findFirst({
+          where: { id: String(testerId), active: true },
+          select: { id: true, name: true },
+        })
+      : user;
+
+    if (testerId && !tester) {
+      return NextResponse.json(
+        { error: "Usuario testador nao encontrado." },
+        { status: 400 }
+      );
+    }
 
     const report = await prisma.testReport.create({
       data: {
@@ -132,6 +171,11 @@ export async function POST(request: NextRequest) {
         bugDescription,
         testType,
         generalStatus,
+        testerId: tester?.id || user?.id || null,
+        testerName: tester?.name || user?.name || null,
+        sndeskTechnicianName: sndeskTechnicianName
+          ? String(sndeskTechnicianName).trim()
+          : null,
         notes,
         steps: steps && Array.isArray(steps) ? {
           create: steps.map((step: any) => ({

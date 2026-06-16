@@ -1,7 +1,9 @@
 import { requireQaAdmin } from "@/lib/adminAuth";
+import { getApiUser } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { logServerError } from "@/lib/serverLog";
+import { getSndeskTechnicianName } from "@/lib/sndeskTechnician";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +21,7 @@ export async function POST(
   try {
     const unauthorized = await requireQaAdmin(request);
     if (unauthorized) return unauthorized;
+    const user = await getApiUser(request);
 
     const [ticket] = await prisma.$queryRaw<any[]>`
       SELECT *
@@ -43,6 +46,7 @@ export async function POST(
     const snapshot = ticket.chamadoSnapshot || {};
     const clienteNome = snapshot?.cliente?.nome || snapshot?.nome || "Nao informado";
     const assunto = snapshot?.assunto || `Chamado ${ticket.idChamado}`;
+    const sndeskTechnicianName = getSndeskTechnicianName(snapshot);
     const count = await prisma.testReport.count();
     const code = `QA-${String(count + 1).padStart(3, "0")}`;
 
@@ -60,6 +64,9 @@ export async function POST(
           `Validacao pendente do chamado ${ticket.idChamado} (${clienteNome}).`,
         testType: "Reteste",
         generalStatus: "Não executado",
+        testerId: user?.id || null,
+        testerName: user?.name || null,
+        sndeskTechnicianName,
         notes: `Pendencia criada a partir do chamado SNDesk ${ticket.idChamado}.`,
       },
     });

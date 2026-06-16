@@ -79,6 +79,9 @@ export interface TestReportData {
   bugDescription: string;
   testType: TestType | string;
   generalStatus: GeneralStatus;
+  testerId?: string | null;
+  testerName?: string | null;
+  sndeskTechnicianName?: string | null;
   notes?: string | null;
   createdAt?: Date | string;
   updatedAt?: Date | string;

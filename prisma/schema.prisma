@@ -18,6 +18,7 @@ model User {
   updatedAt    DateTime      @updatedAt
   sessions     AuthSession[]
   aiGenerations AiGenerationLog[]
+  testedReports TestReport[]
 
   @@map("users")
 }
@@ -76,12 +77,19 @@ model TestReport {
   testType        String
   generalStatus   String
   notes           String?
+  testerId        String?          @map("tester_id")
+  testerName      String?          @map("tester_name")
+  sndeskTechnicianName String?     @map("sndesk_technician_name")
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   sndeskChamadoId String?          @unique @map("sndesk_chamado_id")
   pendingTicket   QaPendingTicket?
+  tester          User?            @relation(fields: [testerId], references: [id], onDelete: SetNull)
   steps           TestStep[]
 
+  @@index([testerId])
+  @@index([testerName])
+  @@index([sndeskTechnicianName])
   @@map("test_reports")
 }
 

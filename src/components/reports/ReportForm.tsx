@@ -22,6 +22,13 @@ interface ReportFormProps {
   isLoading: boolean;
 }
 
+interface UserOption {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
 export default function ReportForm({
   initialData,
   onSubmit,
@@ -38,7 +45,10 @@ export default function ReportForm({
   const [bugDescription, setBugDescription] = useState("");
   const [testType, setTestType] = useState("");
   const [generalStatus, setGeneralStatus] = useState("");
+  const [testerId, setTesterId] = useState("");
+  const [sndeskTechnicianName, setSndeskTechnicianName] = useState("");
   const [notes, setNotes] = useState("");
+  const [userOptions, setUserOptions] = useState<UserOption[]>([]);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -145,9 +155,34 @@ export default function ReportForm({
       setBugDescription(initialData.bugDescription || "");
       setTestType(initialData.testType || "");
       setGeneralStatus(initialData.generalStatus || "");
+      setTesterId(initialData.testerId || "");
+      setSndeskTechnicianName(initialData.sndeskTechnicianName || "");
       setNotes(initialData.notes || "");
     }
   }, [initialData]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadUserOptions() {
+      try {
+        const response = await fetch("/api/users/options", { cache: "no-store" });
+        const result = await response.json();
+
+        if (isMounted && response.ok && result.success) {
+          setUserOptions(result.data);
+        }
+      } catch {
+        if (isMounted) setUserOptions([]);
+      }
+    }
+
+    loadUserOptions();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
@@ -186,6 +221,8 @@ export default function ReportForm({
       bugDescription,
       testType,
       generalStatus: generalStatus as any,
+      testerId: testerId || null,
+      sndeskTechnicianName: sndeskTechnicianName.trim() || null,
       notes: notes || null,
       steps: isCreate ? steps : undefined,
     });
@@ -336,52 +373,88 @@ export default function ReportForm({
           <h3 className="font-extrabold text-slate-800 text-sm">Identificação do Teste</h3>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          <Input
-            label="Data do Teste *"
-            id="testDate"
-            type="date"
-            value={testDate}
-            onChange={(e) => setTestDate(e.target.value)}
-            error={errors.testDate}
-          />
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-5">
+          <div className="xl:col-span-4">
+            <Input
+              label="Data do Teste *"
+              id="testDate"
+              type="date"
+              value={testDate}
+              onChange={(e) => setTestDate(e.target.value)}
+              error={errors.testDate}
+            />
+          </div>
 
-          <Input
-            label="Nome do Sistema *"
-            id="systemName"
-            type="text"
-            placeholder="Ex: SNDesk, Financeiro"
-            value={systemName}
-            onChange={(e) => setSystemName(e.target.value)}
-            error={errors.systemName}
-          />
+          <div className="xl:col-span-4">
+            <Input
+              label="Nome do Sistema *"
+              id="systemName"
+              type="text"
+              placeholder="Ex: SNDesk, Financeiro"
+              value={systemName}
+              onChange={(e) => setSystemName(e.target.value)}
+              error={errors.systemName}
+            />
+          </div>
 
-          <Select
-            label="Branch / Ambiente *"
-            id="branch"
-            value={branch}
-            onChange={(e) => setBranch(e.target.value)}
-            options={BRANCH_OPTIONS}
-            error={errors.branch}
-          />
+          <div className="xl:col-span-4">
+            <Select
+              label="Branch / Ambiente *"
+              id="branch"
+              value={branch}
+              onChange={(e) => setBranch(e.target.value)}
+              options={BRANCH_OPTIONS}
+              error={errors.branch}
+            />
+          </div>
 
-          <Select
-            label="Tipo do Teste *"
-            id="testType"
-            value={testType}
-            onChange={(e) => setTestType(e.target.value)}
-            options={TEST_TYPE_OPTIONS}
-            error={errors.testType}
-          />
+          <div className="xl:col-span-3">
+            <Select
+              label="Tipo do Teste *"
+              id="testType"
+              value={testType}
+              onChange={(e) => setTestType(e.target.value)}
+              options={TEST_TYPE_OPTIONS}
+              error={errors.testType}
+            />
+          </div>
 
-          <Select
-            label="Status Geral *"
-            id="generalStatus"
-            value={generalStatus}
-            onChange={(e) => setGeneralStatus(e.target.value)}
-            options={GENERAL_STATUS_OPTIONS}
-            error={errors.generalStatus}
-          />
+          <div className="xl:col-span-3">
+            <Select
+              label="Status Geral *"
+              id="generalStatus"
+              value={generalStatus}
+              onChange={(e) => setGeneralStatus(e.target.value)}
+              options={GENERAL_STATUS_OPTIONS}
+              error={errors.generalStatus}
+            />
+          </div>
+
+          <div className="xl:col-span-3">
+            <Select
+              label="QA"
+              id="testerId"
+              value={testerId}
+              onChange={(e) => setTesterId(e.target.value)}
+            >
+              <option value="">Selecione o QA</option>
+              {userOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.name} ({option.role})
+                </option>
+              ))}
+            </Select>
+          </div>
+
+          <div className="xl:col-span-3">
+            <Input
+              label="Dev responsavel"
+              id="sndeskTechnicianName"
+              placeholder="Nome do dev/técnico do SNDesk"
+              value={sndeskTechnicianName}
+              onChange={(e) => setSndeskTechnicianName(e.target.value)}
+            />
+          </div>
         </div>
       </div>
 
