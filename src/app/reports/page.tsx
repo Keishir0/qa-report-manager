@@ -407,7 +407,7 @@ export default function ReportsListPage() {
               <option value="">Todos os QAs</option>
               {userOptions.map((option) => (
                 <option key={option.id} value={option.id}>
-                  {option.name} ({option.email})
+                  {option.name}
                 </option>
               ))}
             </Select>
