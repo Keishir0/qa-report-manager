@@ -28,6 +28,14 @@ function openRouterTimeout() {
     : 45000;
 }
 
+function paidOpenRouterModel() {
+  return process.env.OPENROUTER_PAID_MODEL || "openai/gpt-4.1-mini";
+}
+
+function freeOpenRouterModel() {
+  return process.env.OPENROUTER_FREE_MODEL || "openai/gpt-oss-120b:free";
+}
+
 function geminiTimeouts(text: string) {
   const length = text.trim().length;
 
@@ -78,13 +86,31 @@ export async function generateAiContent(
   }
 
   try {
-    const fallback = await generateWithOpenRouter(
+    const paidFallback = await generateWithOpenRouter(
       mode,
       providerText,
-      openRouterTimeout()
+      openRouterTimeout(),
+      paidOpenRouterModel()
     );
     return {
-      ...fallback,
+      ...paidFallback,
+      fallbackUsed: true,
+      localFallbackUsed: false,
+      inputReduced: processed.wasReduced,
+    };
+  } catch {
+    // Continua para o fallback gratuito.
+  }
+
+  try {
+    const freeFallback = await generateWithOpenRouter(
+      mode,
+      providerText,
+      openRouterTimeout(),
+      freeOpenRouterModel()
+    );
+    return {
+      ...freeFallback,
       fallbackUsed: true,
       localFallbackUsed: false,
       inputReduced: processed.wasReduced,

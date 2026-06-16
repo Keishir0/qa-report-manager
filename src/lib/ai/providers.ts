@@ -159,15 +159,15 @@ export async function generateWithGemini(
 export async function generateWithOpenRouter(
   mode: AiMode,
   text: string,
-  timeoutMs: number
+  timeoutMs: number,
+  modelOverride?: string
 ): Promise<AiProviderResult> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
     throw new AiProviderError("OpenRouter não configurado.", false, 503);
   }
 
-  const modelName =
-    process.env.OPENROUTER_MODEL || "openai/gpt-oss-120b:free";
+  const modelName = modelOverride || "openai/gpt-oss-120b:free";
   const messages = buildAiMessages(mode, text);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
