@@ -50,11 +50,11 @@ function formatDate(value: string) {
 function getWebhookStatusColor(status: string) {
   switch (status) {
     case "pendencia_criada":
-      return "bg-emerald-50 text-emerald-700 border border-emerald-100";
+      return "bg-amber-50 text-amber-700 border border-amber-100";
     case "ignorado":
-      return "bg-slate-100 text-slate-600 border border-slate-200";
+      return "bg-rose-50 text-rose-700 border border-rose-100";
     case "recebido":
-      return "bg-indigo-50 text-indigo-700 border border-indigo-100";
+      return "bg-emerald-50 text-emerald-700 border border-emerald-100";
     case "erro":
       return "bg-rose-50 text-rose-700 border border-rose-100";
     default:
@@ -217,7 +217,7 @@ export default function WebhookMonitor() {
         onSubmit={saveSecret}
         className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs"
       >
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
+        <div className="flex flex-col gap-4">
           <div className="min-w-0 flex-1">
             <div className="mb-3 flex flex-wrap items-center gap-2">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
@@ -237,18 +237,25 @@ export default function WebhookMonitor() {
                   : "Nao configurado"}
               </span>
             </div>
-            <Input
-              id="webhook-secret"
-              type="password"
-              value={secretInput}
-              onChange={(event) => setSecretInput(event.target.value)}
-              placeholder={
-                secretConfigured
-                  ? "Digite um novo secret para substituir o atual"
-                  : "Digite o bearer token informado pelo sistema externo"
-              }
-              autoComplete="off"
-            />
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+              <div className="min-w-0 flex-1">
+                <Input
+                  id="webhook-secret"
+                  type="password"
+                  value={secretInput}
+                  onChange={(event) => setSecretInput(event.target.value)}
+                  placeholder={
+                    secretConfigured
+                      ? "Digite um novo secret para substituir o atual"
+                      : "Digite o bearer token informado pelo sistema externo"
+                  }
+                  autoComplete="off"
+                />
+              </div>
+              <Button type="submit" isLoading={isSecretSaving}>
+                Salvar secret
+              </Button>
+            </div>
             {secretUpdatedAt && (
               <p className="mt-2 text-xs font-medium text-slate-500">
                 Atualizado em: {formatDate(secretUpdatedAt)}
@@ -265,10 +272,6 @@ export default function WebhookMonitor() {
               </p>
             )}
           </div>
-
-          <Button type="submit" isLoading={isSecretSaving}>
-            Salvar secret
-          </Button>
         </div>
       </form>
 

@@ -1,16 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import EmptyState from "@/components/ui/EmptyState";
 import Input from "@/components/ui/Input";
 import PageHeader from "@/components/ui/PageHeader";
-import Select from "@/components/ui/Select";
 import Textarea from "@/components/ui/Textarea";
 import Toast from "@/components/ui/Toast";
-import { TestReportData } from "@/types";
 
 interface SndeskConfigView {
   baseUrl: string;
@@ -66,13 +63,35 @@ function getCliente(ticket: PendingTicket) {
   );
 }
 
+function getTicketStateColor(state: string) {
+  const normalizedState = state.toLowerCase();
+
+  if (normalizedState.includes("aprovado")) {
+    return "bg-emerald-50 text-emerald-700 border border-emerald-100";
+  }
+
+  if (
+    normalizedState.includes("recusado") ||
+    normalizedState.includes("negado") ||
+    normalizedState.includes("reprovado")
+  ) {
+    return "bg-rose-50 text-rose-700 border border-rose-100";
+  }
+
+  return "bg-slate-100 text-slate-700 border border-slate-200";
+}
+
 export default function PendenciasClient() {
   const [config, setConfig] = useState<SndeskConfigView | null>(null);
   const [tickets, setTickets] = useState<PendingTicket[]>([]);
-  const [reports, setReports] = useState<TestReportData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
+  const [isRefreshingTickets, setIsRefreshingTickets] = useState(false);
+  const [lastTicketsRefresh, setLastTicketsRefresh] = useState<Date | null>(null);
+  const [autoRefreshError, setAutoRefreshError] = useState<string | null>(null);
   const [isSavingConfig, setIsSavingConfig] = useState(false);
   const [actionId, setActionId] = useState<string | null>(null);
+  const isPollingTickets = useRef(false);
   const [configForm, setConfigForm] = useState({
     baseUrl: "",
     token: "",
@@ -119,39 +138,63 @@ export default function PendenciasClient() {
     }));
   }, [config]);
 
-  const loadTickets = useCallback(async () => {
-    const response = await fetch("/api/sndesk/pendencias", {
-      cache: "no-store",
-    });
-    const result = await response.json();
+  const loadTickets = useCallback(async (options?: { silent?: boolean }) => {
+    if (options?.silent) setIsRefreshingTickets(true);
 
-    if (!response.ok || !result.success) {
-      throw new Error(result.message || "Nao foi possivel carregar pendencias.");
+    try {
+      const response = await fetch("/api/sndesk/pendencias", {
+        cache: "no-store",
+      });
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Nao foi possivel carregar pendencias.");
+      }
+
+      setTickets(result.data);
+      setLastTicketsRefresh(new Date());
+      setAutoRefreshError(null);
+    } finally {
+      if (options?.silent) setIsRefreshingTickets(false);
     }
-
-    setTickets(result.data);
-  }, []);
-
-  const loadReports = useCallback(async () => {
-    const response = await fetch("/api/reports", { cache: "no-store" });
-    if (!response.ok) throw new Error("Nao foi possivel carregar relatorios.");
-    setReports(await response.json());
   }, []);
 
   const loadAll = useCallback(async () => {
     setIsLoading(true);
     try {
-      await Promise.all([loadConfig(), loadTickets(), loadReports()]);
+      await Promise.all([loadConfig(), loadTickets()]);
     } catch (error: any) {
       setToast({ message: error.message || "Erro ao carregar dados.", type: "error" });
     } finally {
       setIsLoading(false);
     }
-  }, [loadConfig, loadReports, loadTickets]);
+  }, [loadConfig, loadTickets]);
 
   useEffect(() => {
     loadAll();
   }, [loadAll]);
+
+  useEffect(() => {
+    if (!autoRefreshEnabled) {
+      setIsRefreshingTickets(false);
+      return;
+    }
+
+    const interval = window.setInterval(async () => {
+      if (document.hidden || isPollingTickets.current) return;
+
+      isPollingTickets.current = true;
+      try {
+        await loadTickets({ silent: true });
+      } catch (error: any) {
+        setAutoRefreshError(error.message || "Erro ao atualizar pendencias automaticamente.");
+      } finally {
+        isPollingTickets.current = false;
+      }
+    }, 3000);
+
+    return () => window.clearInterval(interval);
+  }, [autoRefreshEnabled, loadTickets]);
 
   async function callPendingAction(ticketId: string, path: string, options: RequestInit = {}) {
     setActionId(ticketId);
@@ -178,13 +221,6 @@ export default function PendenciasClient() {
     }
   }
 
-  async function linkReport(ticketId: string, reportId: string) {
-    await callPendingAction(ticketId, "", {
-      method: "PATCH",
-      body: JSON.stringify({ reportId: reportId || null }),
-    });
-  }
-
   async function refreshTicket(ticketId: string) {
     const data = await callPendingAction(ticketId, "", {
       method: "PATCH",
@@ -199,6 +235,15 @@ export default function PendenciasClient() {
     });
 
     if (report?.id) window.location.href = `/reports/${report.id}`;
+  }
+
+  async function viewTicket(ticket: PendingTicket) {
+    if (ticket.reportId) {
+      window.location.href = `/reports/${ticket.reportId}`;
+      return;
+    }
+
+    await createReport(ticket.id);
   }
 
   async function approve(ticketId: string) {
@@ -291,7 +336,7 @@ export default function PendenciasClient() {
       </section>
 
       <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-4">
           <div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
               Editar integracao
@@ -300,9 +345,6 @@ export default function PendenciasClient() {
               Esses dados ficam salvos no banco em `webhook_settings`.
             </p>
           </div>
-          <Button onClick={saveConfig} isLoading={isSavingConfig}>
-            Salvar configuracao
-          </Button>
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
@@ -385,41 +427,102 @@ export default function PendenciasClient() {
           />
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-4 text-sm font-semibold text-slate-700">
-          <label className="inline-flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={configForm.visibleClient}
-              onChange={(event) =>
-                setConfigForm((current) => ({ ...current, visibleClient: event.target.checked }))
-              }
-            />
-            Visivel ao cliente
-          </label>
-          <label className="inline-flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={configForm.emailClient}
-              onChange={(event) =>
-                setConfigForm((current) => ({ ...current, emailClient: event.target.checked }))
-              }
-            />
-            Enviar email ao cliente
-          </label>
-          <label className="inline-flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={configForm.emailTechnician}
-              onChange={(event) =>
-                setConfigForm((current) => ({ ...current, emailTechnician: event.target.checked }))
-              }
-            />
-            Enviar email ao tecnico
-          </label>
+        <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-wrap gap-4 text-sm font-semibold text-slate-700">
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={configForm.visibleClient}
+                onChange={(event) =>
+                  setConfigForm((current) => ({ ...current, visibleClient: event.target.checked }))
+                }
+              />
+              Visivel ao cliente
+            </label>
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={configForm.emailClient}
+                onChange={(event) =>
+                  setConfigForm((current) => ({ ...current, emailClient: event.target.checked }))
+                }
+              />
+              Enviar email ao cliente
+            </label>
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={configForm.emailTechnician}
+                onChange={(event) =>
+                  setConfigForm((current) => ({ ...current, emailTechnician: event.target.checked }))
+                }
+              />
+              Enviar email ao tecnico
+            </label>
+          </div>
+          <Button onClick={saveConfig} isLoading={isSavingConfig}>
+            Salvar configuracao
+          </Button>
         </div>
       </section>
 
-      <DataTable
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-xs sm:px-5">
+          <div
+            className={`flex items-center gap-2 text-sm font-semibold ${
+              autoRefreshError ? "text-rose-700" : "text-slate-600"
+            }`}
+          >
+            {!autoRefreshEnabled ? (
+              <>
+                <span className="h-2.5 w-2.5 rounded-full bg-slate-400" />
+                Atualizacao automatica pausada
+              </>
+            ) : isRefreshingTickets ? (
+              <>
+                <span className="h-3 w-3 animate-spin rounded-full border-2 border-indigo-200 border-t-indigo-600" />
+                Buscando novas pendencias...
+              </>
+            ) : autoRefreshError ? (
+              <>
+                <span className="h-2.5 w-2.5 rounded-full bg-rose-500" />
+                Atualizacao automatica falhou
+              </>
+            ) : (
+              <>
+                <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                Atualizacao automatica ativa
+              </>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-5">
+            {lastTicketsRefresh && (
+              <span className="text-xs font-semibold text-slate-400">
+                Ultima leitura: {formatDate(lastTicketsRefresh.toISOString())}
+              </span>
+            )}
+            <label className="inline-flex cursor-pointer items-center gap-3 text-xs font-bold text-slate-600">
+              <span>Auto atualizar</span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={autoRefreshEnabled}
+                onClick={() => setAutoRefreshEnabled((current) => !current)}
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full p-1 transition-colors ${
+                  autoRefreshEnabled ? "bg-emerald-500" : "bg-slate-300"
+                }`}
+              >
+                <span
+                  className={`h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
+                    autoRefreshEnabled ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </label>
+          </div>
+        </div>
+
+        <DataTable
         headers={[
           "Chamado",
           "Cliente",
@@ -437,15 +540,18 @@ export default function PendenciasClient() {
             description="Quando o SNDesk enviar um status configurado para teste, a pendencia aparecera aqui."
           />
         }
-        className="[&_table]:min-w-[1180px]"
+        className="[&_table]:min-w-[1040px]"
       >
         {tickets.map((ticket) => (
           <tr key={ticket.id} className="text-sm transition-colors hover:bg-slate-50">
-            <td className="p-4">
-              <div className="font-mono text-xs font-bold text-slate-500">
+            <td className="p-4 min-w-[300px]">
+              <div className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 font-mono text-[11px] font-bold text-slate-600">
                 #{ticket.idChamado}
               </div>
-              <div className="mt-1 max-w-[260px] truncate font-bold text-slate-900">
+              <div
+                className="mt-2 line-clamp-2 max-w-[340px] text-sm font-bold leading-snug text-slate-900"
+                title={getChamadoTitle(ticket)}
+              >
                 {getChamadoTitle(ticket)}
               </div>
               {ticket.lastError && (
@@ -459,7 +565,7 @@ export default function PendenciasClient() {
             </td>
             <td className="p-4">
               <span
-                className="inline-flex rounded-full px-2.5 py-1 text-xs font-bold"
+                className="inline-flex max-w-[160px] items-center justify-center whitespace-nowrap rounded-full px-3 py-1.5 text-center text-[11px] font-bold leading-none"
                 style={{
                   backgroundColor: ticket.statusCor || "#e2e8f0",
                   color: "#0f172a",
@@ -469,39 +575,22 @@ export default function PendenciasClient() {
               </span>
             </td>
             <td className="p-4">
-              <div className="flex min-w-[190px] flex-col gap-2">
-                <Select
-                  value={ticket.reportId || ""}
-                  onChange={(event) => linkReport(ticket.id, event.target.value)}
-                  disabled={actionId === ticket.id}
-                >
-                  <option value="">Sem vinculo</option>
-                  {reports.map((report) => (
-                    <option key={report.id} value={report.id}>
-                      {report.code} - {report.functionality}
-                    </option>
-                  ))}
-                </Select>
-                {ticket.reportId ? (
-                  <Link
-                    href={`/reports/${ticket.reportId}`}
-                    className="text-xs font-bold text-indigo-700 hover:text-indigo-900"
-                  >
-                    Abrir {ticket.reportCode}
-                  </Link>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => createReport(ticket.id)}
-                    className="text-left text-xs font-bold text-indigo-700 hover:text-indigo-900"
-                  >
-                    Criar relatorio
-                  </button>
-                )}
-              </div>
+              <Button
+                variant="secondary"
+                onClick={() => createReport(ticket.id)}
+                disabled={Boolean(ticket.reportId)}
+                isLoading={actionId === ticket.id}
+              >
+                Criar relatorio
+              </Button>
+              {ticket.reportId && (
+                <div className="mt-2 text-xs font-bold text-slate-500">
+                  {ticket.reportCode || "Relatorio criado"}
+                </div>
+              )}
             </td>
             <td className="p-4">
-              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
+              <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${getTicketStateColor(ticket.state)}`}>
                 {ticket.state}
               </span>
             </td>
@@ -509,35 +598,18 @@ export default function PendenciasClient() {
               {formatDate(ticket.updatedAt)}
             </td>
             <td className="p-4">
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  variant="secondary"
-                  onClick={() => refreshTicket(ticket.id)}
-                  isLoading={actionId === ticket.id}
-                >
-                  Buscar
-                </Button>
-                <Button
-                  variant="primary"
-                  onClick={() => approve(ticket.id)}
-                  disabled={!ticket.reportId}
-                  isLoading={actionId === ticket.id}
-                >
-                  Aprovar
-                </Button>
-                <Button
-                  variant="danger"
-                  onClick={() => reject(ticket.id)}
-                  disabled={!ticket.reportId}
-                  isLoading={actionId === ticket.id}
-                >
-                  Recusar
-                </Button>
-              </div>
+              <Button
+                variant="secondary"
+                onClick={() => viewTicket(ticket)}
+                isLoading={actionId === ticket.id}
+              >
+                Ver
+              </Button>
             </td>
           </tr>
         ))}
-      </DataTable>
+        </DataTable>
+      </div>
 
       {toast && (
         <Toast
