@@ -82,6 +82,7 @@ model TestReport {
   sndeskTechnicianName String?     @map("sndesk_technician_name")
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
+  deletedAt       DateTime?        @map("deleted_at")
   sndeskChamadoId String?          @unique @map("sndesk_chamado_id")
   pendingTicket   QaPendingTicket?
   tester          User?            @relation(fields: [testerId], references: [id], onDelete: SetNull)
@@ -90,6 +91,7 @@ model TestReport {
   @@index([testerId])
   @@index([testerName])
   @@index([sndeskTechnicianName])
+  @@index([deletedAt])
   @@map("test_reports")
 }
 

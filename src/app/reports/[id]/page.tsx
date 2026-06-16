@@ -91,7 +91,7 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
     if (
       !report ||
       !window.confirm(
-        `Deseja realmente excluir o relatório de testes ${report.code}? Todos os passos associados serão perdidos permanentemente.`
+        `Deseja excluir o relatório de testes ${report.code}? Ele será ocultado das listas, mas continuará salvo no banco.`
       )
     ) {
       return;
@@ -108,7 +108,7 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
         throw new Error(data.error || "Erro ao excluir o relatório.");
       }
 
-      setToast({ message: "Relatório de teste excluído com sucesso!", type: "success" });
+      setToast({ message: "Relatório de teste excluído da lista com sucesso!", type: "success" });
       setTimeout(() => {
         router.push("/reports");
       }, 1500);
@@ -158,6 +158,7 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
         code: _code,
         createdAt: _createdAt,
         updatedAt: _updatedAt,
+        deletedAt: _deletedAt,
         steps,
         ...duplicateData
       } = report;

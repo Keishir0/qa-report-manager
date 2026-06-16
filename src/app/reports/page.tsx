@@ -210,7 +210,7 @@ export default function ReportsListPage() {
   const handleDeleteReport = async (id: string, code: string) => {
     if (
       !window.confirm(
-        `Deseja realmente excluir o relatório de testes ${code}? Todos os passos vinculados a ele serão deletados permanentemente em cascata.`
+        `Deseja excluir o relatório de testes ${code}? Ele será ocultado das listas, mas continuará salvo no banco.`
       )
     ) {
       return;
@@ -229,7 +229,7 @@ export default function ReportsListPage() {
       // Atualizar lista local
       setReports((prev) => prev.filter((r) => r.id !== id));
       setToast({
-        message: `Relatório ${code} excluído com sucesso!`,
+        message: `Relatório ${code} excluído da lista com sucesso!`,
         type: "success",
       });
     } catch (err: any) {
@@ -520,9 +520,9 @@ export default function ReportsListPage() {
           "w-[7%]",
           "w-[10%]",
           "w-[10%]",
-          "w-[6%]",
+          "w-[7%] text-center",
           "w-[8%]",
-          "w-[7%] text-right",
+          "w-[6%] text-right",
         ]}
         headers={[
           "Código",
@@ -592,7 +592,7 @@ export default function ReportsListPage() {
               <td className="px-3 py-4 text-slate-600 truncate" title={report.sndeskTechnicianName || "Nao informado"}>
                 {report.sndeskTechnicianName || "Nao informado"}
               </td>
-              <td className="px-3 py-4 text-slate-500 font-medium leading-snug">
+              <td className="px-3 py-4 text-center font-medium text-slate-500 whitespace-nowrap">
                 {stepsCount} {stepsCount === 1 ? "passo" : "passos"}
               </td>
               <td className="px-3 py-4 whitespace-nowrap">

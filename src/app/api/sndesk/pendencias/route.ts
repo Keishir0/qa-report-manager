@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
             p."createdAt",
             p."updatedAt"
           FROM "qa_pending_tickets" p
-          LEFT JOIN "test_reports" r ON r."id" = p."reportId"
+          LEFT JOIN "test_reports" r ON r."id" = p."reportId" AND r."deleted_at" IS NULL
           WHERE p."reportId" = ${reportId}
           ORDER BY p."updatedAt" DESC
         `
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
             p."createdAt",
             p."updatedAt"
           FROM "qa_pending_tickets" p
-          LEFT JOIN "test_reports" r ON r."id" = p."reportId"
+          LEFT JOIN "test_reports" r ON r."id" = p."reportId" AND r."deleted_at" IS NULL
           ORDER BY p."updatedAt" DESC
         `;
 

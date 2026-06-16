@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { useAuthUser } from "@/components/auth/AuthProvider";
 import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
 import Input from "@/components/ui/Input";
@@ -31,6 +32,15 @@ const ROLE_DESCRIPTIONS: Record<UserRole, string> = {
   VIEWER: "Consulta e exporta relatorios, sem permissoes de edicao.",
 };
 
+const EMPTY_FORM = {
+  name: "",
+  email: "",
+  password: "",
+  confirmPassword: "",
+  role: "QA" as UserRole,
+  active: true,
+};
+
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("pt-BR", {
     day: "2-digit",
@@ -41,23 +51,33 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
+function sortUsers(users: UserView[]) {
+  return [...users].sort((a, b) => {
+    if (a.active !== b.active) return a.active ? -1 : 1;
+    return a.name.localeCompare(b.name, "pt-BR");
+  });
+}
+
 export default function UsersClient() {
+  const currentUser = useAuthUser();
+  const canManageAccountLevel = currentUser?.role === "ADMIN";
   const [users, setUsers] = useState<UserView[]>([]);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-    role: "QA" as UserRole,
-  });
+  const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [toast, setToast] = useState<{
     message: string;
     type: "success" | "error";
   } | null>(null);
+
+  const isEditing = editingUserId !== null;
+  const editingUser = useMemo(
+    () => users.find((user) => user.id === editingUserId) || null,
+    [editingUserId, users]
+  );
 
   const loadUsers = useCallback(async () => {
     setIsLoading(true);
@@ -87,8 +107,30 @@ export default function UsersClient() {
     loadUsers();
   }, [loadUsers]);
 
+  function resetForm() {
+    setForm(EMPTY_FORM);
+    setEditingUserId(null);
+    setErrors({});
+    setShowPassword(false);
+  }
+
+  function startEdit(user: UserView) {
+    setEditingUserId(user.id);
+    setForm({
+      name: user.name,
+      email: user.email,
+      password: "",
+      confirmPassword: "",
+      role: user.role,
+      active: user.active,
+    });
+    setErrors({});
+    setShowPassword(false);
+  }
+
   function validate() {
     const nextErrors: Record<string, string> = {};
+    const passwordWasTyped = form.password.length > 0 || form.confirmPassword.length > 0;
 
     if (form.name.trim().length < 2) {
       nextErrors.name = "Informe o nome completo.";
@@ -96,10 +138,10 @@ export default function UsersClient() {
     if (!form.email.includes("@")) {
       nextErrors.email = "Informe um e-mail valido.";
     }
-    if (form.password.length < 8) {
+    if ((!isEditing || passwordWasTyped) && form.password.length < 8) {
       nextErrors.password = "Use pelo menos 8 caracteres.";
     }
-    if (form.password !== form.confirmPassword) {
+    if (passwordWasTyped && form.password !== form.confirmPassword) {
       nextErrors.confirmPassword = "As senhas nao conferem.";
     }
 
@@ -113,42 +155,73 @@ export default function UsersClient() {
 
     setIsSaving(true);
     try {
-      const response = await fetch("/api/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: form.name,
-          email: form.email,
-          password: form.password,
-          role: form.role,
-        }),
-      });
+      const payload: {
+        name: string;
+        email: string;
+        password?: string;
+        role?: UserRole;
+        active?: boolean;
+      } = {
+        name: form.name,
+        email: form.email,
+      };
+
+      if (!isEditing || form.password.length > 0) {
+        payload.password = form.password;
+      }
+
+      if (canManageAccountLevel) {
+        payload.role = form.role;
+        if (isEditing) {
+          payload.active = form.active;
+        }
+      }
+
+      const response = await fetch(
+        isEditing ? `/api/users/${editingUserId}` : "/api/users",
+        {
+          method: isEditing ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        throw new Error(result.message || "Nao foi possivel criar o usuario.");
+        throw new Error(
+          result.message ||
+            (isEditing
+              ? "Nao foi possivel atualizar o usuario."
+              : "Nao foi possivel criar o usuario.")
+        );
       }
 
-      setUsers((current) =>
-        [...current, result.data].sort((a, b) =>
-          a.name.localeCompare(b.name, "pt-BR")
-        )
-      );
-      setForm({
-        name: "",
-        email: "",
-        password: "",
-        confirmPassword: "",
-        role: "QA",
+      setUsers((current) => {
+        if (isEditing) {
+          return sortUsers(
+            current.map((user) =>
+              user.id === result.data.id ? result.data : user
+            )
+          );
+        }
+
+        return sortUsers([...current, result.data]);
       });
-      setErrors({});
-      setToast({ message: "Usuario criado com sucesso.", type: "success" });
+      resetForm();
+      setToast({
+        message: isEditing
+          ? "Usuario atualizado com sucesso."
+          : "Usuario criado com sucesso.",
+        type: "success",
+      });
     } catch (error) {
       setToast({
         message:
           error instanceof Error
             ? error.message
-            : "Nao foi possivel criar o usuario.",
+            : isEditing
+              ? "Nao foi possivel atualizar o usuario."
+              : "Nao foi possivel criar o usuario.",
         type: "error",
       });
     } finally {
@@ -159,8 +232,8 @@ export default function UsersClient() {
   return (
     <div className="mx-auto max-w-7xl space-y-6 animate-fade-in sm:space-y-8">
       <PageHeader
-        title="Usuários"
-        description="Cadastre contas e defina o nível de acesso de cada pessoa."
+        title="Usuarios"
+        description="Cadastre contas e defina o nivel de acesso de cada pessoa."
       >
         <Button variant="secondary" onClick={loadUsers} isLoading={isLoading}>
           Atualizar
@@ -169,14 +242,34 @@ export default function UsersClient() {
 
       <div className="grid gap-6 xl:grid-cols-[minmax(320px,430px)_1fr]">
         <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs sm:p-6">
-          <div className="mb-5">
-            <h2 className="text-lg font-extrabold text-slate-900">
-              Novo usuário
-            </h2>
-            <p className="mt-1 text-sm font-medium text-slate-500">
-              A senha inicial deve ter pelo menos 8 caracteres.
-            </p>
+          <div className="mb-5 flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-extrabold text-slate-900">
+                {isEditing ? "Editar usuario" : "Novo usuario"}
+              </h2>
+              <p className="mt-1 text-sm font-medium text-slate-500">
+                {isEditing
+                  ? "Altere dados, senha, status e perfil conforme sua permissao."
+                  : "A senha inicial deve ter pelo menos 8 caracteres."}
+              </p>
+            </div>
+            {isEditing && (
+              <Button
+                variant="secondary"
+                className="px-3 py-2 text-xs"
+                onClick={resetForm}
+                disabled={isSaving}
+              >
+                Cancelar
+              </Button>
+            )}
           </div>
+
+          {editingUser && (
+            <div className="mb-4 rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700">
+              Editando {editingUser.name}
+            </div>
+          )}
 
           <form className="space-y-4" onSubmit={handleSubmit}>
             <Input
@@ -214,6 +307,7 @@ export default function UsersClient() {
                   role: event.target.value as UserRole,
                 }))
               }
+              disabled={!canManageAccountLevel}
             >
               <option value="ADMIN">Administrador</option>
               <option value="QA">QA</option>
@@ -222,9 +316,27 @@ export default function UsersClient() {
             <p className="-mt-2 text-xs font-medium text-slate-500">
               {ROLE_DESCRIPTIONS[form.role]}
             </p>
+
+            {isEditing && canManageAccountLevel && (
+              <Select
+                id="user-active"
+                label="Status da conta"
+                value={form.active ? "active" : "inactive"}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    active: event.target.value === "active",
+                  }))
+                }
+              >
+                <option value="active">Ativo</option>
+                <option value="inactive">Inativo</option>
+              </Select>
+            )}
+
             <Input
               id="user-password"
-              label="Senha inicial"
+              label={isEditing ? "Nova senha" : "Senha inicial"}
               type={showPassword ? "text" : "password"}
               value={form.password}
               onChange={(event) =>
@@ -237,7 +349,8 @@ export default function UsersClient() {
               minLength={8}
               maxLength={256}
               autoComplete="new-password"
-              required
+              required={!isEditing}
+              placeholder={isEditing ? "Deixe em branco para manter a senha" : ""}
             />
             <Input
               id="user-confirm-password"
@@ -254,7 +367,7 @@ export default function UsersClient() {
               minLength={8}
               maxLength={256}
               autoComplete="new-password"
-              required
+              required={!isEditing}
             />
             <label className="flex items-center gap-2 text-sm font-semibold text-slate-600">
               <input
@@ -266,7 +379,7 @@ export default function UsersClient() {
               Mostrar senha
             </label>
             <Button type="submit" className="w-full" isLoading={isSaving}>
-              Criar usuário
+              {isEditing ? "Salvar usuario" : "Criar usuario"}
             </Button>
           </form>
         </section>
@@ -277,28 +390,29 @@ export default function UsersClient() {
               Contas cadastradas
             </h2>
             <p className="mt-1 text-xs font-medium text-slate-500">
-              {users.length} {users.length === 1 ? "usuário" : "usuários"}
+              {users.length} {users.length === 1 ? "usuario" : "usuarios"}
             </p>
           </div>
 
           {isLoading ? (
             <div className="p-10 text-center text-sm font-semibold text-slate-500">
-              Carregando usuários...
+              Carregando usuarios...
             </div>
           ) : users.length === 0 ? (
             <EmptyState
-              title="Nenhum usuário cadastrado"
-              description="Use o formulário para criar a primeira conta."
+              title="Nenhum usuario cadastrado"
+              description="Use o formulario para criar a primeira conta."
             />
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[660px] text-left">
+              <table className="w-full min-w-[760px] text-left">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                    <th className="p-4">Usuário</th>
+                    <th className="p-4">Usuario</th>
                     <th className="p-4">Perfil</th>
                     <th className="p-4">Status</th>
                     <th className="p-4">Criado em</th>
+                    <th className="p-4 text-right">Acoes</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -328,6 +442,15 @@ export default function UsersClient() {
                       </td>
                       <td className="whitespace-nowrap p-4 text-xs font-medium text-slate-500">
                         {formatDate(user.createdAt)}
+                      </td>
+                      <td className="p-4 text-right">
+                        <Button
+                          variant="secondary"
+                          className="px-3 py-2 text-xs"
+                          onClick={() => startEdit(user)}
+                        >
+                          Editar
+                        </Button>
                       </td>
                     </tr>
                   ))}

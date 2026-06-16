@@ -225,6 +225,27 @@ export default function PendenciasClient() {
     if (report?.id) window.location.href = `/reports/${report.id}`;
   }
 
+  async function deleteLinkedReport(ticket: PendingTicket) {
+    if (!ticket.reportId) return;
+
+    const confirmed = window.confirm(
+      `Deseja excluir o relatorio ${ticket.reportCode || ""} desta pendencia? Ele sera ocultado das listas, mas continuara salvo no banco.`
+    );
+
+    if (!confirmed) return;
+
+    const deleted = await callPendingAction(ticket.id, "/relatorio", {
+      method: "DELETE",
+    });
+
+    if (deleted) {
+      setToast({
+        message: "Relatorio desvinculado e excluido da lista. A pendencia pode gerar novo teste.",
+        type: "success",
+      });
+    }
+  }
+
   async function viewTicket(ticket: PendingTicket) {
     if (ticket.reportId) {
       window.location.href = `/reports/${ticket.reportId}`;
@@ -576,34 +597,46 @@ export default function PendenciasClient() {
               {formatDate(ticket.updatedAt)}
             </td>
             <td className="p-4">
-              <Button
-                variant="secondary"
-                onClick={() => viewTicket(ticket)}
-                isLoading={actionId === ticket.id}
-                className="px-3 py-1.5 text-xs text-indigo-700"
-                icon={
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth="2"
+              <div className="flex flex-col gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={() => viewTicket(ticket)}
+                  isLoading={actionId === ticket.id}
+                  className="px-3 py-1.5 text-xs text-indigo-700"
+                  icon={
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M2.25 12s3.75-6.75 9.75-6.75S21.75 12 21.75 12s-3.75 6.75-9.75 6.75S2.25 12 2.25 12Z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+                      />
+                    </svg>
+                  }
+                >
+                  Ver
+                </Button>
+                {ticket.reportId && (
+                  <Button
+                    variant="danger"
+                    onClick={() => deleteLinkedReport(ticket)}
+                    isLoading={actionId === ticket.id}
+                    className="px-3 py-1.5 text-xs"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M2.25 12s3.75-6.75 9.75-6.75S21.75 12 21.75 12s-3.75 6.75-9.75 6.75S2.25 12 2.25 12Z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
-                    />
-                  </svg>
-                }
-              >
-                Ver
-              </Button>
+                    Excluir relatorio
+                  </Button>
+                )}
+              </div>
             </td>
           </tr>
         ))}

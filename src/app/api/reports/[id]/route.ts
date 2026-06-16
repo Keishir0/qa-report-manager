@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { requireApiAccess, WRITE_ROLES } from "@/lib/auth";
+import { softDeleteReport } from "@/lib/reports";
 
 export async function GET(
   request: NextRequest,
@@ -12,8 +13,8 @@ export async function GET(
 
     const { id } = params;
 
-    const report = await prisma.testReport.findUnique({
-      where: { id },
+    const report = await prisma.testReport.findFirst({
+      where: { id, deletedAt: null },
       include: {
         steps: {
           orderBy: {
@@ -57,6 +58,7 @@ export async function PUT(
       code: _code,
       createdAt: _createdAt,
       updatedAt: _updatedAt,
+      deletedAt: _deletedAt,
       steps: _steps,
       ...updateData
     } = body;
@@ -95,8 +97,8 @@ export async function PUT(
         : null;
     }
 
-    const exists = await prisma.testReport.findUnique({
-      where: { id },
+    const exists = await prisma.testReport.findFirst({
+      where: { id, deletedAt: null },
     });
 
     if (!exists) {
@@ -138,20 +140,14 @@ export async function DELETE(
 
     const { id } = params;
 
-    const exists = await prisma.testReport.findUnique({
-      where: { id },
-    });
+    const deleted = await softDeleteReport(id);
 
-    if (!exists) {
+    if (!deleted) {
       return NextResponse.json(
         { error: "Relatório não encontrado" },
         { status: 404 }
       );
     }
-
-    await prisma.testReport.delete({
-      where: { id },
-    });
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

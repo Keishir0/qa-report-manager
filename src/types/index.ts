@@ -85,6 +85,7 @@ export interface TestReportData {
   notes?: string | null;
   createdAt?: Date | string;
   updatedAt?: Date | string;
+  deletedAt?: Date | string | null;
   steps?: TestStepData[];
 }
 

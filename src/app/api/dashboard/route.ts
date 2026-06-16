@@ -4,6 +4,8 @@ import { requireApiAccess } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
+const activeReportWhere = { deletedAt: null };
+
 export async function GET(request: NextRequest) {
   try {
     const denied = await requireApiAccess(request);
@@ -17,12 +19,21 @@ export async function GET(request: NextRequest) {
       notExecuted,
       recentReports,
     ] = await Promise.all([
-      prisma.testReport.count(),
-      prisma.testReport.count({ where: { generalStatus: "Passou" } }),
-      prisma.testReport.count({ where: { generalStatus: "Falhou" } }),
-      prisma.testReport.count({ where: { generalStatus: "Bloqueado" } }),
-      prisma.testReport.count({ where: { generalStatus: "Não executado" } }),
+      prisma.testReport.count({ where: activeReportWhere }),
+      prisma.testReport.count({
+        where: { ...activeReportWhere, generalStatus: "Passou" },
+      }),
+      prisma.testReport.count({
+        where: { ...activeReportWhere, generalStatus: "Falhou" },
+      }),
+      prisma.testReport.count({
+        where: { ...activeReportWhere, generalStatus: "Bloqueado" },
+      }),
+      prisma.testReport.count({
+        where: { ...activeReportWhere, generalStatus: "Não executado" },
+      }),
       prisma.testReport.findMany({
+        where: activeReportWhere,
         take: 5,
         orderBy: {
           createdAt: "desc",

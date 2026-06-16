@@ -17,18 +17,20 @@ export default async function DashboardPage() {
 
   const [total, passed, failed, blocked, weeklyTests, recentReports] =
     await Promise.all([
-      prisma.testReport.count(),
-      prisma.testReport.count({ where: { generalStatus: "Passou" } }),
-      prisma.testReport.count({ where: { generalStatus: "Falhou" } }),
-      prisma.testReport.count({ where: { generalStatus: "Bloqueado" } }),
+      prisma.testReport.count({ where: { deletedAt: null } }),
+      prisma.testReport.count({ where: { deletedAt: null, generalStatus: "Passou" } }),
+      prisma.testReport.count({ where: { deletedAt: null, generalStatus: "Falhou" } }),
+      prisma.testReport.count({ where: { deletedAt: null, generalStatus: "Bloqueado" } }),
       prisma.testReport.count({
         where: {
+          deletedAt: null,
           testDate: {
             gte: sevenDaysAgo,
           },
         },
       }),
       prisma.testReport.findMany({
+        where: { deletedAt: null },
         take: 5,
         orderBy: {
           createdAt: "desc",

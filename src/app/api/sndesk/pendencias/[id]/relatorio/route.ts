@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { logServerError } from "@/lib/serverLog";
 import { getSndeskTechnicianName } from "@/lib/sndeskTechnician";
+import { generateNextReportCode, softDeleteReport } from "@/lib/reports";
 
 export const dynamic = "force-dynamic";
 
@@ -37,9 +38,16 @@ export async function POST(
         where: { id: ticket.reportId },
       });
 
-      return NextResponse.json({
-        success: true,
-        data: report,
+      if (report && !report.deletedAt) {
+        return NextResponse.json({
+          success: true,
+          data: report,
+        });
+      }
+
+      await prisma.qaPendingTicket.update({
+        where: { id: params.id },
+        data: { reportId: null },
       });
     }
 
@@ -47,8 +55,7 @@ export async function POST(
     const clienteNome = snapshot?.cliente?.nome || snapshot?.nome || "Nao informado";
     const assunto = snapshot?.assunto || `Chamado ${ticket.idChamado}`;
     const sndeskTechnicianName = getSndeskTechnicianName(snapshot);
-    const count = await prisma.testReport.count();
-    const code = `QA-${String(count + 1).padStart(3, "0")}`;
+    const code = await generateNextReportCode();
 
     const report = await prisma.testReport.create({
       data: {
@@ -84,6 +91,38 @@ export async function POST(
   } catch (error: unknown) {
     logServerError(
       `Error in POST /api/sndesk/pendencias/${params.id}/relatorio`,
+      error
+    );
+    return jsonError("Internal Server Error", 500);
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const unauthorized = await requireQaAdmin(request);
+    if (unauthorized) return unauthorized;
+
+    const ticket = await prisma.qaPendingTicket.findUnique({
+      where: { id: params.id },
+      select: { reportId: true },
+    });
+
+    if (!ticket) return jsonError("Pendencia nao encontrada.", 404);
+    if (!ticket.reportId) return jsonError("Pendencia sem relatorio vinculado.", 400);
+
+    const deleted = await softDeleteReport(ticket.reportId);
+    if (!deleted) return jsonError("Relatorio nao encontrado.", 404);
+
+    return NextResponse.json({
+      success: true,
+      data: deleted,
+    });
+  } catch (error: unknown) {
+    logServerError(
+      `Error in DELETE /api/sndesk/pendencias/${params.id}/relatorio`,
       error
     );
     return jsonError("Internal Server Error", 500);

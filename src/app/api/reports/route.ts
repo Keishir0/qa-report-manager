@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { getApiUser, requireApiAccess, WRITE_ROLES } from "@/lib/auth";
+import { generateNextReportCode } from "@/lib/reports";
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest) {
     const dev = searchParams.get("dev");
     const search = searchParams.get("search");
 
-    const where: any = {};
+    const where: any = { deletedAt: null };
     const andFilters: any[] = [];
 
     if (dateFrom || dateTo) {
@@ -142,9 +143,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Gerar código automaticamente: QA-XXX (total de relatórios existentes + 1)
-    const count = await prisma.testReport.count();
-    const nextNumber = count + 1;
-    const code = `QA-${String(nextNumber).padStart(3, "0")}`;
+    const code = await generateNextReportCode();
     const tester = testerId
       ? await prisma.user.findFirst({
           where: { id: String(testerId), active: true },
