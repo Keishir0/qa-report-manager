@@ -47,6 +47,21 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
+function getWebhookStatusColor(status: string) {
+  switch (status) {
+    case "pendencia_criada":
+      return "bg-emerald-50 text-emerald-700 border border-emerald-100";
+    case "ignorado":
+      return "bg-slate-100 text-slate-600 border border-slate-200";
+    case "recebido":
+      return "bg-indigo-50 text-indigo-700 border border-indigo-100";
+    case "erro":
+      return "bg-rose-50 text-rose-700 border border-rose-100";
+    default:
+      return "bg-slate-50 text-slate-600 border border-slate-200";
+  }
+}
+
 function formatJson(value: unknown) {
   return JSON.stringify(value, null, 2);
 }
@@ -292,8 +307,11 @@ export default function WebhookMonitor() {
               {formatDate(evento.receivedAt)}
             </td>
             <td className="p-4">
-              <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
-                {evento.status}
+              <span
+                className={`rounded-full px-2.5 py-1 text-xs font-bold ${getWebhookStatusColor(
+                  evento.status
+                )}`}>
+                  {evento.status}
               </span>
             </td>
             <td className="p-4 text-xs text-slate-500">
