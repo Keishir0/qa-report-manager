@@ -81,7 +81,12 @@ export default function AiStepAssistant({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mode: "steps", text: context }),
       });
-      const result = await response.json();
+      const result = await response
+        .json()
+        .catch(() => ({
+          error:
+            "O assistente demorou mais que o esperado ou retornou uma resposta invalida. Tente novamente.",
+        }));
 
       if (!response.ok) {
         throw new Error(result.error || "Não foi possível gerar os passos.");
@@ -112,7 +117,16 @@ export default function AiStepAssistant({
       }
 
       setSuggestedSteps(normalized);
-      if (result.meta?.fallbackUsed) {
+      if (!result.meta?.fallbackUsed && result.meta?.inputReduced) {
+        setProviderNotice(
+          "O contexto foi reduzido automaticamente para melhorar a estabilidade da geracao."
+        );
+      }
+      if (result.meta?.localFallbackUsed) {
+        setProviderNotice(
+          "Os provedores de IA nao responderam. Gere uma sugestao minima local para voce revisar e complementar."
+        );
+      } else if (result.meta?.fallbackUsed) {
         setProviderNotice(
           "O Gemini estava indisponível. A geração foi concluída pelo modelo alternativo GPT-OSS."
         );

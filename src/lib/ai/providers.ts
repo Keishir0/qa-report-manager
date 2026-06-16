@@ -12,7 +12,7 @@ import {
 } from "@/lib/ai/schemas";
 import { buildAiMessages } from "@/lib/ai/prompts";
 
-export type AiProviderName = "gemini" | "openrouter";
+export type AiProviderName = "gemini" | "openrouter" | "local";
 
 export interface AiProviderResult {
   data: AiResult;

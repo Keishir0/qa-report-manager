@@ -137,6 +137,8 @@ export async function POST(request: NextRequest) {
           provider: result.provider,
           model: result.model,
           fallbackUsed: result.fallbackUsed,
+          localFallbackUsed: result.localFallbackUsed,
+          inputReduced: result.inputReduced,
           latencyMs,
         },
       });

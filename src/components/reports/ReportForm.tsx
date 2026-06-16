@@ -15,6 +15,7 @@ import Select from "@/components/ui/Select";
 import Textarea from "@/components/ui/Textarea";
 import Button from "@/components/ui/Button";
 import StatusBadge from "@/components/ui/StatusBadge";
+import { AI_INPUT_MAX_CHARS } from "@/lib/ai/schemas";
 
 interface ReportFormProps {
   initialData?: Partial<TestReportData>;
@@ -66,10 +67,19 @@ export default function ReportForm({
   const [isAiGenerating, setIsAiGenerating] = useState(false);
   const [aiError, setAiError] = useState("");
   const [aiSuccessMessage, setAiSuccessMessage] = useState("");
+  const aiInputLength = aiInputText.trim().length;
+  const isAiInputTooLong = aiInputLength > AI_INPUT_MAX_CHARS;
 
   const handleAiGenerate = async () => {
     if (!aiInputText.trim()) {
       setAiError("Por favor, descreva o teste ou bug antes de gerar.");
+      return;
+    }
+
+    if (isAiInputTooLong) {
+      setAiError(
+        `O relato tem ${aiInputLength.toLocaleString("pt-BR")} caracteres. Reduza para no maximo ${AI_INPUT_MAX_CHARS.toLocaleString("pt-BR")} caracteres antes de enviar.`
+      );
       return;
     }
 
@@ -86,7 +96,12 @@ export default function ReportForm({
         body: JSON.stringify({ mode: "report", text: aiInputText }),
       });
 
-      const result = await response.json();
+      const result = await response
+        .json()
+        .catch(() => ({
+          error:
+            "O assistente demorou mais que o esperado ou retornou uma resposta invalida. Tente resumir o texto e gerar novamente.",
+        }));
 
       if (!response.ok) {
         throw new Error(
@@ -328,8 +343,23 @@ export default function ReportForm({
                 rows={4}
                 value={aiInputText}
                 onChange={(e) => setAiInputText(e.target.value)}
-                className="border-indigo-200 focus:border-indigo-500 focus:ring-indigo-500/20"
+                maxLength={AI_INPUT_MAX_CHARS + 1000}
+                className={`border-indigo-200 focus:border-indigo-500 focus:ring-indigo-500/20 ${
+                  isAiInputTooLong ? "border-red-300 focus:border-red-500 focus:ring-red-500/20" : ""
+                }`}
               />
+              <div className="flex flex-col gap-1 text-xs sm:flex-row sm:items-center sm:justify-between">
+                <span className="text-slate-500">
+                  Textos muito longos podem demorar mais. Se possivel, cole apenas o relato principal do bug/teste.
+                </span>
+                <span
+                  className={`font-bold ${
+                    isAiInputTooLong ? "text-red-600" : "text-slate-500"
+                  }`}
+                >
+                  {aiInputLength.toLocaleString("pt-BR")} / {AI_INPUT_MAX_CHARS.toLocaleString("pt-BR")}
+                </span>
+              </div>
               {aiError && (
                 <div className="bg-red-50 text-red-700 text-xs p-3 rounded-lg border border-red-100 font-medium">
                   {aiError}
@@ -340,6 +370,7 @@ export default function ReportForm({
                   type="button"
                   onClick={handleAiGenerate}
                   isLoading={isAiGenerating}
+                  disabled={isAiGenerating || isAiInputTooLong}
                   variant="primary"
                   className="w-full bg-indigo-600 px-4 py-1.5 text-xs hover:bg-indigo-700 sm:w-auto"
                 >

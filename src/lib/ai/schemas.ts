@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const AI_MODES = ["report", "steps"] as const;
 export type AiMode = (typeof AI_MODES)[number];
+export const AI_INPUT_MAX_CHARS = 12000;
 
 const branchValues = [
   "Master",
@@ -64,7 +65,7 @@ export const aiReportSchema = z
 export const aiRequestSchema = z
   .object({
     mode: z.enum(AI_MODES),
-    text: z.string().trim().min(1).max(12000),
+    text: z.string().trim().min(1).max(AI_INPUT_MAX_CHARS),
   })
   .strict();
 

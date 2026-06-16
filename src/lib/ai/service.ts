@@ -1,13 +1,16 @@
 import type { AiMode } from "@/lib/ai/schemas";
 import {
-  AiProviderError,
   AiProviderResult,
   generateWithGemini,
   generateWithOpenRouter,
 } from "@/lib/ai/providers";
+import { generateLocalFallback } from "@/lib/ai/localFallback";
+import { preprocessAiInput } from "@/lib/ai/preprocess";
 
 export interface AiGenerationResult extends AiProviderResult {
   fallbackUsed: boolean;
+  localFallbackUsed: boolean;
+  inputReduced: boolean;
 }
 
 function sleep(ms: number) {
@@ -25,34 +28,75 @@ function openRouterTimeout() {
     : 45000;
 }
 
+function geminiTimeouts(text: string) {
+  const length = text.trim().length;
+
+  if (length >= 8000) {
+    return { first: 18000, retry: 12000 };
+  }
+
+  if (length >= 4000) {
+    return { first: 12000, retry: 8000 };
+  }
+
+  return { first: 7000, retry: 5000 };
+}
+
 export async function generateAiContent(
   mode: AiMode,
   text: string
 ): Promise<AiGenerationResult> {
+  const processed = preprocessAiInput(text);
+  const providerText = processed.text;
+  const gemini = geminiTimeouts(providerText);
+
   try {
-    const result = await generateWithGemini(mode, text, 7000);
-    return { ...result, fallbackUsed: false };
-  } catch (firstError) {
-    const shouldRetry =
-      firstError instanceof AiProviderError && firstError.retriable;
-    if (!shouldRetry) throw firstError;
+    const result = await generateWithGemini(mode, providerText, gemini.first);
+    return {
+      ...result,
+      fallbackUsed: false,
+      localFallbackUsed: false,
+      inputReduced: processed.wasReduced,
+    };
+  } catch {
+    // Falhas do provedor principal ainda podem ser recuperadas pelo retry
+    // ou pelo provedor alternativo.
   }
 
   await sleep(retryDelay());
 
   try {
-    const result = await generateWithGemini(mode, text, 5000);
-    return { ...result, fallbackUsed: false };
-  } catch (secondError) {
-    const shouldFallback =
-      secondError instanceof AiProviderError && secondError.retriable;
-    if (!shouldFallback) throw secondError;
+    const result = await generateWithGemini(mode, providerText, gemini.retry);
+    return {
+      ...result,
+      fallbackUsed: false,
+      localFallbackUsed: false,
+      inputReduced: processed.wasReduced,
+    };
+  } catch {
+    // Continua para o fallback externo.
   }
 
-  const fallback = await generateWithOpenRouter(
-    mode,
-    text,
-    openRouterTimeout()
-  );
-  return { ...fallback, fallbackUsed: true };
+  try {
+    const fallback = await generateWithOpenRouter(
+      mode,
+      providerText,
+      openRouterTimeout()
+    );
+    return {
+      ...fallback,
+      fallbackUsed: true,
+      localFallbackUsed: false,
+      inputReduced: processed.wasReduced,
+    };
+  } catch {
+    return {
+      data: generateLocalFallback(mode, providerText),
+      provider: "local",
+      model: "local-template",
+      fallbackUsed: true,
+      localFallbackUsed: true,
+      inputReduced: processed.wasReduced,
+    };
+  }
 }
