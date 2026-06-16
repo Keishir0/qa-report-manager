@@ -1,6 +1,7 @@
 import type { AiMode } from "@/lib/ai/schemas";
 import {
   AiProviderResult,
+  generateWithGemini,
   generateWithOpenRouter,
 } from "@/lib/ai/providers";
 import { generateLocalFallback } from "@/lib/ai/localFallback";
@@ -49,8 +50,28 @@ export async function generateAiContent(
 ): Promise<AiGenerationResult> {
   const processed = preprocessAiInput(text);
   const providerText = processed.text;
-  const modelChain = openRouterModelChain();
 
+  // 1. Tenta Gemini diretamente se a chave estiver configurada
+  if (process.env.GEMINI_API_KEY) {
+    try {
+      const result = await generateWithGemini(
+        mode,
+        providerText,
+        openRouterTimeout()
+      );
+      return {
+        ...result,
+        fallbackUsed: false,
+        localFallbackUsed: false,
+        inputReduced: processed.wasReduced,
+      };
+    } catch (err) {
+      console.warn("Gemini generation failed, trying OpenRouter...", err);
+    }
+  }
+
+  // 2. Tenta a cadeia de modelos do OpenRouter
+  const modelChain = openRouterModelChain();
   for (let index = 0; index < modelChain.length; index += 1) {
     const model = modelChain[index];
     try {
@@ -62,7 +83,7 @@ export async function generateAiContent(
       );
       return {
         ...result,
-        fallbackUsed: index > 0,
+        fallbackUsed: index > 0 || !!process.env.GEMINI_API_KEY,
         localFallbackUsed: false,
         inputReduced: processed.wasReduced,
       };
@@ -80,5 +101,5 @@ export async function generateAiContent(
     fallbackUsed: true,
     localFallbackUsed: true,
     inputReduced: processed.wasReduced,
-  }
+  };
 }

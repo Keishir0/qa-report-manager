@@ -54,6 +54,23 @@ function toGeminiSchema(mode: AiMode) {
   ) as Schema;
 }
 
+function toOpenRouterSchema(mode: AiMode) {
+  return JSON.parse(
+    JSON.stringify(aiJsonSchemas[mode], (key, value) =>
+      [
+        "minimum",
+        "maximum",
+        "minItems",
+        "maxItems",
+        "minLength",
+        "maxLength",
+      ].includes(key)
+        ? undefined
+        : value
+    )
+  );
+}
+
 function errorStatus(error: unknown) {
   if (!error || typeof error !== "object") return undefined;
   const value = error as {
@@ -200,7 +217,7 @@ export async function generateWithOpenRouter(
             json_schema: {
               name: `qa_${mode}`,
               strict: true,
-              schema: aiJsonSchemas[mode],
+              schema: toOpenRouterSchema(mode),
             },
           },
         }),
