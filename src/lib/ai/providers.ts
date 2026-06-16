@@ -154,7 +154,7 @@ export async function generateWithGemini(
 
     const parsed = parseJsonResponse(responseText);
     return {
-      data: validateAiResult(mode, parsed),
+      data: normalizeOpenRouterResult(mode, parsed, text),
       provider: "gemini",
       model: modelName,
     };

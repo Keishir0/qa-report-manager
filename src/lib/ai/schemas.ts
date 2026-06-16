@@ -44,7 +44,7 @@ export const aiStepSchema = z
 
 export const aiStepsSchema = z
   .object({
-    steps: z.array(aiStepSchema).min(1).max(30),
+    steps: z.array(aiStepSchema).min(1).max(50),
   })
   .strict();
 
@@ -58,7 +58,7 @@ export const aiReportSchema = z
     functionality: z.string().trim().min(1).max(500),
     bugDescription: z.string().trim().min(1).max(5000),
     notes: z.string().trim().max(5000),
-    steps: z.array(aiStepSchema).min(1).max(30),
+    steps: z.array(aiStepSchema).min(1).max(50),
   })
   .strict();
 
@@ -100,7 +100,7 @@ export const aiJsonSchemas = {
       steps: {
         type: "array",
         minItems: 1,
-        maxItems: 30,
+        maxItems: 50,
         items: stepJsonSchema,
       },
     },
@@ -121,7 +121,7 @@ export const aiJsonSchemas = {
       steps: {
         type: "array",
         minItems: 1,
-        maxItems: 30,
+        maxItems: 50,
         items: stepJsonSchema,
       },
     },
@@ -170,7 +170,7 @@ export function normalizeOpenRouterResult(
   const input = value as Record<string, unknown>;
   const rawSteps = Array.isArray(input.steps) ? input.steps : [];
   const normalizedSteps = rawSteps
-    .slice(0, 30)
+    .slice(0, 50)
     .map((rawStep, index) => {
       const step =
         rawStep && typeof rawStep === "object"

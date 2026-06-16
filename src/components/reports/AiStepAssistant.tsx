@@ -98,7 +98,7 @@ export default function AiStepAssistant({
       }
 
       const normalized = generated.steps
-        .slice(0, 30)
+        .slice(0, 50)
         .map((step: Record<string, unknown>, index: number) => ({
           stepNumber: nextStepNumber + index,
           action: String(step.action || "").trim(),
