@@ -508,6 +508,22 @@ export default function ReportsListPage() {
 
       {/* Tabela de Relatórios */}
       <DataTable
+        tableClassName="w-full min-w-0 table-fixed text-left border-collapse"
+        headerCellClassName="px-3 py-3"
+        headerClassNames={[
+          "w-[6%]",
+          "w-[8%]",
+          "w-[9%]",
+          "w-[7%]",
+          "w-[10%]",
+          "w-[12%]",
+          "w-[7%]",
+          "w-[10%]",
+          "w-[10%]",
+          "w-[6%]",
+          "w-[8%]",
+          "w-[7%] text-right",
+        ]}
         headers={[
           "Código",
           "Data",
@@ -549,32 +565,40 @@ export default function ReportsListPage() {
               key={report.id}
               className={`transition-colors text-sm border-b border-slate-100 ${rowHighlightClass}`}
             >
-              <td className="p-4 font-mono font-bold text-slate-900">{report.code}</td>
-              <td className="p-4 text-slate-500 whitespace-nowrap">
+              <td className="px-3 py-4 font-mono font-bold text-slate-900 whitespace-nowrap">
+                {report.code}
+              </td>
+              <td className="px-3 py-4 text-slate-500 whitespace-nowrap">
                 {format(new Date(report.testDate), "dd/MM/yyyy")}
               </td>
-              <td className="p-4 font-semibold text-slate-800">{report.systemName}</td>
-              <td className="p-4 text-slate-600">{report.branch}</td>
-              <td className="p-4 text-slate-600 truncate max-w-[150px]" title={report.screenPath}>
+              <td className="px-3 py-4 font-semibold text-slate-800 truncate" title={report.systemName}>
+                {report.systemName}
+              </td>
+              <td className="px-3 py-4 text-slate-600 leading-snug">
+                {report.branch}
+              </td>
+              <td className="px-3 py-4 text-slate-600 truncate" title={report.screenPath}>
                 {report.screenPath}
               </td>
-              <td className="p-4 text-slate-600 truncate max-w-[150px]" title={report.functionality}>
+              <td className="px-3 py-4 text-slate-600 truncate" title={report.functionality}>
                 {report.functionality}
               </td>
-              <td className="p-4 text-slate-600 whitespace-nowrap">{report.testType}</td>
-              <td className="p-4 min-w-[140px] font-semibold text-slate-800">
+              <td className="px-3 py-4 text-slate-600 truncate" title={report.testType}>
+                {report.testType}
+              </td>
+              <td className="px-3 py-4 font-semibold text-slate-800 truncate" title={report.testerName || "Nao informado"}>
                 {report.testerName || "Nao informado"}
               </td>
-              <td className="p-4 min-w-[140px] text-slate-600">
+              <td className="px-3 py-4 text-slate-600 truncate" title={report.sndeskTechnicianName || "Nao informado"}>
                 {report.sndeskTechnicianName || "Nao informado"}
               </td>
-              <td className="p-4 text-slate-500 font-medium">
+              <td className="px-3 py-4 text-slate-500 font-medium leading-snug">
                 {stepsCount} {stepsCount === 1 ? "passo" : "passos"}
               </td>
-              <td className="p-4 whitespace-nowrap">
+              <td className="px-3 py-4 whitespace-nowrap">
                 <StatusBadge status={report.generalStatus} />
               </td>
-              <td className="p-4 whitespace-nowrap text-right">
+              <td className="px-3 py-4 whitespace-nowrap text-right">
                 <ReportActionsMenu
                   reportId={report.id!}
                   reportCode={report.code}

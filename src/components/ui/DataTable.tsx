@@ -7,6 +7,9 @@ interface DataTableProps {
   isEmpty?: boolean;
   emptyState?: React.ReactNode;
   className?: string;
+  tableClassName?: string;
+  headerCellClassName?: string;
+  headerClassNames?: string[];
 }
 
 export default function DataTable({
@@ -16,6 +19,9 @@ export default function DataTable({
   isEmpty = false,
   emptyState,
   className = "",
+  tableClassName = "w-full min-w-[860px] text-left border-collapse",
+  headerCellClassName = "p-4",
+  headerClassNames = [],
 }: DataTableProps) {
   return (
     <div
@@ -54,11 +60,11 @@ export default function DataTable({
         )
       ) : (
         <div className="overflow-x-auto overscroll-x-contain">
-          <table className="w-full min-w-[860px] text-left border-collapse">
+          <table className={tableClassName}>
             <thead>
               <tr className="bg-slate-50 text-slate-500 font-bold text-[10px] border-b border-slate-200 uppercase tracking-wider">
                 {headers.map((h, i) => (
-                  <th key={i} className="p-4">
+                  <th key={i} className={`${headerCellClassName} ${headerClassNames[i] || ""}`}>
                     {h}
                   </th>
                 ))}
