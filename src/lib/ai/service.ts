@@ -1,7 +1,6 @@
 import type { AiMode } from "@/lib/ai/schemas";
 import {
   AiProviderResult,
-  generateWithGemini,
   generateWithOpenRouter,
 } from "@/lib/ai/providers";
 import { generateLocalFallback } from "@/lib/ai/localFallback";
@@ -28,26 +27,20 @@ function openRouterTimeout() {
     : 45000;
 }
 
-function paidOpenRouterModel() {
-  return process.env.OPENROUTER_PAID_MODEL || "openai/gpt-4.1-mini";
-}
-
-function freeOpenRouterModel() {
-  return process.env.OPENROUTER_FREE_MODEL || "openai/gpt-oss-120b:free";
-}
-
-function geminiTimeouts(text: string) {
-  const length = text.trim().length;
-
-  if (length >= 8000) {
-    return { first: 18000, retry: 12000 };
+function openRouterModelChain() {
+  const configured = process.env.OPENROUTER_MODEL_CHAIN;
+  if (configured) {
+    return configured
+      .split(",")
+      .map((model) => model.trim())
+      .filter(Boolean);
   }
 
-  if (length >= 4000) {
-    return { first: 12000, retry: 8000 };
-  }
-
-  return { first: 7000, retry: 5000 };
+  return [
+    "google/gemma-4-31b-it:free",
+    "google/gemma-4-26b-a4b-it:free",
+    "openai/gpt-oss-120b:free",
+  ];
 }
 
 export async function generateAiContent(
@@ -56,73 +49,36 @@ export async function generateAiContent(
 ): Promise<AiGenerationResult> {
   const processed = preprocessAiInput(text);
   const providerText = processed.text;
-  const gemini = geminiTimeouts(providerText);
+  const modelChain = openRouterModelChain();
 
-  try {
-    const result = await generateWithGemini(mode, providerText, gemini.first);
-    return {
-      ...result,
-      fallbackUsed: false,
-      localFallbackUsed: false,
-      inputReduced: processed.wasReduced,
-    };
-  } catch {
-    // Falhas do provedor principal ainda podem ser recuperadas pelo retry
-    // ou pelo provedor alternativo.
+  for (let index = 0; index < modelChain.length; index += 1) {
+    const model = modelChain[index];
+    try {
+      const result = await generateWithOpenRouter(
+        mode,
+        providerText,
+        openRouterTimeout(),
+        model
+      );
+      return {
+        ...result,
+        fallbackUsed: index > 0,
+        localFallbackUsed: false,
+        inputReduced: processed.wasReduced,
+      };
+    } catch {
+      if (index < modelChain.length - 1) {
+        await sleep(retryDelay());
+      }
+    }
   }
 
-  await sleep(retryDelay());
-
-  try {
-    const result = await generateWithGemini(mode, providerText, gemini.retry);
-    return {
-      ...result,
-      fallbackUsed: false,
-      localFallbackUsed: false,
-      inputReduced: processed.wasReduced,
-    };
-  } catch {
-    // Continua para o fallback externo.
-  }
-
-  try {
-    const paidFallback = await generateWithOpenRouter(
-      mode,
-      providerText,
-      openRouterTimeout(),
-      paidOpenRouterModel()
-    );
-    return {
-      ...paidFallback,
-      fallbackUsed: true,
-      localFallbackUsed: false,
-      inputReduced: processed.wasReduced,
-    };
-  } catch {
-    // Continua para o fallback gratuito.
-  }
-
-  try {
-    const freeFallback = await generateWithOpenRouter(
-      mode,
-      providerText,
-      openRouterTimeout(),
-      freeOpenRouterModel()
-    );
-    return {
-      ...freeFallback,
-      fallbackUsed: true,
-      localFallbackUsed: false,
-      inputReduced: processed.wasReduced,
-    };
-  } catch {
-    return {
-      data: generateLocalFallback(mode, providerText),
-      provider: "local",
-      model: "local-template",
-      fallbackUsed: true,
-      localFallbackUsed: true,
-      inputReduced: processed.wasReduced,
-    };
+  return {
+    data: generateLocalFallback(mode, providerText),
+    provider: "local",
+    model: "local-template",
+    fallbackUsed: true,
+    localFallbackUsed: true,
+    inputReduced: processed.wasReduced,
   }
 }

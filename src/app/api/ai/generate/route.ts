@@ -151,11 +151,9 @@ export async function POST(request: NextRequest) {
             userId: user.id,
             mode: input.mode,
             provider: "unavailable",
-            model: `${process.env.GEMINI_MODEL || "gemini-2.5-flash"} | ${
-              process.env.OPENROUTER_PAID_MODEL || "openai/gpt-4.1-mini"
-            } | ${
-              process.env.OPENROUTER_FREE_MODEL || "openai/gpt-oss-120b:free"
-            }`,
+            model:
+              process.env.OPENROUTER_MODEL_CHAIN ||
+              "google/gemma-4-31b-it:free,google/gemma-4-26b-a4b-it:free,openai/gpt-oss-120b:free",
             status: "failed",
             latencyMs,
           },

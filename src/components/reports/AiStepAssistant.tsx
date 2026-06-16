@@ -128,7 +128,7 @@ export default function AiStepAssistant({
         );
       } else if (result.meta?.fallbackUsed) {
         setProviderNotice(
-          "O Gemini estava indisponível. A geração foi concluída pelo modelo alternativo GPT-OSS."
+          `A geração foi concluída por um modelo alternativo: ${result.meta.model}.`
         );
       }
     } catch (err) {
