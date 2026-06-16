@@ -511,23 +511,21 @@ export default function ReportsListPage() {
         tableClassName="w-full min-w-0 table-fixed text-left border-collapse"
         headerCellClassName="px-3 py-3"
         headerClassNames={[
-          "w-[6%]",
-          "w-[8%]",
+          "w-[7%]",
           "w-[9%]",
-          "w-[7%]",
-          "w-[10%]",
+          "w-[9%]",
           "w-[12%]",
-          "w-[7%]",
-          "w-[10%]",
-          "w-[10%]",
-          "w-[7%] text-center",
+          "w-[15%]",
           "w-[8%]",
-          "w-[6%] text-right",
+          "w-[11%]",
+          "w-[11%]",
+          "w-[7%]",
+          "w-[9%]",
+          "w-[8%] text-right",
         ]}
         headers={[
           "Código",
           "Data",
-          "Sistema",
           "Branch",
           "Tela / Menu",
           "Funcionalidade",
@@ -570,9 +568,6 @@ export default function ReportsListPage() {
               </td>
               <td className="px-3 py-4 text-slate-500 whitespace-nowrap">
                 {format(new Date(report.testDate), "dd/MM/yyyy")}
-              </td>
-              <td className="px-3 py-4 font-semibold text-slate-800 truncate" title={report.systemName}>
-                {report.systemName}
               </td>
               <td className="px-3 py-4 text-slate-600 leading-snug">
                 {report.branch}

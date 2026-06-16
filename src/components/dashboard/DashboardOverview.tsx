@@ -251,7 +251,6 @@ export default function DashboardOverview({
           headers={[
             "Código",
             "Data",
-            "Sistema",
             "Branch",
             "Funcionalidade",
             "Passos",
@@ -302,7 +301,6 @@ export default function DashboardOverview({
                 <td className="whitespace-nowrap p-4 text-slate-500">
                   {format(new Date(report.testDate), "dd/MM/yyyy")}
                 </td>
-                <td className="p-4 font-semibold text-slate-800">{report.systemName}</td>
                 <td className="p-4 text-slate-600">{report.branch}</td>
                 <td className="max-w-[240px] truncate p-4 text-slate-600" title={report.functionality}>
                   {report.functionality}
