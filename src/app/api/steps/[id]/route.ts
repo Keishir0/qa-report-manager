@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { requireApiAccess, WRITE_ROLES } from "@/lib/auth";
+import { recalculateReportGeneralStatus } from "@/lib/reports";
 
 export async function PUT(
   request: NextRequest,
@@ -43,6 +44,8 @@ export async function PUT(
       data: updateData,
     });
 
+    await recalculateReportGeneralStatus(exists.reportId);
+
     return NextResponse.json(updatedStep);
   } catch (error: any) {
     console.error(`Error in PUT /api/steps/${params.id}:`, error);
@@ -77,6 +80,8 @@ export async function DELETE(
     await prisma.testStep.delete({
       where: { id },
     });
+
+    await recalculateReportGeneralStatus(exists.reportId);
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

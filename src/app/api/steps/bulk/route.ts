@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireApiAccess, WRITE_ROLES } from "@/lib/auth";
+import { recalculateReportGeneralStatus } from "@/lib/reports";
 import { STEP_STATUS_OPTIONS } from "@/types";
 import { logServerError } from "@/lib/serverLog";
 
@@ -91,6 +92,8 @@ export async function POST(request: NextRequest) {
     const created = await prisma.$transaction(
       steps.map((step) => prisma.testStep.create({ data: step }))
     );
+
+    await recalculateReportGeneralStatus(reportId);
 
     return NextResponse.json(
       { success: true, data: created },

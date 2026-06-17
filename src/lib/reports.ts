@@ -50,3 +50,36 @@ export async function softDeleteReport(reportId: string) {
 
   return { id: reportId, deletedAt };
 }
+
+export async function recalculateReportGeneralStatus(reportId: string, tx?: any) {
+  const db = tx || prisma;
+
+  const steps = await db.testStep.findMany({
+    where: { reportId },
+    select: { status: true },
+  });
+
+  if (steps.length === 0) {
+    await db.testReport.update({
+      where: { id: reportId },
+      data: { generalStatus: "Não executado" },
+    });
+    return;
+  }
+
+  const statuses = steps.map((s: any) => s.status);
+
+  let nextStatus = "Passou";
+  if (statuses.includes("Falhou")) {
+    nextStatus = "Falhou";
+  } else if (statuses.includes("Bloqueado")) {
+    nextStatus = "Bloqueado";
+  } else if (statuses.includes("Não executado")) {
+    nextStatus = "Não executado";
+  }
+
+  await db.testReport.update({
+    where: { id: reportId },
+    data: { generalStatus: nextStatus },
+  });
+}

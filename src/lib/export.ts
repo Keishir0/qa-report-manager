@@ -179,7 +179,7 @@ export function exportToPDF(reports: TestReportData[], filename?: string) {
         0: { cellWidth: (pageWidth - margin * 2) / 2 },
         1: { cellWidth: (pageWidth - margin * 2) / 2 },
       },
-      margin: { left: margin, right: margin },
+      margin: { top: 30, bottom: 20, left: margin, right: margin },
     });
 
     y = (doc as any).lastAutoTable.finalY + 4;
@@ -220,7 +220,7 @@ export function exportToPDF(reports: TestReportData[], filename?: string) {
         3: { cellWidth: 45 },
         4: { cellWidth: 25, halign: "center" as const },
       },
-      margin: { left: margin, right: margin },
+      margin: { top: 30, bottom: 20, left: margin, right: margin },
       didParseCell: (data) => {
         // Estilizar a coluna de Status ("Passou", "Falhou", "Bloqueado")
         if (data.section === "body" && data.column.index === 4) {
