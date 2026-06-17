@@ -207,7 +207,7 @@ export async function generateWithOpenRouter(
             { role: "user", content: messages.user },
           ],
           temperature: 0.2,
-          max_tokens: mode === "steps" ? 2500 : 4000,
+          max_tokens: 5000,
           reasoning: {
             effort: "minimal",
             exclude: true,

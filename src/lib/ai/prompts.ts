@@ -9,21 +9,26 @@ Retorne apenas o objeto JSON solicitado.
 `;
 
 const stepRules = `
-Gere passos de teste claros, objetivos e sequenciais.
-Quando um passo ainda não tiver sido executado, use status "Não executado" e
-resultado obtido "Pendente de execução".
+Gere passos de teste altamente descritivos, detalhados e sequenciais.
+Para cada passo:
+1. 'action': Descreva minuciosamente a ação física no sistema (ex: os botões exatos a clicar, os dados a preencher, a tela a acessar). Evite frases curtas e genéricas.
+2. 'expectedResult': Descreva detalhadamente o comportamento correto esperado do sistema.
+3. 'actualResult':
+   - Se o passo passou (status "Passou"): Descreva detalhadamente a confirmação do sucesso (ex: "O redirecionamento ocorreu com sucesso e a tela anterior foi exibida perfeitamente"). Nunca deixe em branco ou genérico.
+   - Se o passo falhou ou bloqueou (status "Falhou" ou "Bloqueado"): Descreva detalhadamente o erro ou quebra observada no relato (ex: "O reprodutor de áudio quebrou o layout da tela e a reprodução falhou").
+   - Se o passo não foi executado (status "Não executado"): Use "Pendente de execução".
 `;
 
 const reportRules = `
-Converta o relato informal em um relatório de teste estruturado.
-Se a branch não for identificada, use "Desenvolvimento".
-Se o tipo não for identificado, use "Funcional".
-Se a tela não for mencionada, use "Não informado".
-Se a funcionalidade não for identificada, use "Geral".
-Se houver um bug, use status geral "Falhou" ou "Bloqueado".
-O campo bugDescription nunca pode ficar vazio. Quando não houver bug, descreva
-o cenário validado e informe que o comportamento esperado foi confirmado.
-Sempre gere pelo menos um passo de teste.
+Converta o relato informal em um relatório de teste estruturado e detalhado.
+Regras de campos:
+1. Se a branch não for identificada, use "Desenvolvimento".
+2. Se o tipo de teste não for identificado, use "Funcional".
+3. Se a tela não for mencionada, use "Não informado".
+4. Se a funcionalidade não for identificada, use "Geral".
+5. Se houver um bug ou erro relatado, use status geral "Falhou" ou "Bloqueado".
+6. O campo 'bugDescription' é obrigatório e nunca pode ficar vazio. Se não houver bug, descreva o cenário validado.
+7. Para a lista de passos ('steps'), siga rigorosamente as mesmas instruções de detalhamento de ações, resultados esperados e resultados obtidos descritos acima.
 Quando o relato trouxer uma lista grande de telas, menus ou itens testados,
 nao gere um passo para cada item. Agrupe os itens por contexto e coloque a
 lista completa em notes.
