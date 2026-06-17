@@ -44,14 +44,24 @@ function compactLongBulletList(lines: string[]) {
   const bulletLines = lines.filter(isBulletLine);
   if (bulletLines.length < 12) return lines;
 
-  const contextLines = lines.filter((line) => !isBulletLine(line));
+  const result: string[] = [];
+  let insertedSummary = false;
   const cleanedBullets = bulletLines.map(cleanBulletLine).filter(Boolean);
+  const summaryLine = `Itens/telas testadas: ${cleanedBullets.join("; ")}.`;
 
-  return [
-    ...contextLines.slice(0, 8),
-    `Itens/telas testadas individualmente (${cleanedBullets.length}): ${cleanedBullets.join("; ")}.`,
-    "Observacao: o relato original informava que cada item foi testado separadamente. Agrupe os passos por contexto e preserve a lista completa nas observacoes.",
-  ];
+  for (const line of lines) {
+    if (isBulletLine(line)) {
+      if (!insertedSummary) {
+        result.push(summaryLine);
+        result.push("Observacao: o relato original informava que cada item foi testado separadamente. Agrupe os passos por contexto e preserve a lista completa nas observacoes.");
+        insertedSummary = true;
+      }
+    } else {
+      result.push(line);
+    }
+  }
+
+  return result;
 }
 
 export function preprocessAiInput(text: string) {
