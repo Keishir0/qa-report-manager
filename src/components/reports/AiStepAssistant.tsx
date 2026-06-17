@@ -59,7 +59,7 @@ export default function AiStepAssistant({
       "Gere passos de teste claros, objetivos e sequenciais para o relatório abaixo.",
       "Use os dados existentes como fonte principal.",
       "Não invente credenciais, nomes de pessoas ou informações não fornecidas.",
-      "Quando o passo ainda não tiver sido executado, use status \"Não executado\" e resultado obtido \"Pendente de execução\".",
+      `Siga rigorosamente as regras de status e resultado obtido com base no Status geral do relatório: se for "Passou", todos os passos devem ter status "Passou" e o resultado obtido correspondente de sucesso preenchido detalhadamente. Se for "Falhou" ou "Bloqueado", os passos devem refletir o fluxo até a falha.`,
       `Sistema: ${report.systemName}`,
       `Branch: ${report.branch}`,
       `Tela ou menu: ${report.screenPath}`,

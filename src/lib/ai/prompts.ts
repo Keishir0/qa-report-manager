@@ -10,13 +10,22 @@ Retorne apenas o objeto JSON solicitado.
 
 const stepRules = `
 Gere passos de teste altamente descritivos, detalhados e sequenciais.
+Analise o contexto, as instruções e o 'Status geral' (se fornecido) para identificar se os testes já foram executados e qual foi o resultado de cada um:
+1. Alinhamento com o Status Geral do Relatório:
+   - Se o Status Geral (ou o relato/instruções) for "Passou": Todos os passos devem ser marcados com status "Passou", e o resultado obtido ('actualResult') de cada um deve descrever detalhadamente a confirmação do sucesso observado (nunca use "Pendente de execução" ou frases genéricas).
+   - Se o Status Geral (ou o relato/instruções) for "Falhou" ou "Bloqueado":
+     * Os passos anteriores ao erro/bug devem ser marcados com status "Passou" (sucesso), e o resultado obtido ('actualResult') deve detalhar o sucesso dessas ações.
+     * O passo específico onde ocorre o erro/falha deve ser marcado com status "Falhou" ou "Bloqueado", e o resultado obtido ('actualResult') deve descrever detalhadamente o erro observado (mensagens de erro, quebras de layout, falhas de funcionamento).
+     * Os passos subsequentes que não puderam ser testados devem ter status "Não executado" e resultado obtido "Pendente de execução".
+   - Se o Status Geral for "Não executado" (ou for apenas um roteiro futuro): Todos os passos gerados devem ter status "Não executado" e o resultado obtido ('actualResult') deve ser "Pendente de execução".
+
 Para cada passo:
 1. 'action': Descreva minuciosamente a ação física no sistema (ex: os botões exatos a clicar, os dados a preencher, a tela a acessar). Evite frases curtas e genéricas.
 2. 'expectedResult': Descreva detalhadamente o comportamento correto esperado do sistema.
 3. 'actualResult':
-   - Se o passo passou (status "Passou"): Descreva detalhadamente a confirmação do sucesso (ex: "O redirecionamento ocorreu com sucesso e a tela anterior foi exibida perfeitamente"). Nunca deixe em branco ou genérico.
-   - Se o passo falhou ou bloqueou (status "Falhou" ou "Bloqueado"): Descreva detalhadamente o erro ou quebra observada no relato (ex: "O reprodutor de áudio quebrou o layout da tela e a reprodução falhou").
-   - Se o passo não foi executado (status "Não executado"): Use "Pendente de execução".
+   - Se o status for "Passou": Descreva detalhadamente a confirmação do sucesso (ex: "O redirecionamento ocorreu com sucesso e a tela anterior foi exibida perfeitamente"). Nunca deixe em branco ou genérico.
+   - Se o status for "Falhou" ou "Bloqueado": Descreva detalhadamente o erro ou quebra observada no relato (ex: "O reprodutor de áudio quebrou o layout da tela e a reprodução falhou").
+   - Se o status for "Não executado": Use "Pendente de execução".
 `;
 
 const reportRules = `
@@ -38,7 +47,7 @@ corretamente, use generalStatus "Passou" e passos com status "Passou".
 
 export function buildAiMessages(mode: AiMode, text: string) {
   return {
-    system: `${sharedRules}\n${mode === "steps" ? stepRules : reportRules}`.trim(),
+    system: `${sharedRules}\n${stepRules}\n${mode === "steps" ? "" : reportRules}`.trim(),
     user:
       mode === "steps"
         ? `Gere os passos de teste a partir deste contexto:\n\n${text}`
