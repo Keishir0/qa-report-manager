@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import EmptyState from "@/components/ui/EmptyState";
@@ -36,6 +37,18 @@ interface PendingTicket {
   lastError: string | null;
   updatedAt: string;
 }
+
+interface PendingTicketActionsMenuProps {
+  ticket: PendingTicket;
+  isLoading: boolean;
+  onView: (ticket: PendingTicket) => void;
+  onDeleteReport: (ticket: PendingTicket) => void;
+}
+
+const ACTIONS_MENU_WIDTH = 176;
+const ACTIONS_MENU_HEIGHT = 104;
+const ACTIONS_VIEW_ONLY_HEIGHT = 52;
+const VIEWPORT_MARGIN = 8;
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("pt-BR", {
@@ -79,6 +92,145 @@ function getTicketStateColor(state: string) {
   }
 
   return "bg-slate-100 text-slate-700 border border-slate-200";
+}
+
+function PendingTicketActionsMenu({
+  ticket,
+  isLoading,
+  onView,
+  onDeleteReport,
+}: PendingTicketActionsMenuProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const menuHeight = ticket.reportId
+    ? ACTIONS_MENU_HEIGHT
+    : ACTIONS_VIEW_ONLY_HEIGHT;
+
+  useEffect(() => {
+    if (!isOpen || !buttonRef.current) return;
+
+    const updatePosition = () => {
+      const rect = buttonRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      const fitsBelow =
+        rect.bottom + VIEWPORT_MARGIN + menuHeight <= window.innerHeight;
+      const top = fitsBelow
+        ? rect.bottom + VIEWPORT_MARGIN
+        : Math.max(VIEWPORT_MARGIN, rect.top - menuHeight - VIEWPORT_MARGIN);
+      const left = Math.min(
+        window.innerWidth - ACTIONS_MENU_WIDTH - VIEWPORT_MARGIN,
+        Math.max(VIEWPORT_MARGIN, rect.right - ACTIONS_MENU_WIDTH)
+      );
+
+      setPosition({ top, left });
+    };
+
+    const closeMenu = () => setIsOpen(false);
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (
+        !buttonRef.current?.contains(target) &&
+        !menuRef.current?.contains(target)
+      ) {
+        closeMenu();
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        closeMenu();
+        buttonRef.current?.focus();
+      }
+    };
+
+    updatePosition();
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("resize", closeMenu);
+    window.addEventListener("scroll", closeMenu, true);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("resize", closeMenu);
+      window.removeEventListener("scroll", closeMenu, true);
+    };
+  }, [isOpen, menuHeight]);
+
+  const closeMenu = () => setIsOpen(false);
+
+  const menu = (
+    <div
+      ref={menuRef}
+      role="menu"
+      aria-label={`Acoes da pendencia ${ticket.idChamado}`}
+      className="fixed z-[100] w-44 overflow-hidden rounded-xl border border-slate-200 bg-white py-1.5 shadow-xl shadow-slate-900/10"
+      style={{ top: position.top, left: position.left }}
+    >
+      <button
+        type="button"
+        role="menuitem"
+        disabled={isLoading}
+        onClick={() => {
+          closeMenu();
+          onView(ticket);
+        }}
+        className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm font-semibold text-indigo-600 transition-colors hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+        </svg>
+        Ver
+      </button>
+
+      {ticket.reportId && (
+        <>
+          <div className="mx-2 my-1 border-t border-slate-100" />
+          <button
+            type="button"
+            role="menuitem"
+            disabled={isLoading}
+            onClick={() => {
+              closeMenu();
+              onDeleteReport(ticket);
+            }}
+            className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            Excluir relatorio
+          </button>
+        </>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="flex justify-end">
+      <button
+        ref={buttonRef}
+        type="button"
+        aria-label={`Abrir acoes da pendencia ${ticket.idChamado}`}
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        disabled={isLoading}
+        onClick={() => setIsOpen((open) => !open)}
+        className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="5" cy="12" r="1.8" />
+          <circle cx="12" cy="12" r="1.8" />
+          <circle cx="19" cy="12" r="1.8" />
+        </svg>
+      </button>
+
+      {isOpen && typeof document !== "undefined" && createPortal(menu, document.body)}
+    </div>
+  );
 }
 
 export default function PendenciasClient() {
@@ -525,7 +677,7 @@ export default function PendenciasClient() {
           "w-[27%]",
           "w-[12%]",
           "w-[12%]",
-          "w-[13%]",
+          "w-[13%] text-center",
           "w-[9%]",
           "w-[12%]",
           "w-[8%] text-right",
@@ -572,9 +724,9 @@ export default function PendenciasClient() {
             <td className="p-4 truncate text-slate-700" title={getCliente(ticket)}>
               {getCliente(ticket)}
             </td>
-            <td className="p-4">
+            <td className="p-4 text-center">
               <span
-                className="inline-flex max-w-[160px] items-center justify-center whitespace-nowrap rounded-full px-3 py-1.5 text-center text-[11px] font-bold leading-none"
+                className="inline-flex min-w-[112px] max-w-[160px] items-center justify-center whitespace-nowrap rounded-full px-3 py-1.5 text-center text-[11px] font-bold leading-none"
                 style={{
                   backgroundColor: ticket.statusCor || "#e2e8f0",
                   color: "#0f172a",
@@ -583,7 +735,7 @@ export default function PendenciasClient() {
                 {ticket.statusDescricao || ticket.statusId || "Nao informado"}
               </span>
             </td>
-            <td className="p-4">
+            <td className="p-4 text-center">
               {ticket.reportId ? (
                 <button
                   type="button"
@@ -613,68 +765,12 @@ export default function PendenciasClient() {
               {formatDate(ticket.updatedAt)}
             </td>
             <td className="p-4 text-right">
-              <div className="inline-flex items-center justify-end gap-2">
-                <Button
-                  variant="secondary"
-                  onClick={() => viewTicket(ticket)}
-                  isLoading={actionId === ticket.id}
-                  className="px-3 py-1.5 text-xs text-indigo-700"
-                  icon={
-                    <svg
-                      className="h-4 w-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M2.25 12s3.75-6.75 9.75-6.75S21.75 12 21.75 12s-3.75 6.75-9.75 6.75S2.25 12 2.25 12Z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
-                      />
-                    </svg>
-                  }
-                >
-                  Ver
-                </Button>
-                {ticket.reportId && (
-                  <details className="relative">
-                    <summary
-                      className="flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-800"
-                      aria-label="Mais acoes"
-                    >
-                      <svg
-                        className="h-4 w-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M12 6.75h.008v.008H12V6.75Zm0 5.25h.008v.008H12V12Zm0 5.25h.008v.008H12v-.008Z"
-                        />
-                      </svg>
-                    </summary>
-                    <div className="absolute right-0 z-20 mt-2 w-44 rounded-xl border border-slate-200 bg-white p-1 shadow-lg">
-                      <button
-                        type="button"
-                        onClick={() => deleteLinkedReport(ticket)}
-                        disabled={actionId === ticket.id}
-                        className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs font-bold text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        Excluir relatorio
-                      </button>
-                    </div>
-                  </details>
-                )}
-              </div>
+              <PendingTicketActionsMenu
+                ticket={ticket}
+                isLoading={actionId === ticket.id}
+                onView={viewTicket}
+                onDeleteReport={deleteLinkedReport}
+              />
             </td>
           </tr>
         ))}

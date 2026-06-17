@@ -98,11 +98,11 @@ export default function StepRow({
 
   if (isEditing) {
     return (
-      <tr className="border-b border-gray-100 bg-brand-50/10">
-        <td className="p-4 align-top text-center text-sm font-mono text-gray-500 font-medium">
+      <tr className="border-b border-gray-100 bg-brand-50/10 max-lg:block max-lg:rounded-xl max-lg:border max-lg:border-slate-200 max-lg:bg-white max-lg:shadow-xs">
+        <td data-label="#" className="p-4 align-top text-center text-sm font-mono text-gray-500 font-medium max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-slate-100 max-lg:text-right max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]">
           {step.stepNumber}
         </td>
-        <td className="p-4 align-top" colSpan={4}>
+        <td data-label="Editar passo" className="p-4 align-top max-lg:block max-lg:w-full max-lg:before:mb-3 max-lg:before:block max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]" colSpan={4}>
           {error && (
             <div className="mb-3 text-xs text-red-600 bg-red-50 p-2 rounded border border-red-100">
               {error}
@@ -183,23 +183,23 @@ export default function StepRow({
   }
 
   return (
-    <tr className="border-b border-gray-200 hover:bg-gray-50/50 transition-colors">
-      <td className="p-4 text-center text-sm font-mono text-gray-500 font-medium">
+    <tr className="border-b border-gray-200 hover:bg-gray-50/50 transition-colors max-lg:block max-lg:rounded-xl max-lg:border max-lg:border-slate-200 max-lg:bg-white max-lg:shadow-xs">
+      <td data-label="#" className="p-4 text-center text-sm font-mono text-gray-500 font-medium max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-slate-100 max-lg:text-right max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]">
         {step.stepNumber}
       </td>
-      <td className="p-4 text-sm text-gray-800 break-words whitespace-pre-line max-w-[240px]">
+      <td data-label="Acao / Passo" className="p-4 text-sm text-gray-800 break-words whitespace-pre-line max-w-[240px] max-lg:flex max-lg:max-w-none max-lg:items-start max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-slate-100 max-lg:text-right max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]">
         {step.action}
       </td>
-      <td className="p-4 text-sm text-gray-600 break-words whitespace-pre-line max-w-[240px]">
+      <td data-label="Resultado Esperado" className="p-4 text-sm text-gray-600 break-words whitespace-pre-line max-w-[240px] max-lg:flex max-lg:max-w-none max-lg:items-start max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-slate-100 max-lg:text-right max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]">
         {step.expectedResult}
       </td>
-      <td className="p-4 text-sm text-gray-600 break-words whitespace-pre-line max-w-[240px]">
+      <td data-label="Resultado Obtido" className="p-4 text-sm text-gray-600 break-words whitespace-pre-line max-w-[240px] max-lg:flex max-lg:max-w-none max-lg:items-start max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-slate-100 max-lg:text-right max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]">
         {step.actualResult}
       </td>
-      <td className="p-4 whitespace-nowrap">
+      <td data-label="Status" className="p-4 whitespace-nowrap max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-slate-100 max-lg:text-right max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]">
         <StatusBadge status={step.status} size="sm" />
       </td>
-      <td className="p-4 whitespace-nowrap text-right text-xs">
+      <td data-label="Acoes" className="p-4 whitespace-nowrap text-right text-xs max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]">
         {canEdit ? <div className="flex justify-end gap-2">
           <button
             onClick={() => setIsEditing(true)}

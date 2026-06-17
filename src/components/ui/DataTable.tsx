@@ -10,6 +10,33 @@ interface DataTableProps {
   tableClassName?: string;
   headerCellClassName?: string;
   headerClassNames?: string[];
+  responsiveCards?: boolean;
+}
+
+function labelTableCells(children: React.ReactNode, headers: string[]): React.ReactNode {
+  return React.Children.map(children, (child) => {
+    if (!React.isValidElement(child)) return child;
+
+    if (child.type === React.Fragment) {
+      return React.cloneElement(child, {
+        children: labelTableCells(child.props.children, headers),
+      });
+    }
+
+    if (child.type !== "tr") return child;
+
+    const cells = React.Children.map(child.props.children, (cell, index) => {
+      if (!React.isValidElement(cell)) return cell;
+
+      return React.cloneElement(cell as React.ReactElement<any>, {
+        "data-label": headers[index] || "",
+      });
+    });
+
+    return React.cloneElement(child as React.ReactElement<any>, {
+      children: cells,
+    });
+  });
 }
 
 export default function DataTable({
@@ -22,10 +49,27 @@ export default function DataTable({
   tableClassName = "w-full min-w-[860px] text-left border-collapse",
   headerCellClassName = "p-4",
   headerClassNames = [],
+  responsiveCards = true,
 }: DataTableProps) {
+  const responsiveClassName = responsiveCards
+    ? [
+        "max-lg:border-0 max-lg:bg-transparent max-lg:shadow-none",
+        "[&_thead]:max-lg:hidden",
+        "[&_table]:max-lg:block [&_table]:max-lg:min-w-0",
+        "[&_tbody]:max-lg:block [&_tbody]:max-lg:space-y-3 [&_tbody]:max-lg:divide-y-0",
+        "[&_tr]:max-lg:block [&_tr]:max-lg:rounded-xl [&_tr]:max-lg:border [&_tr]:max-lg:border-slate-200 [&_tr]:max-lg:bg-white [&_tr]:max-lg:shadow-xs",
+        "[&_td]:max-lg:flex [&_td]:max-lg:min-h-0 [&_td]:max-lg:w-full [&_td]:max-lg:items-center [&_td]:max-lg:justify-between [&_td]:max-lg:gap-4 [&_td]:max-lg:border-b [&_td]:max-lg:border-slate-100 [&_td]:max-lg:px-4 [&_td]:max-lg:py-3 [&_td]:max-lg:text-right",
+        "[&_td:last-child]:max-lg:border-b-0",
+        "[&_td]:max-lg:before:shrink-0 [&_td]:max-lg:before:text-left [&_td]:max-lg:before:text-[10px] [&_td]:max-lg:before:font-bold [&_td]:max-lg:before:uppercase [&_td]:max-lg:before:tracking-wider [&_td]:max-lg:before:text-slate-400 [&_td]:max-lg:before:content-[attr(data-label)]",
+      ].join(" ")
+    : "";
+  const labeledChildren = responsiveCards
+    ? labelTableCells(children, headers)
+    : children;
+
   return (
     <div
-      className={`bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden ${className}`}
+      className={`bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden ${responsiveClassName} ${className}`}
     >
       {isLoading ? (
         <div className="p-12 text-center text-slate-500 flex flex-col items-center justify-center gap-2">
@@ -59,7 +103,7 @@ export default function DataTable({
           </div>
         )
       ) : (
-        <div className="overflow-x-auto overscroll-x-contain">
+        <div className="overflow-x-auto overscroll-x-contain max-lg:overflow-visible">
           <table className={tableClassName}>
             <thead>
               <tr className="bg-slate-50 text-slate-500 font-bold text-[10px] border-b border-slate-200 uppercase tracking-wider">
@@ -70,7 +114,7 @@ export default function DataTable({
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">{children}</tbody>
+            <tbody className="divide-y divide-slate-100">{labeledChildren}</tbody>
           </table>
         </div>
       )}

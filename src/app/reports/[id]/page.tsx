@@ -697,9 +697,9 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto overscroll-x-contain">
-              <table className="w-full min-w-[860px] text-left border-collapse">
-                <thead>
+            <div className="overflow-x-auto overscroll-x-contain max-lg:overflow-visible">
+              <table className="w-full min-w-[860px] text-left border-collapse max-lg:block max-lg:min-w-0">
+                <thead className="max-lg:hidden">
                   <tr className="bg-slate-50 text-slate-500 font-bold text-[10px] border-b border-slate-200 uppercase tracking-wider">
                     <th className="p-4 w-16 text-center">#</th>
                     <th className="p-4">Ação / Passo</th>
@@ -709,7 +709,7 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
                     <th className="p-4 w-32 text-right">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100 max-lg:block max-lg:space-y-3 max-lg:divide-y-0 max-lg:p-3">
                   {sortedSteps.map((step) => (
                     <StepRow
                       key={step.id}

@@ -381,8 +381,8 @@ export default function ReportsListPage() {
       </PageHeader>
 
       {/* Painel de Filtros e Busca */}
-      <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-xs sm:p-5">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-3 shadow-xs sm:space-y-4 sm:p-4 lg:p-5">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <div>
             <Input
               label="Busca Rápida"
@@ -430,7 +430,7 @@ export default function ReportsListPage() {
           </div>
         </div>
 
-        <div className="border-t border-slate-100 pt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+        <div className="grid grid-cols-2 gap-3 border-t border-slate-100 pt-3 lg:grid-cols-3 xl:grid-cols-7">
           {/* Data De */}
           <div>
             <Input
@@ -496,7 +496,7 @@ export default function ReportsListPage() {
           </div>
 
           {/* Tipo do Teste */}
-          <div>
+          <div className="col-span-2 sm:col-span-1">
             <Select
               label="Tipo do Teste"
               id="filterType"

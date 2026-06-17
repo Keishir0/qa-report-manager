@@ -404,9 +404,9 @@ export default function UsersClient() {
               description="Use o formulario para criar a primeira conta."
             />
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px] text-left">
-                <thead>
+            <div className="overflow-x-auto max-lg:overflow-visible">
+              <table className="w-full min-w-[760px] text-left max-lg:block max-lg:min-w-0">
+                <thead className="max-lg:hidden">
                   <tr className="border-b border-slate-200 bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500">
                     <th className="p-4">Usuario</th>
                     <th className="p-4">Perfil</th>
@@ -415,21 +415,23 @@ export default function UsersClient() {
                     <th className="p-4 text-right">Acoes</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100 max-lg:block max-lg:space-y-3 max-lg:divide-y-0 max-lg:p-3">
                   {users.map((user) => (
-                    <tr key={user.id} className="text-sm hover:bg-slate-50/70">
-                      <td className="p-4">
-                        <div className="font-bold text-slate-900">{user.name}</div>
-                        <div className="mt-0.5 text-xs font-medium text-slate-500">
-                          {user.email}
+                    <tr key={user.id} className="text-sm hover:bg-slate-50/70 max-lg:block max-lg:rounded-xl max-lg:border max-lg:border-slate-200 max-lg:bg-white max-lg:shadow-xs">
+                      <td data-label="Usuario" className="p-4 max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-slate-100 max-lg:text-right max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]">
+                        <div>
+                          <div className="font-bold text-slate-900">{user.name}</div>
+                          <div className="mt-0.5 text-xs font-medium text-slate-500">
+                            {user.email}
+                          </div>
                         </div>
                       </td>
-                      <td className="p-4">
+                      <td data-label="Perfil" className="p-4 max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-slate-100 max-lg:text-right max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]">
                         <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-700">
                           {ROLE_LABELS[user.role]}
                         </span>
                       </td>
-                      <td className="p-4">
+                      <td data-label="Status" className="p-4 max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-slate-100 max-lg:text-right max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]">
                         <span
                           className={`rounded-full px-2.5 py-1 text-xs font-bold ${
                             user.active
@@ -440,10 +442,10 @@ export default function UsersClient() {
                           {user.active ? "Ativo" : "Inativo"}
                         </span>
                       </td>
-                      <td className="whitespace-nowrap p-4 text-xs font-medium text-slate-500">
+                      <td data-label="Criado em" className="whitespace-nowrap p-4 text-xs font-medium text-slate-500 max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-slate-100 max-lg:text-right max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]">
                         {formatDate(user.createdAt)}
                       </td>
-                      <td className="p-4 text-right">
+                      <td data-label="Acoes" className="p-4 text-right max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]">
                         <Button
                           variant="secondary"
                           className="px-3 py-2 text-xs"

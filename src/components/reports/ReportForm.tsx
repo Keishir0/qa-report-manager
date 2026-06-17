@@ -562,9 +562,9 @@ export default function ReportForm({
 
           {/* Tabela de Passos Locais */}
           {steps.length > 0 ? (
-            <div className="overflow-x-auto overscroll-x-contain rounded-lg border border-slate-200 bg-slate-50/20">
-              <table className="w-full min-w-[860px] text-left border-collapse">
-                <thead>
+            <div className="overflow-x-auto overscroll-x-contain rounded-lg border border-slate-200 bg-slate-50/20 max-lg:overflow-visible max-lg:border-0 max-lg:bg-transparent">
+              <table className="w-full min-w-[860px] text-left border-collapse max-lg:block max-lg:min-w-0">
+                <thead className="max-lg:hidden">
                   <tr className="bg-slate-50 text-slate-500 font-bold text-[10px] uppercase border-b border-slate-200">
                     <th className="p-3 w-16 text-center">Nº</th>
                     <th className="p-3">Ação</th>
@@ -574,25 +574,25 @@ export default function ReportForm({
                     <th className="p-3 w-44 text-right">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
+                <tbody className="divide-y divide-slate-100 text-sm text-slate-700 max-lg:block max-lg:space-y-3 max-lg:divide-y-0">
                   {steps.map((step, index) => (
-                    <tr key={index} className="hover:bg-slate-50/40">
-                      <td className="p-3 text-center font-mono font-bold text-slate-400">
+                    <tr key={index} className="hover:bg-slate-50/40 max-lg:block max-lg:rounded-xl max-lg:border max-lg:border-slate-200 max-lg:bg-white max-lg:shadow-xs">
+                      <td data-label="Nº" className="p-3 text-center font-mono font-bold text-slate-400 max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-slate-100 max-lg:text-right max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]">
                         {step.stepNumber}
                       </td>
-                      <td className="p-3 break-words whitespace-pre-line max-w-[200px]">
+                      <td data-label="Acao" className="p-3 break-words whitespace-pre-line max-w-[200px] max-lg:flex max-lg:max-w-none max-lg:items-start max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-slate-100 max-lg:text-right max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]">
                         {step.action}
                       </td>
-                      <td className="p-3 break-words whitespace-pre-line max-w-[200px]">
+                      <td data-label="Resultado Esperado" className="p-3 break-words whitespace-pre-line max-w-[200px] max-lg:flex max-lg:max-w-none max-lg:items-start max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-slate-100 max-lg:text-right max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]">
                         {step.expectedResult}
                       </td>
-                      <td className="p-3 break-words whitespace-pre-line max-w-[200px]">
+                      <td data-label="Resultado Obtido" className="p-3 break-words whitespace-pre-line max-w-[200px] max-lg:flex max-lg:max-w-none max-lg:items-start max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-slate-100 max-lg:text-right max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]">
                         {step.actualResult}
                       </td>
-                      <td className="p-3">
+                      <td data-label="Status" className="p-3 max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-slate-100 max-lg:text-right max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]">
                         <StatusBadge status={step.status} size="sm" />
                       </td>
-                      <td className="p-3 text-right">
+                      <td data-label="Acoes" className="p-3 text-right max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]">
                         <div className="flex justify-end gap-1.5">
                           <button
                             type="button"
