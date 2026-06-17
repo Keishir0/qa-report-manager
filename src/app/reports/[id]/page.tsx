@@ -215,26 +215,13 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
 
   // Funções de manipulação de passos
   const handleStepDelete = (stepId: string) => {
-    if (report) {
-      setReport({
-        ...report,
-        steps: report.steps?.filter((s) => s.id !== stepId) || [],
-      });
-      setToast({ message: "Passo de teste removido com sucesso!", type: "success" });
-    }
+    fetchReport();
+    setToast({ message: "Passo de teste removido com sucesso!", type: "success" });
   };
 
   const handleStepUpdate = (updatedStep: TestStepData) => {
-    if (report) {
-      setReport({
-        ...report,
-        steps:
-          report.steps?.map((s) =>
-            s.id === updatedStep.id ? updatedStep : s
-          ) || [],
-      });
-      setToast({ message: "Passo de teste atualizado!", type: "success" });
-    }
+    fetchReport();
+    setToast({ message: "Passo de teste atualizado!", type: "success" });
   };
 
   const handleStepCreateSuccess = () => {

@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { requireApiAccess, WRITE_ROLES } from "@/lib/auth";
+import { recalculateReportGeneralStatus } from "@/lib/reports";
 
 export async function POST(request: NextRequest) {
   try {
@@ -54,6 +55,8 @@ export async function POST(request: NextRequest) {
         status,
       },
     });
+
+    await recalculateReportGeneralStatus(reportId);
 
     return NextResponse.json(step, { status: 201 });
   } catch (error: any) {

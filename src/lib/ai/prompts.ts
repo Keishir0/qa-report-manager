@@ -35,7 +35,11 @@ Regras de campos:
 2. Se o tipo de teste não for identificado, use "Funcional".
 3. Se a tela não for mencionada, use "Não informado".
 4. Se a funcionalidade não for identificada, use "Geral".
-5. Se houver um bug ou erro relatado, use status geral "Falhou" ou "Bloqueado".
+5. O 'generalStatus' do relatório deve ser determinado estritamente a partir do status dos passos gerados:
+   - Se todos os passos gerados tiverem status "Passou", o 'generalStatus' deve ser "Passou".
+   - Se algum passo gerado tiver status "Falhou", o 'generalStatus' deve ser "Falhou".
+   - Se não houver passos com "Falhou", mas houver pelo menos um "Bloqueado", o 'generalStatus' deve ser "Bloqueado".
+   - Se não houver "Falhou" ou "Bloqueado", mas houver pelo menos um "Não executado", o 'generalStatus' deve ser "Não executado".
 6. O campo 'bugDescription' é obrigatório e nunca pode ficar vazio. Se não houver bug, descreva o cenário validado.
 7. Para a lista de passos ('steps'), siga rigorosamente as mesmas instruções de detalhamento de ações, resultados esperados e resultados obtidos descritos acima.
 Quando o relato trouxer uma lista grande de telas, menus ou itens testados,
