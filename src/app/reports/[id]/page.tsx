@@ -593,15 +593,6 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
                     )}
                   </div>
 
-                  <div className="grid gap-2 sm:grid-cols-1">
-                    <Button
-                      variant="secondary"
-                      onClick={loadReportPending}
-                      isLoading={isSndeskLoading}
-                    >
-                      Atualizar status
-                    </Button>
-                  </div>
                 </div>
               </div>
             )}

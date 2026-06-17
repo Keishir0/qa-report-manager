@@ -518,6 +518,18 @@ export default function PendenciasClient() {
         </div>
 
         <DataTable
+        tableClassName="w-full min-w-[1040px] table-fixed text-left border-collapse"
+        headerCellClassName="px-4 py-3"
+        headerClassNames={[
+          "w-[7%]",
+          "w-[27%]",
+          "w-[12%]",
+          "w-[12%]",
+          "w-[13%]",
+          "w-[9%]",
+          "w-[12%]",
+          "w-[8%] text-right",
+        ]}
         headers={[
           "ID",
           "Chamado",
@@ -536,7 +548,6 @@ export default function PendenciasClient() {
             description="Quando o SNDesk enviar um status configurado para teste, a pendencia aparecera aqui."
           />
         }
-        className="[&_table]:min-w-[1080px]"
       >
         {tickets.map((ticket) => (
           <tr key={ticket.id} className="text-sm transition-colors hover:bg-slate-50">
@@ -558,7 +569,7 @@ export default function PendenciasClient() {
                 </div>
               )}
             </td>
-            <td className="p-4 max-w-[220px] truncate text-slate-700">
+            <td className="p-4 truncate text-slate-700" title={getCliente(ticket)}>
               {getCliente(ticket)}
             </td>
             <td className="p-4">
@@ -573,19 +584,24 @@ export default function PendenciasClient() {
               </span>
             </td>
             <td className="p-4">
-              <Button
-                variant="secondary"
-                onClick={() => createReport(ticket.id)}
-                disabled={Boolean(ticket.reportId)}
-                isLoading={actionId === ticket.id}
-                className="px-3 py-1.5 text-xs"
-              >
-                Criar relatorio
-              </Button>
-              {ticket.reportId && (
-                <div className="mt-2 text-xs font-bold text-slate-500">
+              {ticket.reportId ? (
+                <button
+                  type="button"
+                  onClick={() => viewTicket(ticket)}
+                  className="inline-flex items-center rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700 transition-colors hover:bg-indigo-100"
+                  title="Abrir relatorio vinculado"
+                >
                   {ticket.reportCode || "Relatorio criado"}
-                </div>
+                </button>
+              ) : (
+                <Button
+                  variant="secondary"
+                  onClick={() => createReport(ticket.id)}
+                  isLoading={actionId === ticket.id}
+                  className="px-3 py-1.5 text-xs"
+                >
+                  Criar relatorio
+                </Button>
               )}
             </td>
             <td className="p-4">
@@ -596,8 +612,8 @@ export default function PendenciasClient() {
             <td className="p-4 whitespace-nowrap text-slate-600">
               {formatDate(ticket.updatedAt)}
             </td>
-            <td className="p-4">
-              <div className="flex flex-col gap-2">
+            <td className="p-4 text-right">
+              <div className="inline-flex items-center justify-end gap-2">
                 <Button
                   variant="secondary"
                   onClick={() => viewTicket(ticket)}
@@ -627,14 +643,36 @@ export default function PendenciasClient() {
                   Ver
                 </Button>
                 {ticket.reportId && (
-                  <Button
-                    variant="danger"
-                    onClick={() => deleteLinkedReport(ticket)}
-                    isLoading={actionId === ticket.id}
-                    className="px-3 py-1.5 text-xs"
-                  >
-                    Excluir relatorio
-                  </Button>
+                  <details className="relative">
+                    <summary
+                      className="flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-800"
+                      aria-label="Mais acoes"
+                    >
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M12 6.75h.008v.008H12V6.75Zm0 5.25h.008v.008H12V12Zm0 5.25h.008v.008H12v-.008Z"
+                        />
+                      </svg>
+                    </summary>
+                    <div className="absolute right-0 z-20 mt-2 w-44 rounded-xl border border-slate-200 bg-white p-1 shadow-lg">
+                      <button
+                        type="button"
+                        onClick={() => deleteLinkedReport(ticket)}
+                        disabled={actionId === ticket.id}
+                        className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs font-bold text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        Excluir relatorio
+                      </button>
+                    </div>
+                  </details>
                 )}
               </div>
             </td>
