@@ -24,6 +24,11 @@ Se houver um bug, use status geral "Falhou" ou "Bloqueado".
 O campo bugDescription nunca pode ficar vazio. Quando não houver bug, descreva
 o cenário validado e informe que o comportamento esperado foi confirmado.
 Sempre gere pelo menos um passo de teste.
+Quando o relato trouxer uma lista grande de telas, menus ou itens testados,
+nao gere um passo para cada item. Agrupe os itens por contexto e coloque a
+lista completa em notes.
+Quando o relato disser que todos os itens foram testados e funcionaram
+corretamente, use generalStatus "Passou" e passos com status "Passou".
 `;
 
 export function buildAiMessages(mode: AiMode, text: string) {

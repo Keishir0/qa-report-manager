@@ -32,17 +32,39 @@ function trimLongLine(line: string) {
   return `${line.slice(0, MAX_LINE_LENGTH)} ... [linha reduzida]`;
 }
 
+function isBulletLine(line: string) {
+  return /^[-*•]\s+/.test(line);
+}
+
+function cleanBulletLine(line: string) {
+  return line.replace(/^[-*•]\s+/, "").trim();
+}
+
+function compactLongBulletList(lines: string[]) {
+  const bulletLines = lines.filter(isBulletLine);
+  if (bulletLines.length < 12) return lines;
+
+  const contextLines = lines.filter((line) => !isBulletLine(line));
+  const cleanedBullets = bulletLines.map(cleanBulletLine).filter(Boolean);
+
+  return [
+    ...contextLines.slice(0, 8),
+    `Itens/telas testadas individualmente (${cleanedBullets.length}): ${cleanedBullets.join("; ")}.`,
+    "Observacao: o relato original informava que cada item foi testado separadamente. Agrupe os passos por contexto e preserve a lista completa nas observacoes.",
+  ];
+}
+
 export function preprocessAiInput(text: string) {
   const originalLength = text.length;
   const withoutHtml = stripHtml(text);
-  const lines = compactRepeatedWhitespace(withoutHtml)
+  const lines = compactLongBulletList(compactRepeatedWhitespace(withoutHtml)
     .split("\n")
     .map((line) => line.trim())
     .filter((line) => {
       if (!line) return false;
       return !noisyLinePatterns.some((pattern) => pattern.test(line));
     })
-    .map(trimLongLine);
+    .map(trimLongLine));
 
   let processed = compactRepeatedWhitespace(lines.join("\n"));
   if (processed.length > MAX_PREPROCESSED_CHARS) {
