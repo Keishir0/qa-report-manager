@@ -81,6 +81,10 @@ interface WebhookSettingRow {
   value: string;
 }
 
+interface CountRow {
+  count: number;
+}
+
 async function getConfiguredSecret() {
   const [setting] = await prisma.$queryRaw<WebhookSettingRow[]>`
     SELECT "value"
@@ -136,10 +140,20 @@ export async function GET(request: NextRequest) {
     const denied = await requireApiAccess(request, ADMIN_ROLES);
     if (denied) return denied;
 
-    const limitParam = Number(request.nextUrl.searchParams.get("limit") || 50);
+    const limitParam = Number(request.nextUrl.searchParams.get("limit") || 10);
+    const pageParam = Number(request.nextUrl.searchParams.get("page") || 1);
     const limit = Number.isFinite(limitParam)
-      ? Math.min(Math.max(limitParam, 1), 200)
-      : 50;
+      ? Math.min(Math.max(Math.trunc(limitParam), 1), 50)
+      : 10;
+    const page = Number.isFinite(pageParam)
+      ? Math.max(Math.trunc(pageParam), 1)
+      : 1;
+    const offset = (page - 1) * limit;
+
+    const [totalRow] = await prisma.$queryRaw<CountRow[]>`
+      SELECT COUNT(*)::int AS "count"
+      FROM "external_webhook_events"
+    `;
 
     const eventos = await prisma.$queryRaw<ExternalWebhookEventRow[]>`
       SELECT
@@ -156,11 +170,21 @@ export async function GET(request: NextRequest) {
       FROM "external_webhook_events"
       ORDER BY "receivedAt" DESC
       LIMIT ${limit}
+      OFFSET ${offset}
     `;
+
+    const total = totalRow?.count || 0;
+    const totalPages = Math.max(Math.ceil(total / limit), 1);
 
     return NextResponse.json({
       success: true,
       data: eventos,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+      },
     });
   } catch (error: unknown) {
     logServerError("Error in GET /api/webhooks/chamados", error);

@@ -304,6 +304,12 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
     }
   }, [id]);
 
+  useEffect(() => {
+    if (report?.sndeskChamadoId && user?.role === "ADMIN") {
+      loadReportPending();
+    }
+  }, [loadReportPending, report?.sndeskChamadoId, user?.role]);
+
   const sendSndeskDecision = async (action: "aprovar" | "recusar") => {
     if (!pendingTicket) return;
 
@@ -577,6 +583,9 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
                         </span>
                       )}
                     </div>
+                    <p className="mt-1 text-xs font-medium text-slate-500">
+                      A pendencia e atualizada automaticamente ao abrir a tela.
+                    </p>
                     {pendingTicket?.lastError && (
                       <p className="mt-2 text-xs font-bold text-red-600">
                         {pendingTicket.lastError}
@@ -584,27 +593,13 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
                     )}
                   </div>
 
-                  <div className="grid gap-2 sm:grid-cols-3">
+                  <div className="grid gap-2 sm:grid-cols-1">
                     <Button
                       variant="secondary"
                       onClick={loadReportPending}
                       isLoading={isSndeskLoading}
                     >
-                      Carregar
-                    </Button>
-                    <Button
-                      variant="primary"
-                      onClick={() => sendSndeskDecision("aprovar")}
-                      disabled={!pendingTicket || isSndeskLoading}
-                    >
-                      Aprovar
-                    </Button>
-                    <Button
-                      variant="danger"
-                      onClick={() => sendSndeskDecision("recusar")}
-                      disabled={!pendingTicket || isSndeskLoading}
-                    >
-                      Recusar
+                      Atualizar status
                     </Button>
                   </div>
                 </div>
@@ -749,6 +744,61 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
               onSuccess={handleStepCreateSuccess}
               onCancel={() => setShowAddStep(false)}
             />
+          </div>
+        )}
+
+        {report.sndeskChamadoId && user?.role === "ADMIN" && (
+          <div className="rounded-xl border border-indigo-100 bg-white p-4 shadow-xs sm:p-5">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-500">
+                  Finalizar pendencia no SNDesk
+                </span>
+                <h3 className="mt-1 text-base font-extrabold text-slate-900">
+                  Aprove ou recuse depois de registrar os passos do teste.
+                </h3>
+                <p className="mt-1 text-sm font-medium text-slate-500">
+                  Chamado #{report.sndeskChamadoId}
+                  {pendingTicket
+                    ? ` • ${pendingTicket.statusDescricao || pendingTicket.state}`
+                    : " • pendencia ainda nao carregada"}
+                </p>
+                {sortedSteps.length === 0 && (
+                  <p className="mt-2 text-xs font-bold text-amber-700">
+                    Adicione pelo menos um passo antes de aprovar ou recusar.
+                  </p>
+                )}
+                {pendingTicket?.lastError && (
+                  <p className="mt-2 text-xs font-bold text-red-600">
+                    {pendingTicket.lastError}
+                  </p>
+                )}
+              </div>
+
+              <div className="grid gap-2 sm:grid-cols-3 lg:min-w-[360px]">
+                <Button
+                  variant="secondary"
+                  onClick={loadReportPending}
+                  isLoading={isSndeskLoading}
+                >
+                  Atualizar
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={() => sendSndeskDecision("aprovar")}
+                  disabled={!pendingTicket || sortedSteps.length === 0 || isSndeskLoading}
+                >
+                  Aprovar
+                </Button>
+                <Button
+                  variant="danger"
+                  onClick={() => sendSndeskDecision("recusar")}
+                  disabled={!pendingTicket || sortedSteps.length === 0 || isSndeskLoading}
+                >
+                  Recusar
+                </Button>
+              </div>
+            </div>
           </div>
         )}
       </div>

@@ -24,6 +24,12 @@ interface WebhookEvent {
 interface WebhookResponse {
   success: boolean;
   data: WebhookEvent[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
   message?: string;
 }
 
@@ -67,7 +73,15 @@ function formatJson(value: unknown) {
 }
 
 export default function WebhookMonitor() {
+  const pageSize = 10;
   const [eventos, setEventos] = useState<WebhookEvent[]>([]);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: pageSize,
+    total: 0,
+    totalPages: 1,
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
@@ -143,9 +157,12 @@ export default function WebhookMonitor() {
 
   const loadEventos = useCallback(async () => {
     try {
-      const response = await fetch("/api/webhooks/chamados?limit=50", {
+      const response = await fetch(
+        `/api/webhooks/chamados?page=${page}&limit=${pageSize}`,
+        {
         cache: "no-store",
-      });
+        }
+      );
       const result = (await response.json()) as WebhookResponse;
 
       if (!response.ok || !result.success) {
@@ -153,6 +170,12 @@ export default function WebhookMonitor() {
       }
 
       setEventos(result.data);
+      if (result.pagination) {
+        setPagination(result.pagination);
+        if (page > result.pagination.totalPages) {
+          setPage(result.pagination.totalPages);
+        }
+      }
       setError(null);
       setLastUpdate(new Date());
     } catch (err: any) {
@@ -160,7 +183,7 @@ export default function WebhookMonitor() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [page]);
 
   useEffect(() => {
     setEndpointUrl(`${window.location.origin}/api/webhooks/chamados`);
@@ -330,6 +353,43 @@ export default function WebhookMonitor() {
           </tr>
         ))}
       </DataTable>
+
+      <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-xs sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm font-semibold text-slate-600">
+          {pagination.total === 0
+            ? "Nenhum evento para exibir"
+            : `Mostrando ${(pagination.page - 1) * pagination.limit + 1}-${Math.min(
+                pagination.page * pagination.limit,
+                pagination.total
+              )} de ${pagination.total} eventos`}
+        </p>
+
+        <div className="flex items-center gap-3">
+          <Button
+            variant="secondary"
+            className="px-3 py-2 text-xs"
+            disabled={pagination.page <= 1 || isLoading}
+            onClick={() => setPage((current) => Math.max(current - 1, 1))}
+          >
+            Anterior
+          </Button>
+          <span className="text-xs font-bold text-slate-500">
+            Pagina {pagination.page} de {pagination.totalPages}
+          </span>
+          <Button
+            variant="secondary"
+            className="px-3 py-2 text-xs"
+            disabled={pagination.page >= pagination.totalPages || isLoading}
+            onClick={() =>
+              setPage((current) =>
+                Math.min(current + 1, pagination.totalPages)
+              )
+            }
+          >
+            Proxima
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
