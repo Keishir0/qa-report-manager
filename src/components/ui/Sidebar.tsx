@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { AuthUser } from "@/lib/auth";
+import BrandBugIcon from "@/components/ui/BrandBugIcon";
 
 export default function Sidebar({ user }: { user: AuthUser }) {
   const pathname = usePathname();
@@ -165,19 +166,7 @@ export default function Sidebar({ user }: { user: AuthUser }) {
       <header className="fixed inset-x-0 top-0 z-40 flex h-16 items-center justify-between border-b border-slate-200 bg-white/95 px-4 shadow-sm backdrop-blur lg:hidden">
         <Link href="/" className="flex min-w-0 items-center gap-2.5">
           <div className="rounded-lg bg-brand-50 p-2 text-brand">
-            <svg
-              className="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
-              />
-            </svg>
+            <BrandBugIcon className="h-5 w-5" />
           </div>
           <div className="min-w-0">
             <span className="block truncate text-sm font-bold leading-tight text-slate-900">
@@ -229,19 +218,7 @@ export default function Sidebar({ user }: { user: AuthUser }) {
         <div className="mb-8 flex items-center justify-between gap-3">
           <Link href="/" className="flex items-center gap-3">
           <div className="p-2 bg-brand-50 rounded-lg text-brand">
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
-              />
-            </svg>
+            <BrandBugIcon className="h-6 w-6" />
           </div>
           <div>
             <span className="font-bold text-gray-900 block leading-tight text-lg">
