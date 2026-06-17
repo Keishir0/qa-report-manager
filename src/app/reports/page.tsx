@@ -41,8 +41,10 @@ export default function ReportsListPage() {
   const [userOptions, setUserOptions] = useState<UserOption[]>([]);
 
   // Estados dos filtros
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+  const [createdFrom, setCreatedFrom] = useState("");
+  const [createdTo, setCreatedTo] = useState("");
+  const [testedFrom, setTestedFrom] = useState("");
+  const [testedTo, setTestedTo] = useState("");
   const [branch, setBranch] = useState("");
   const [status, setStatus] = useState("");
   const [testType, setTestType] = useState("");
@@ -128,8 +130,10 @@ export default function ReportsListPage() {
     setError("");
     try {
       const params = new URLSearchParams();
-      if (dateFrom) params.append("dateFrom", dateFrom);
-      if (dateTo) params.append("dateTo", dateTo);
+      if (createdFrom) params.append("createdFrom", createdFrom);
+      if (createdTo) params.append("createdTo", createdTo);
+      if (testedFrom) params.append("testedFrom", testedFrom);
+      if (testedTo) params.append("testedTo", testedTo);
       if (branch) params.append("branch", branch);
       if (status) params.append("status", status);
       if (testType) params.append("testType", testType);
@@ -149,7 +153,7 @@ export default function ReportsListPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [dateFrom, dateTo, branch, status, testType, debouncedSystem, debouncedTester, debouncedDev, debouncedSearch]);
+  }, [createdFrom, createdTo, testedFrom, testedTo, branch, status, testType, debouncedSystem, debouncedTester, debouncedDev, debouncedSearch]);
 
   useEffect(() => {
     fetchReports();
@@ -157,8 +161,10 @@ export default function ReportsListPage() {
 
   // Função para limpar os filtros
   const handleClearFilters = () => {
-    setDateFrom("");
-    setDateTo("");
+    setCreatedFrom("");
+    setCreatedTo("");
+    setTestedFrom("");
+    setTestedTo("");
     setBranch("");
     setStatus("");
     setTestType("");
@@ -424,26 +430,46 @@ export default function ReportsListPage() {
           </div>
         </div>
 
-        <div className="border-t border-slate-100 pt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="border-t border-slate-100 pt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">
           {/* Data De */}
           <div>
             <Input
-              label="Data de início"
-              id="filterFrom"
+              label="Criado de"
+              id="filterCreatedFrom"
               type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
+              value={createdFrom}
+              onChange={(e) => setCreatedFrom(e.target.value)}
             />
           </div>
 
           {/* Data Até */}
           <div>
             <Input
-              label="Data de término"
-              id="filterTo"
+              label="Criado ate"
+              id="filterCreatedTo"
               type="date"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
+              value={createdTo}
+              onChange={(e) => setCreatedTo(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Input
+              label="Testado de"
+              id="filterTestedFrom"
+              type="date"
+              value={testedFrom}
+              onChange={(e) => setTestedFrom(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Input
+              label="Testado ate"
+              id="filterTestedTo"
+              type="date"
+              value={testedTo}
+              onChange={(e) => setTestedTo(e.target.value)}
             />
           </div>
 
@@ -481,7 +507,7 @@ export default function ReportsListPage() {
           </div>
         </div>
 
-        {(dateFrom || dateTo || branch || status || testType || system || tester || dev || search) && (
+        {(createdFrom || createdTo || testedFrom || testedTo || branch || status || testType || system || tester || dev || search) && (
           <div className="flex justify-end">
             <button
               onClick={handleClearFilters}

@@ -9,8 +9,10 @@ export async function GET(request: NextRequest) {
     if (denied) return denied;
 
     const { searchParams } = request.nextUrl;
-    const dateFrom = searchParams.get("dateFrom");
-    const dateTo = searchParams.get("dateTo");
+    const testedFrom = searchParams.get("testedFrom") || searchParams.get("dateFrom");
+    const testedTo = searchParams.get("testedTo") || searchParams.get("dateTo");
+    const createdFrom = searchParams.get("createdFrom");
+    const createdTo = searchParams.get("createdTo");
     const branch = searchParams.get("branch");
     const status = searchParams.get("status");
     const testType = searchParams.get("testType");
@@ -22,13 +24,27 @@ export async function GET(request: NextRequest) {
     const where: any = { deletedAt: null };
     const andFilters: any[] = [];
 
-    if (dateFrom || dateTo) {
+    if (testedFrom || testedTo) {
       where.testDate = {};
-      if (dateFrom) {
-        where.testDate.gte = new Date(dateFrom);
+      if (testedFrom) {
+        where.testDate.gte = new Date(testedFrom);
       }
-      if (dateTo) {
-        where.testDate.lte = new Date(dateTo);
+      if (testedTo) {
+        const endDate = new Date(testedTo);
+        endDate.setHours(23, 59, 59, 999);
+        where.testDate.lte = endDate;
+      }
+    }
+
+    if (createdFrom || createdTo) {
+      where.createdAt = {};
+      if (createdFrom) {
+        where.createdAt.gte = new Date(createdFrom);
+      }
+      if (createdTo) {
+        const endDate = new Date(createdTo);
+        endDate.setHours(23, 59, 59, 999);
+        where.createdAt.lte = endDate;
       }
     }
 
