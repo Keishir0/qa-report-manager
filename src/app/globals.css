@@ -42,7 +42,6 @@ body {
 
 .app-background {
   position: relative;
-  isolation: isolate;
   overflow: clip;
   background-color: #f8fafc;
 }
@@ -51,14 +50,20 @@ body {
   content: "";
   position: fixed;
   inset: -2.5rem;
+  z-index: 0;
   background-image: url("/images/login/background.webp");
-  background-position: center;
+  background-position: 62% center;
   background-repeat: no-repeat;
   background-size: cover;
   opacity: 0.32;
   pointer-events: none;
   animation: login-background-drift 28s ease-in-out infinite alternate;
   will-change: transform;
+}
+
+.app-background > * {
+  position: relative;
+  z-index: 1;
 }
 
 .login-background::before {
