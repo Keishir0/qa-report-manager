@@ -36,7 +36,7 @@ export default function AppShell({
   return (
     <AuthProvider user={user}>
       <Sidebar user={user} />
-      <main className="min-w-0 px-4 pb-8 pt-20 sm:px-6 lg:ml-60 lg:p-8">
+      <main className="app-background min-h-screen min-w-0 px-4 pb-8 pt-20 sm:px-6 lg:ml-60 lg:p-8">
         {children}
       </main>
     </AuthProvider>

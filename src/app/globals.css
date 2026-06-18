@@ -40,6 +40,31 @@ body {
   background-color: #f8faff;
 }
 
+.app-background {
+  position: relative;
+  overflow: hidden;
+  background-color: #f8fafc;
+}
+
+.app-background::before {
+  content: "";
+  position: fixed;
+  inset: -2.5rem;
+  background-image: url("/images/login/background.webp");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  opacity: 0.32;
+  pointer-events: none;
+  animation: login-background-drift 28s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+.app-background > * {
+  position: relative;
+  z-index: 1;
+}
+
 .login-background::before {
   content: "";
   position: absolute;
@@ -70,6 +95,7 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .app-background::before,
   .login-background::before {
     animation: none;
     transform: scale(1.02);
