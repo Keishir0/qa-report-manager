@@ -595,7 +595,7 @@ export default function ReportsListPage() {
               <td className="px-3 py-4 text-slate-500 whitespace-nowrap">
                 {format(new Date(report.testDate), "dd/MM/yyyy")}
               </td>
-              <td className="px-3 py-4 text-slate-600 leading-snug">
+              <td className="px-3 py-4 text-slate-600 truncate" title={report.branch}>
                 {report.branch}
               </td>
               <td className="px-3 py-4 text-slate-600 truncate" title={report.screenPath}>
