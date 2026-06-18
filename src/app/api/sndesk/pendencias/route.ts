@@ -65,10 +65,13 @@ export async function GET(request: NextRequest) {
     let filteredTickets = tickets;
     if (user?.role === "QA") {
       const mySndeskId = user.sndeskUserId;
+      const myStatusId = user.sndeskStatusId ? Number(user.sndeskStatusId) : null;
       if (mySndeskId) {
         filteredTickets = tickets.filter((ticket) => {
           const techId = getSndeskTechnicianId(ticket.chamadoSnapshot);
-          return techId === mySndeskId;
+          const matchesTech = techId === mySndeskId;
+          const matchesStatus = myStatusId ? ticket.statusId === myStatusId : true;
+          return matchesTech && matchesStatus;
         });
       } else {
         filteredTickets = [];

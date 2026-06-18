@@ -15,6 +15,7 @@ export interface AuthUser {
   email: string;
   role: UserRole;
   sndeskUserId?: string | null;
+  sndeskStatusId?: string | null;
 }
 
 function sessionDays() {
@@ -86,6 +87,7 @@ export async function getUserFromSessionToken(
           role: true,
           active: true,
           sndeskUserId: true,
+          sndeskStatusId: true,
         },
       },
     },
@@ -113,6 +115,7 @@ export async function getUserFromSessionToken(
     email: session.user.email,
     role: session.user.role,
     sndeskUserId: session.user.sndeskUserId,
+    sndeskStatusId: session.user.sndeskStatusId,
   };
 }
 

@@ -15,6 +15,7 @@ model User {
   role         UserRole      @default(QA)
   active       Boolean       @default(true)
   sndeskUserId String?       @map("sndesk_user_id")
+  sndeskStatusId String?     @map("sndesk_status_id")
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   sessions     AuthSession[]

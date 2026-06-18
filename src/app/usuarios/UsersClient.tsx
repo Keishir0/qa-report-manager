@@ -18,6 +18,7 @@ interface UserView {
   role: UserRole;
   active: boolean;
   sndeskUserId?: string | null;
+  sndeskStatusId?: string | null;
   createdAt: string;
 }
 
@@ -41,6 +42,7 @@ const EMPTY_FORM = {
   role: "QA" as UserRole,
   active: true,
   sndeskUserId: "",
+  sndeskStatusId: "",
 };
 
 function formatDate(value: string) {
@@ -126,6 +128,7 @@ export default function UsersClient() {
       role: user.role,
       active: user.active,
       sndeskUserId: user.sndeskUserId || "",
+      sndeskStatusId: user.sndeskStatusId || "",
     });
     setErrors({});
     setShowPassword(false);
@@ -165,10 +168,12 @@ export default function UsersClient() {
         role?: UserRole;
         active?: boolean;
         sndeskUserId?: string | null;
+        sndeskStatusId?: string | null;
       } = {
         name: form.name,
         email: form.email,
         sndeskUserId: form.sndeskUserId.trim() || null,
+        sndeskStatusId: form.sndeskStatusId.trim() || null,
       };
 
       if (!isEditing || form.password.length > 0) {
@@ -302,17 +307,30 @@ export default function UsersClient() {
               autoComplete="email"
               required
             />
-            <Input
-              id="user-sndesk-id"
-              label="ID Técnico no SNDesk"
-              value={form.sndeskUserId}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, sndeskUserId: event.target.value }))
-              }
-              error={errors.sndeskUserId}
-              maxLength={20}
-              placeholder="Ex: 109 (opcional)"
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                id="user-sndesk-id"
+                label="ID Técnico"
+                value={form.sndeskUserId}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, sndeskUserId: event.target.value }))
+                }
+                error={errors.sndeskUserId}
+                maxLength={20}
+                placeholder="Ex: 109"
+              />
+              <Input
+                id="user-sndesk-status-id"
+                label="ID Status"
+                value={form.sndeskStatusId}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, sndeskStatusId: event.target.value }))
+                }
+                error={errors.sndeskStatusId}
+                maxLength={20}
+                placeholder="Ex: 29"
+              />
+            </div>
             <Select
               id="user-role"
               label="Perfil de acesso"
@@ -440,11 +458,18 @@ export default function UsersClient() {
                           <div className="mt-0.5 text-xs font-medium text-slate-500">
                             {user.email}
                           </div>
-                          {user.sndeskUserId && (
-                            <div className="mt-1 flex items-center gap-1">
-                              <span className="inline-flex rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] font-bold text-slate-500">
-                                SNDesk ID: {user.sndeskUserId}
-                              </span>
+                          {(user.sndeskUserId || user.sndeskStatusId) && (
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {user.sndeskUserId && (
+                                <span className="inline-flex rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] font-bold text-slate-500">
+                                  Téc ID: {user.sndeskUserId}
+                                </span>
+                              )}
+                              {user.sndeskStatusId && (
+                                <span className="inline-flex rounded-md bg-indigo-50 px-1.5 py-0.5 font-mono text-[10px] font-bold text-indigo-600">
+                                  Status ID: {user.sndeskStatusId}
+                                </span>
+                              )}
                             </div>
                           )}
                         </div>
