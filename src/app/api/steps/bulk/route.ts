@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { requireApiAccess, WRITE_ROLES } from "@/lib/auth";
-import { recalculateReportGeneralStatus } from "@/lib/reports";
+import { getApiUser, requireApiAccess, WRITE_ROLES } from "@/lib/auth";
+import { recalculateReportGeneralStatus, reportAccessWhere } from "@/lib/reports";
 import { STEP_STATUS_OPTIONS } from "@/types";
 import { logServerError } from "@/lib/serverLog";
 
@@ -20,6 +20,11 @@ interface StepCreateInput {
 export async function POST(request: NextRequest) {
   const denied = await requireApiAccess(request, WRITE_ROLES);
   if (denied) return denied;
+  const user = await getApiUser(request);
+
+  if (!user) {
+    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+  }
 
   try {
     const body = await request.json();
@@ -37,8 +42,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const report = await prisma.testReport.findUnique({
-      where: { id: reportId },
+    const report = await prisma.testReport.findFirst({
+      where: { id: reportId, deletedAt: null, ...reportAccessWhere(user) },
       select: {
         id: true,
         steps: {

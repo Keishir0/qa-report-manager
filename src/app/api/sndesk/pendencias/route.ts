@@ -1,10 +1,9 @@
 import { requireQaOrAdmin } from "@/lib/adminAuth";
 import prisma from "@/lib/prisma";
-import { PendingTicketRow } from "@/lib/sndesk";
+import { canUserAccessPendingTicket, PendingTicketRow } from "@/lib/sndesk";
 import { NextRequest, NextResponse } from "next/server";
 import { logServerError } from "@/lib/serverLog";
 import { getApiUser } from "@/lib/auth";
-import { getSndeskTechnicianId } from "@/lib/sndeskTechnician";
 
 export const dynamic = "force-dynamic";
 
@@ -64,21 +63,9 @@ export async function GET(request: NextRequest) {
 
     let filteredTickets = tickets;
     if (user?.role === "QA") {
-      const mySndeskId = user.sndeskUserId;
-      const myStatusId = user.sndeskStatusId ? Number(user.sndeskStatusId) : null;
-      
-      filteredTickets = tickets.filter((ticket) => {
-        if (myStatusId) {
-          return ticket.statusId === myStatusId;
-        }
-        
-        if (mySndeskId) {
-          const techId = getSndeskTechnicianId(ticket.chamadoSnapshot);
-          return techId === mySndeskId;
-        }
-        
-        return false;
-      });
+      filteredTickets = tickets.filter((ticket) =>
+        canUserAccessPendingTicket(user, ticket)
+      );
     }
 
     return NextResponse.json({

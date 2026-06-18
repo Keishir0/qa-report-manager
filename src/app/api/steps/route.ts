@@ -1,12 +1,17 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
-import { requireApiAccess, WRITE_ROLES } from "@/lib/auth";
-import { recalculateReportGeneralStatus } from "@/lib/reports";
+import { getApiUser, requireApiAccess, WRITE_ROLES } from "@/lib/auth";
+import { recalculateReportGeneralStatus, reportAccessWhere } from "@/lib/reports";
 
 export async function POST(request: NextRequest) {
   try {
     const denied = await requireApiAccess(request, WRITE_ROLES);
     if (denied) return denied;
+    const user = await getApiUser(request);
+
+    if (!user) {
+      return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    }
 
     const body = await request.json();
     const {
@@ -34,8 +39,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar se o relatório correspondente existe
-    const reportExists = await prisma.testReport.findUnique({
-      where: { id: reportId },
+    const reportExists = await prisma.testReport.findFirst({
+      where: { id: reportId, deletedAt: null, ...reportAccessWhere(user) },
     });
 
     if (!reportExists) {

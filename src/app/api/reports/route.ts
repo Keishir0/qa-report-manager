@@ -1,12 +1,17 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { getApiUser, requireApiAccess, WRITE_ROLES } from "@/lib/auth";
-import { generateNextReportCode } from "@/lib/reports";
+import { generateNextReportCode, reportAccessWhere } from "@/lib/reports";
 
 export async function GET(request: NextRequest) {
   try {
     const denied = await requireApiAccess(request);
     if (denied) return denied;
+    const user = await getApiUser(request);
+
+    if (!user) {
+      return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    }
 
     const { searchParams } = request.nextUrl;
     const testedFrom = searchParams.get("testedFrom") || searchParams.get("dateFrom");
@@ -21,7 +26,7 @@ export async function GET(request: NextRequest) {
     const dev = searchParams.get("dev");
     const search = searchParams.get("search");
 
-    const where: any = { deletedAt: null };
+    const where: any = { deletedAt: null, ...reportAccessWhere(user) };
     const andFilters: any[] = [];
 
     if (testedFrom || testedTo) {
@@ -131,6 +136,10 @@ export async function POST(request: NextRequest) {
     if (denied) return denied;
     const user = await getApiUser(request);
 
+    if (!user) {
+      return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    }
+
     const body = await request.json();
     const {
       testDate,
@@ -167,14 +176,16 @@ export async function POST(request: NextRequest) {
 
     // Gerar código automaticamente: QA-XXX (total de relatórios existentes + 1)
     const code = await generateNextReportCode();
-    const tester = testerId
+    const tester = user.role === "QA"
+      ? user
+      : testerId
       ? await prisma.user.findFirst({
           where: { id: String(testerId), active: true },
           select: { id: true, name: true },
         })
       : user;
 
-    if (testerId && !tester) {
+    if (user.role !== "QA" && testerId && !tester) {
       return NextResponse.json(
         { error: "Usuario testador nao encontrado." },
         { status: 400 }

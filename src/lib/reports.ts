@@ -1,8 +1,30 @@
 import prisma from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
+import type { AuthUser } from "@/lib/auth";
 
 type NextReportCodeRow = {
   nextNumber: number | bigint;
 };
+
+export function reportAccessWhere(
+  user: AuthUser | null | undefined
+): Prisma.TestReportWhereInput {
+  if (user?.role === "QA") {
+    return { testerId: user.id };
+  }
+
+  return {};
+}
+
+export function canUserAccessReport(
+  user: AuthUser | null | undefined,
+  report: { testerId: string | null }
+) {
+  if (!user) return false;
+  if (user.role === "ADMIN" || user.role === "VIEWER") return true;
+  if (user.role === "QA") return report.testerId === user.id;
+  return false;
+}
 
 export async function generateNextReportCode() {
   const [row] = await prisma.$queryRaw<NextReportCodeRow[]>`

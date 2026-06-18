@@ -1,7 +1,45 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
-import { requireApiAccess, WRITE_ROLES } from "@/lib/auth";
-import { recalculateReportGeneralStatus } from "@/lib/reports";
+import { getApiUser, requireApiAccess, WRITE_ROLES } from "@/lib/auth";
+import { canUserAccessReport, recalculateReportGeneralStatus } from "@/lib/reports";
+
+function unauthenticatedResponse() {
+  return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+}
+
+function notFoundResponse() {
+  return NextResponse.json(
+    { error: "Passo de teste nao encontrado" },
+    { status: 404 }
+  );
+}
+
+async function getAccessibleStep(stepId: string, request: NextRequest) {
+  const user = await getApiUser(request);
+  if (!user) return { user: null, step: null };
+
+  const step = await prisma.testStep.findUnique({
+    where: { id: stepId },
+    include: {
+      report: {
+        select: {
+          testerId: true,
+          deletedAt: true,
+        },
+      },
+    },
+  });
+
+  if (
+    !step ||
+    step.report.deletedAt ||
+    !canUserAccessReport(user, step.report)
+  ) {
+    return { user, step: null };
+  }
+
+  return { user, step };
+}
 
 export async function PUT(
   request: NextRequest,
@@ -11,10 +49,11 @@ export async function PUT(
     const denied = await requireApiAccess(request, WRITE_ROLES);
     if (denied) return denied;
 
-    const { id } = params;
-    const body = await request.json();
+    const { user, step } = await getAccessibleStep(params.id, request);
+    if (!user) return unauthenticatedResponse();
+    if (!step) return notFoundResponse();
 
-    // Impedir alterações de IDs e datas de auditoria
+    const body = await request.json();
     const {
       id: _id,
       reportId: _reportId,
@@ -23,28 +62,16 @@ export async function PUT(
       ...updateData
     } = body;
 
-    // Converter stepNumber para number se enviado
     if (updateData.stepNumber !== undefined && updateData.stepNumber !== null) {
       updateData.stepNumber = Number(updateData.stepNumber);
     }
 
-    const exists = await prisma.testStep.findUnique({
-      where: { id },
-    });
-
-    if (!exists) {
-      return NextResponse.json(
-        { error: "Passo de teste não encontrado" },
-        { status: 404 }
-      );
-    }
-
     const updatedStep = await prisma.testStep.update({
-      where: { id },
+      where: { id: params.id },
       data: updateData,
     });
 
-    await recalculateReportGeneralStatus(exists.reportId);
+    await recalculateReportGeneralStatus(step.reportId);
 
     return NextResponse.json(updatedStep);
   } catch (error: any) {
@@ -64,24 +91,15 @@ export async function DELETE(
     const denied = await requireApiAccess(request, WRITE_ROLES);
     if (denied) return denied;
 
-    const { id } = params;
-
-    const exists = await prisma.testStep.findUnique({
-      where: { id },
-    });
-
-    if (!exists) {
-      return NextResponse.json(
-        { error: "Passo de teste não encontrado" },
-        { status: 404 }
-      );
-    }
+    const { user, step } = await getAccessibleStep(params.id, request);
+    if (!user) return unauthenticatedResponse();
+    if (!step) return notFoundResponse();
 
     await prisma.testStep.delete({
-      where: { id },
+      where: { id: params.id },
     });
 
-    await recalculateReportGeneralStatus(exists.reportId);
+    await recalculateReportGeneralStatus(step.reportId);
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

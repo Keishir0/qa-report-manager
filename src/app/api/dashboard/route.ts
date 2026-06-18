@@ -1,15 +1,21 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
-import { requireApiAccess } from "@/lib/auth";
+import { getApiUser, requireApiAccess } from "@/lib/auth";
+import { reportAccessWhere } from "@/lib/reports";
 
 export const dynamic = "force-dynamic";
-
-const activeReportWhere = { deletedAt: null };
 
 export async function GET(request: NextRequest) {
   try {
     const denied = await requireApiAccess(request);
     if (denied) return denied;
+    const user = await getApiUser(request);
+
+    if (!user) {
+      return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    }
+
+    const activeReportWhere = { deletedAt: null, ...reportAccessWhere(user) };
 
     const [
       total,

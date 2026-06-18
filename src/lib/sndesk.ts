@@ -64,6 +64,26 @@ export interface PendingTicketRow {
   updatedAt: Date;
 }
 
+export function getUserSndeskStatusId(user?: AuthUser | null) {
+  const rawStatusId = user?.sndeskStatusId?.trim();
+  if (!rawStatusId) return null;
+
+  const statusId = Number(rawStatusId);
+  return Number.isInteger(statusId) ? statusId : null;
+}
+
+export function canUserAccessPendingTicket(
+  user: AuthUser | null | undefined,
+  ticket: Pick<PendingTicketRow, "statusId">
+) {
+  if (!user) return false;
+  if (user.role === "ADMIN") return true;
+  if (user.role !== "QA") return false;
+
+  const userStatusId = getUserSndeskStatusId(user);
+  return userStatusId !== null && ticket.statusId === userStatusId;
+}
+
 function normalizeBaseUrl(value: string) {
   return value.trim().replace(/\/+$/, "");
 }

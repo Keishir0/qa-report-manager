@@ -1,6 +1,11 @@
 import { requireQaOrAdmin } from "@/lib/adminAuth";
-import { markPendingError, sendPendingDecision } from "@/lib/sndesk";
+import {
+  canUserAccessPendingTicket,
+  markPendingError,
+  sendPendingDecision,
+} from "@/lib/sndesk";
 import { getApiUser } from "@/lib/auth";
+import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { logServerError } from "@/lib/serverLog";
 
@@ -22,6 +27,21 @@ export async function POST(
     if (unauthorized) return unauthorized;
 
     const activeUser = await getApiUser(request);
+    const [pendingTicket] = await prisma.$queryRaw<{ statusId: number | null }[]>`
+      SELECT "statusId"
+      FROM "qa_pending_tickets"
+      WHERE "id" = ${params.id}
+      LIMIT 1
+    `;
+
+    if (!pendingTicket) {
+      return jsonError("Pendencia nao encontrada.", 404);
+    }
+
+    if (!canUserAccessPendingTicket(activeUser, pendingTicket)) {
+      return jsonError("Voce nao tem permissao para esta pendencia.", 403);
+    }
+
     const ticket = await sendPendingDecision(params.id, "aprovar", activeUser);
 
     return NextResponse.json({

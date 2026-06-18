@@ -139,7 +139,9 @@ export default function ReportsListPage() {
       if (status) params.append("status", status);
       if (testType) params.append("testType", testType);
       if (debouncedSystem) params.append("system", debouncedSystem);
-      if (debouncedTester) params.append("tester", debouncedTester);
+      if (user?.role !== "QA" && debouncedTester) {
+        params.append("tester", debouncedTester);
+      }
       if (debouncedDev) params.append("dev", debouncedDev);
       if (debouncedSearch) params.append("search", debouncedSearch);
 
@@ -154,7 +156,7 @@ export default function ReportsListPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [createdFrom, createdTo, testedFrom, testedTo, branch, status, testType, debouncedSystem, debouncedTester, debouncedDev, debouncedSearch]);
+  }, [createdFrom, createdTo, testedFrom, testedTo, branch, status, testType, debouncedSystem, debouncedTester, debouncedDev, debouncedSearch, user?.role]);
 
   useEffect(() => {
     fetchReports();
@@ -404,21 +406,23 @@ export default function ReportsListPage() {
               className="w-full"
             />
           </div>
-          <div>
-            <Select
-              label="Filtrar por QA"
-              id="filterTester"
-              value={tester}
-              onChange={(e) => setTester(e.target.value)}
-            >
-              <option value="">Todos os QAs</option>
-              {userOptions.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.name}
-                </option>
-              ))}
-            </Select>
-          </div>
+          {user?.role !== "QA" && (
+            <div>
+              <Select
+                label="Filtrar por QA"
+                id="filterTester"
+                value={tester}
+                onChange={(e) => setTester(e.target.value)}
+              >
+                <option value="">Todos os QAs</option>
+                {userOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          )}
           <div>
             <Input
               label="Filtrar por Dev"
