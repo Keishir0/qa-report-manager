@@ -18,8 +18,8 @@ export default async function DashboardPage() {
   const [total, passed, failed, blocked, weeklyTests, recentReports] =
     await Promise.all([
       prisma.testReport.count({ where: { deletedAt: null } }),
-      prisma.testReport.count({ where: { deletedAt: null, generalStatus: "Passou" } }),
-      prisma.testReport.count({ where: { deletedAt: null, generalStatus: "Falhou" } }),
+      prisma.testReport.count({ where: { deletedAt: null, generalStatus: { in: ["Aprovado QA", "Passou"] } } }),
+      prisma.testReport.count({ where: { deletedAt: null, generalStatus: { in: ["Reprovado QA", "Falhou"] } } }),
       prisma.testReport.count({ where: { deletedAt: null, generalStatus: "Bloqueado" } }),
       prisma.testReport.count({
         where: {

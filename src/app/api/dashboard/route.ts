@@ -21,16 +21,16 @@ export async function GET(request: NextRequest) {
     ] = await Promise.all([
       prisma.testReport.count({ where: activeReportWhere }),
       prisma.testReport.count({
-        where: { ...activeReportWhere, generalStatus: "Passou" },
+        where: { ...activeReportWhere, generalStatus: { in: ["Aprovado QA", "Passou"] } },
       }),
       prisma.testReport.count({
-        where: { ...activeReportWhere, generalStatus: "Falhou" },
+        where: { ...activeReportWhere, generalStatus: { in: ["Reprovado QA", "Falhou"] } },
       }),
       prisma.testReport.count({
         where: { ...activeReportWhere, generalStatus: "Bloqueado" },
       }),
       prisma.testReport.count({
-        where: { ...activeReportWhere, generalStatus: "Não executado" },
+        where: { ...activeReportWhere, generalStatus: { in: ["Não Executado", "Não executado"] } },
       }),
       prisma.testReport.findMany({
         where: activeReportWhere,

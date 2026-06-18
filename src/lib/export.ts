@@ -151,7 +151,7 @@ export function exportToPDF(reports: TestReportData[], filename?: string) {
       ],
       [
         { content: `Tipo: ${report.testType}`, styles: { textColor: [71, 85, 105] as [number, number, number] } },
-        { content: `Status Geral: ${report.generalStatus}`, styles: { fontStyle: "bold" as const, textColor: (report.generalStatus === "Passou" ? [22, 163, 74] : report.generalStatus === "Falhou" ? [220, 38, 38] : [217, 119, 6]) as [number, number, number] } },
+        { content: `Status Geral: ${report.generalStatus}`, styles: { fontStyle: "bold" as const, textColor: (["Aprovado QA", "Passou"].includes(report.generalStatus) ? [22, 163, 74] : ["Reprovado QA", "Falhou", "Bloqueado"].includes(report.generalStatus) ? [220, 38, 38] : [100, 116, 139]) as [number, number, number] } },
       ],
       [
         { content: `Dev: ${report.sndeskTechnicianName || "Não informado"}`, styles: { textColor: [71, 85, 105] as [number, number, number] } },
@@ -234,12 +234,10 @@ export function exportToPDF(reports: TestReportData[], filename?: string) {
         if (data.section === "body" && data.column.index === 4) {
           const statusVal = data.cell.raw as string;
           data.cell.styles.fontStyle = "bold";
-          if (statusVal === "Passou") {
+          if (["Aprovado QA", "Passou"].includes(statusVal)) {
             data.cell.styles.textColor = [34, 197, 94]; // Verde
-          } else if (statusVal === "Falhou") {
+          } else if (["Reprovado QA", "Falhou", "Bloqueado"].includes(statusVal)) {
             data.cell.styles.textColor = [239, 68, 68]; // Vermelho
-          } else if (statusVal === "Bloqueado") {
-            data.cell.styles.textColor = [245, 158, 11]; // Laranja
           } else {
             data.cell.styles.textColor = [100, 116, 139]; // Cinza
           }

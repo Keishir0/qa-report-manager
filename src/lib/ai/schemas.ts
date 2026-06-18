@@ -5,12 +5,12 @@ export type AiMode = (typeof AI_MODES)[number];
 export const AI_INPUT_MAX_CHARS = 12000;
 
 const branchValues = [
-  "Master",
-  "Alfa",
-  "Master / Alfa",
-  "Homologação",
-  "Produção",
-  "Desenvolvimento",
+  "master",
+  "alfa",
+  "whats-ia",
+  "whats-chat",
+  "chufc",
+  "hospital-ebserh",
 ] as const;
 
 const testTypeValues = [
@@ -26,10 +26,9 @@ const testTypeValues = [
 ] as const;
 
 const statusValues = [
-  "Passou",
-  "Falhou",
-  "Bloqueado",
-  "Não executado",
+  "Aprovado QA",
+  "Reprovado QA",
+  "Não Executado",
 ] as const;
 
 export const aiStepSchema = z
@@ -51,7 +50,7 @@ export const aiStepsSchema = z
 export const aiReportSchema = z
   .object({
     systemName: z.string().trim().min(1).max(200),
-    branch: z.enum(branchValues),
+    branch: z.string().trim().min(1).max(200),
     testType: z.enum(testTypeValues),
     generalStatus: z.enum(statusValues),
     screenPath: z.string().trim().min(1).max(500),
@@ -189,7 +188,7 @@ export function normalizeOpenRouterResult(
         status: enumValue(
           step.status,
           statusValues,
-          "Não executado"
+          "Não Executado"
         ),
       };
     })
@@ -210,18 +209,18 @@ export function normalizeOpenRouterResult(
             expectedResult:
               "A funcionalidade deve apresentar o comportamento esperado.",
             actualResult: "Pendente de execução",
-            status: "Não executado" as const,
+            status: "Não Executado" as const,
           },
         ];
 
   return aiReportSchema.parse({
     systemName: stringValue(input.systemName, "Não identificado", 200),
-    branch: enumValue(input.branch, branchValues, "Desenvolvimento"),
+    branch: stringValue(input.branch, "alfa", 200),
     testType: enumValue(input.testType, testTypeValues, "Funcional"),
     generalStatus: enumValue(
       input.generalStatus,
       statusValues,
-      "Não executado"
+      "Não Executado"
     ),
     screenPath: stringValue(input.screenPath, "Não informado", 500),
     functionality,

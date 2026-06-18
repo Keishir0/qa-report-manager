@@ -595,22 +595,22 @@ export default function ReportsListPage() {
               <td className="px-3 py-4 text-slate-500 whitespace-nowrap">
                 {format(new Date(report.testDate), "dd/MM/yyyy")}
               </td>
-              <td className="px-3 py-4 text-slate-600 truncate" title={report.branch}>
+              <td className="px-3 py-4 text-slate-600 truncate max-w-0" title={report.branch}>
                 {report.branch}
               </td>
-              <td className="px-3 py-4 text-slate-600 truncate" title={report.screenPath}>
+              <td className="px-3 py-4 text-slate-600 truncate max-w-0" title={report.screenPath}>
                 {report.screenPath}
               </td>
-              <td className="px-3 py-4 text-slate-600 truncate" title={report.functionality}>
+              <td className="px-3 py-4 text-slate-600 truncate max-w-0" title={report.functionality}>
                 {report.functionality}
               </td>
-              <td className="px-3 py-4 text-slate-600 truncate" title={report.testType}>
+              <td className="px-3 py-4 text-slate-600 truncate max-w-0" title={report.testType}>
                 {report.testType}
               </td>
-              <td className="px-3 py-4 font-semibold text-slate-800 truncate" title={report.testerName || "Nao informado"}>
+              <td className="px-3 py-4 font-semibold text-slate-800 truncate max-w-0" title={report.testerName || "Nao informado"}>
                 {report.testerName || "Nao informado"}
               </td>
-              <td className="px-3 py-4 text-slate-600 truncate" title={report.sndeskTechnicianName || "Nao informado"}>
+              <td className="px-3 py-4 text-slate-600 truncate max-w-0" title={report.sndeskTechnicianName || "Nao informado"}>
                 {report.sndeskTechnicianName || "Nao informado"}
               </td>
               <td className="px-3 py-4 text-center font-medium text-slate-500 whitespace-nowrap">

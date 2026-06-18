@@ -1,4 +1,4 @@
-export type StepStatus = "Passou" | "Falhou" | "Bloqueado" | "Não executado";
+export type StepStatus = "Aprovado QA" | "Reprovado QA" | "Não Executado";
 export type GeneralStatus = StepStatus;
 
 export type TestType =
@@ -13,25 +13,23 @@ export type TestType =
   | "Compatibilidade";
 
 export type Branch =
-  | "Master"
-  | "Alfa"
-  | "Master / Alfa"
-  | "Homologação"
-  | "Produção"
-  | "Desenvolvimento";
+  | "master"
+  | "alfa"
+  | "whats-ia"
+  | "whats-chat"
+  | "chufc"
+  | "hospital-ebserh";
 
 export const STEP_STATUS_OPTIONS: StepStatus[] = [
-  "Passou",
-  "Falhou",
-  "Bloqueado",
-  "Não executado",
+  "Aprovado QA",
+  "Reprovado QA",
+  "Não Executado",
 ];
 
 export const GENERAL_STATUS_OPTIONS: GeneralStatus[] = [
-  "Passou",
-  "Falhou",
-  "Bloqueado",
-  "Não executado",
+  "Aprovado QA",
+  "Reprovado QA",
+  "Não Executado",
 ];
 
 export const TEST_TYPE_OPTIONS: TestType[] = [
@@ -47,12 +45,12 @@ export const TEST_TYPE_OPTIONS: TestType[] = [
 ];
 
 export const BRANCH_OPTIONS: Branch[] = [
-  "Master",
-  "Alfa",
-  "Master / Alfa",
-  "Homologação",
-  "Produção",
-  "Desenvolvimento",
+  "master",
+  "alfa",
+  "whats-ia",
+  "whats-chat",
+  "chufc",
+  "hospital-ebserh",
 ];
 
 export interface TestStepData {

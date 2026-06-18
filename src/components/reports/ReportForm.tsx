@@ -51,6 +51,58 @@ export default function ReportForm({
   const [notes, setNotes] = useState("");
   const [userOptions, setUserOptions] = useState<UserOption[]>([]);
 
+  // Estados locais para seleção de branches (múltipla e digitação livre)
+  const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
+  const [customBranchText, setCustomBranchText] = useState("");
+
+  // Handler para alternar branches pré-definidas
+  const togglePresetBranch = (preset: string) => {
+    const newPresets = selectedBranches.includes(preset)
+      ? selectedBranches.filter((p) => p !== preset)
+      : [...selectedBranches, preset];
+
+    setSelectedBranches(newPresets);
+    const combined = [
+      ...newPresets,
+      ...(customBranchText.trim() ? [customBranchText.trim()] : []),
+    ].join(", ");
+    setBranch(combined);
+  };
+
+  // Handler para alterar a branch customizada
+  const handleCustomBranchChange = (text: string) => {
+    setCustomBranchText(text);
+    const combined = [
+      ...selectedBranches,
+      ...(text.trim() ? [text.trim()] : []),
+    ].join(", ");
+    setBranch(combined);
+  };
+
+  // Sincronizar o estado consolidado 'branch' de volta para selectedBranches e customBranchText
+  // (útil para inicialização com initialData e respostas geradas pela IA)
+  useEffect(() => {
+    if (!branch) {
+      setSelectedBranches([]);
+      setCustomBranchText("");
+      return;
+    }
+
+    const parts = branch.split(",").map((p) => p.trim()).filter(Boolean);
+    const presets = parts.filter((p) => BRANCH_OPTIONS.includes(p as any));
+    const custom = parts.filter((p) => !BRANCH_OPTIONS.includes(p as any)).join(", ");
+
+    const presetsChanged = JSON.stringify(presets) !== JSON.stringify(selectedBranches);
+    const customChanged = custom !== customBranchText;
+
+    if (presetsChanged) {
+      setSelectedBranches(presets);
+    }
+    if (customChanged) {
+      setCustomBranchText(custom);
+    }
+  }, [branch]);
+
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Estado dos passos dinâmicos (apenas criação)
@@ -429,14 +481,38 @@ export default function ReportForm({
           </div>
 
           <div className="xl:col-span-4">
-            <Select
-              label="Branch / Ambiente *"
-              id="branch"
-              value={branch}
-              onChange={(e) => setBranch(e.target.value)}
-              options={BRANCH_OPTIONS}
-              error={errors.branch}
-            />
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+              Branch / Ambiente *
+            </label>
+            <div className="rounded-lg border border-slate-200 p-3 bg-slate-50/50 space-y-2">
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                {BRANCH_OPTIONS.map((option) => (
+                  <label key={option} className="flex items-center gap-2 font-medium text-slate-700 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={selectedBranches.includes(option)}
+                      onChange={() => togglePresetBranch(option)}
+                      className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                    />
+                    <span>{option}</span>
+                  </label>
+                ))}
+              </div>
+              <div className="border-t border-slate-200/60 pt-2 mt-2">
+                <input
+                  type="text"
+                  placeholder="Outra (digite e separe por vírgula)"
+                  value={customBranchText}
+                  onChange={(e) => handleCustomBranchChange(e.target.value)}
+                  className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white placeholder-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-hidden"
+                />
+              </div>
+            </div>
+            {errors.branch && (
+              <p className="mt-1 text-xs font-semibold text-red-600">
+                {errors.branch}
+              </p>
+            )}
           </div>
 
           <div className="xl:col-span-3">

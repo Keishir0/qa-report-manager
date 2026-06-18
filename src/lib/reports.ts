@@ -62,20 +62,25 @@ export async function recalculateReportGeneralStatus(reportId: string, tx?: any)
   if (steps.length === 0) {
     await db.testReport.update({
       where: { id: reportId },
-      data: { generalStatus: "Não executado" },
+      data: { generalStatus: "Não Executado" },
     });
     return;
   }
 
   const statuses = steps.map((s: any) => s.status);
 
-  let nextStatus = "Passou";
-  if (statuses.includes("Falhou")) {
-    nextStatus = "Falhou";
-  } else if (statuses.includes("Bloqueado")) {
-    nextStatus = "Bloqueado";
-  } else if (statuses.includes("Não executado")) {
-    nextStatus = "Não executado";
+  let nextStatus = "Aprovado QA";
+  if (
+    statuses.includes("Reprovado QA") ||
+    statuses.includes("Falhou") ||
+    statuses.includes("Bloqueado")
+  ) {
+    nextStatus = "Reprovado QA";
+  } else if (
+    statuses.includes("Não Executado") ||
+    statuses.includes("Não executado")
+  ) {
+    nextStatus = "Não Executado";
   }
 
   await db.testReport.update({

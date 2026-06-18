@@ -28,7 +28,7 @@ interface AiStepAssistantProps {
 function normalizeStatus(value: unknown): StepStatus {
   return STEP_STATUS_OPTIONS.includes(value as StepStatus)
     ? (value as StepStatus)
-    : "Não executado";
+    : "Não Executado";
 }
 
 export default function AiStepAssistant({
