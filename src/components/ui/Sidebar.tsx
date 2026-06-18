@@ -209,7 +209,7 @@ export default function Sidebar({ user }: { user: AuthUser }) {
 
       <aside
         id="main-navigation"
-        className={`fixed inset-y-0 left-0 z-50 flex h-dvh w-72 max-w-[85vw] flex-col justify-between border-r border-gray-200 bg-white shadow-xl transition-transform duration-300 lg:z-30 lg:w-60 lg:max-w-none lg:translate-x-0 lg:shadow-none ${
+        className={`fixed inset-y-0 left-0 z-50 flex h-dvh w-72 max-w-[85vw] flex-col justify-between border-r border-white/70 bg-white/82 shadow-xl backdrop-blur-xl transition-transform duration-300 lg:z-30 lg:w-60 lg:max-w-none lg:translate-x-0 lg:shadow-none ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
