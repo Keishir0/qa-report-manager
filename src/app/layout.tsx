@@ -14,6 +14,9 @@ import { getCurrentUser } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "QA Report Manager",
+  icons: {
+    icon: "/favicon.svg",
+  },
   description: "Gerenciador de Relatórios de Testes e Bugs",
 };
 

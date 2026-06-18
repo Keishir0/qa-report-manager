@@ -19,11 +19,11 @@ export default async function LoginPage({
   if (user) redirect("/");
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4 py-10">
-      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white p-6 shadow-2xl sm:p-8">
+    <div className="login-background flex min-h-screen items-center justify-center px-4 py-10">
+      <div className="w-full max-w-[420px] rounded-3xl border border-white/70 bg-white/85 p-6 shadow-[0_24px_80px_rgba(79,70,229,0.12)] backdrop-blur-xl sm:p-8">
         <div className="mb-7">
           <div className="mb-4 flex justify-center">
-            <div className="inline-flex rounded-2xl bg-indigo-50 p-4 text-indigo-700">
+            <div className="inline-flex rounded-2xl bg-indigo-100/70 p-4 text-indigo-700 shadow-sm backdrop-blur">
               <BrandBugIcon className="h-9 w-9" />
             </div>
           </div>

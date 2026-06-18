@@ -7,8 +7,12 @@ export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const isExternalWebhook =
     pathname === "/api/webhooks/chamados" && request.method === "POST";
+  const isPublicAsset =
+    pathname.startsWith("/images/") ||
+    pathname === "/favicon.svg" ||
+    pathname === "/favicon.png";
 
-  if (PUBLIC_PATHS.has(pathname) || isExternalWebhook) {
+  if (PUBLIC_PATHS.has(pathname) || isExternalWebhook || isPublicAsset) {
     return NextResponse.next();
   }
 
