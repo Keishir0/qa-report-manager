@@ -54,3 +54,60 @@ export function getSndeskTechnicianName(snapshot: unknown) {
 
   return null;
 }
+
+function normalizeId(value: unknown): string | null {
+  if (typeof value === "number") return String(value);
+  if (typeof value === "string") return value.trim() || null;
+  if (!value || typeof value !== "object") return null;
+
+  const record = value as Record<string, unknown>;
+  const id =
+    record.idusuario ||
+    record.id ||
+    record.iduser ||
+    record.idtecnico ||
+    record.id_tecnico ||
+    record.id_usuario;
+
+  if (typeof id === "number") return String(id);
+  if (typeof id === "string" && id.trim()) return id.trim();
+  return null;
+}
+
+export function getSndeskTechnicianId(snapshot: unknown): string | null {
+  if (!snapshot || typeof snapshot !== "object") return null;
+
+  const paths = [
+    ["tecnico"],
+    ["tecnicoResponsavel"],
+    ["responsavel"],
+    ["responsavelTecnico"],
+    ["dev"],
+    ["desenvolvedor"],
+    ["atendente"],
+    ["usuarioTecnico"],
+    ["assignedTo"],
+    ["technician"],
+  ];
+
+  for (const path of paths) {
+    const id = normalizeId(readNestedValue(snapshot, path));
+    if (id) return id;
+  }
+
+  const root = snapshot as Record<string, unknown>;
+  const flatKeys = [
+    "idtecnico",
+    "id_tecnico",
+    "iduser",
+    "idusuario",
+    "id_usuario",
+  ];
+  for (const key of flatKeys) {
+    const val = root[key];
+    if (typeof val === "number") return String(val);
+    if (typeof val === "string" && val.trim()) return val.trim();
+  }
+
+  return null;
+}

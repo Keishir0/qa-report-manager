@@ -1,8 +1,10 @@
-import { requireQaAdmin } from "@/lib/adminAuth";
+import { requireQaOrAdmin } from "@/lib/adminAuth";
 import prisma from "@/lib/prisma";
 import { PendingTicketRow } from "@/lib/sndesk";
 import { NextRequest, NextResponse } from "next/server";
 import { logServerError } from "@/lib/serverLog";
+import { getApiUser } from "@/lib/auth";
+import { getSndeskTechnicianId } from "@/lib/sndeskTechnician";
 
 export const dynamic = "force-dynamic";
 
@@ -15,9 +17,10 @@ function jsonError(message: string, status: number, details?: unknown) {
 
 export async function GET(request: NextRequest) {
   try {
-    const unauthorized = await requireQaAdmin(request);
+    const unauthorized = await requireQaOrAdmin(request);
     if (unauthorized) return unauthorized;
 
+    const user = await getApiUser(request);
     const reportId = request.nextUrl.searchParams.get("reportId");
 
     const tickets = reportId
@@ -59,9 +62,22 @@ export async function GET(request: NextRequest) {
           ORDER BY p."updatedAt" DESC
         `;
 
+    let filteredTickets = tickets;
+    if (user?.role === "QA") {
+      const mySndeskId = user.sndeskUserId;
+      if (mySndeskId) {
+        filteredTickets = tickets.filter((ticket) => {
+          const techId = getSndeskTechnicianId(ticket.chamadoSnapshot);
+          return techId === mySndeskId;
+        });
+      } else {
+        filteredTickets = [];
+      }
+    }
+
     return NextResponse.json({
       success: true,
-      data: tickets,
+      data: filteredTickets,
     });
   } catch (error: unknown) {
     logServerError("Error in GET /api/sndesk/pendencias", error);

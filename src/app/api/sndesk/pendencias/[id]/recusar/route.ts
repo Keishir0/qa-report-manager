@@ -1,4 +1,4 @@
-import { requireQaAdmin } from "@/lib/adminAuth";
+import { requireQaOrAdmin } from "@/lib/adminAuth";
 import { markPendingError, sendPendingDecision } from "@/lib/sndesk";
 import { getApiUser } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
@@ -18,7 +18,7 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const unauthorized = await requireQaAdmin(request);
+    const unauthorized = await requireQaOrAdmin(request);
     if (unauthorized) return unauthorized;
 
     const activeUser = await getApiUser(request);

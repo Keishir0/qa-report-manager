@@ -17,3 +17,20 @@ export async function requireQaAdmin(request: NextRequest) {
     { status: denied.status }
   );
 }
+
+export async function requireQaOrAdmin(request: NextRequest) {
+  const denied = await requireApiAccess(request, ["ADMIN", "QA"]);
+
+  if (!denied) return null;
+
+  return NextResponse.json(
+    {
+      success: false,
+      message:
+        denied.status === 401
+          ? "Nao autenticado."
+          : "Acesso restrito a QAs e Administradores.",
+    },
+    { status: denied.status }
+  );
+}
