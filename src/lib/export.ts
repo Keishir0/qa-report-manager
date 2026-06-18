@@ -19,6 +19,8 @@ export function exportToExcel(reports: TestReportData[], filename?: string) {
     "Bug/Cenário testado",
     "Tipo de teste",
     "Status geral",
+    "Dev",
+    "QA",
     "Observações",
   ];
 
@@ -32,6 +34,8 @@ export function exportToExcel(reports: TestReportData[], filename?: string) {
     r.bugDescription,
     r.testType,
     r.generalStatus,
+    r.sndeskTechnicianName || "Não informado",
+    r.testerName || "Não informado",
     r.notes || "",
   ]);
 
@@ -148,6 +152,10 @@ export function exportToPDF(reports: TestReportData[], filename?: string) {
       [
         { content: `Tipo: ${report.testType}`, styles: { textColor: [71, 85, 105] as [number, number, number] } },
         { content: `Status Geral: ${report.generalStatus}`, styles: { fontStyle: "bold" as const, textColor: (report.generalStatus === "Passou" ? [22, 163, 74] : report.generalStatus === "Falhou" ? [220, 38, 38] : [217, 119, 6]) as [number, number, number] } },
+      ],
+      [
+        { content: `Dev: ${report.sndeskTechnicianName || "Não informado"}`, styles: { textColor: [71, 85, 105] as [number, number, number] } },
+        { content: `QA: ${report.testerName || "Não informado"}`, styles: { textColor: [71, 85, 105] as [number, number, number] } },
       ],
       [
         { content: `Tela / Menu: ${report.screenPath}`, colSpan: 2, styles: { textColor: [71, 85, 105] as [number, number, number] } },
