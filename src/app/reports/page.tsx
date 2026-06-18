@@ -18,6 +18,7 @@ import EmptyState from "@/components/ui/EmptyState";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
+import MultiSelectCreatable from "@/components/ui/MultiSelectCreatable";
 import { useAuthUser } from "@/components/auth/AuthProvider";
 import ReportActionsMenu from "@/components/reports/ReportActionsMenu";
 
@@ -475,12 +476,13 @@ export default function ReportsListPage() {
 
           {/* Branch */}
           <div>
-            <Select
+            <MultiSelectCreatable
               label="Branch / Ambiente"
               id="filterBranch"
-              value={branch}
-              onChange={(e) => setBranch(e.target.value)}
+              placeholder="Filtrar por branch..."
               options={BRANCH_OPTIONS}
+              value={branch}
+              onChange={setBranch}
             />
           </div>
 

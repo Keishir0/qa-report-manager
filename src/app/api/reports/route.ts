@@ -49,7 +49,14 @@ export async function GET(request: NextRequest) {
     }
 
     if (branch && branch.trim() !== "") {
-      where.branch = branch;
+      const branches = branch.split(",").map((b) => b.trim()).filter(Boolean);
+      if (branches.length > 0) {
+        andFilters.push({
+          OR: branches.map((b) => ({
+            branch: { contains: b, mode: "insensitive" },
+          })),
+        });
+      }
     }
 
     if (status && status.trim() !== "") {
