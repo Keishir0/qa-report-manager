@@ -64,17 +64,19 @@ function compactLongBulletList(lines: string[]) {
   return result;
 }
 
-export function preprocessAiInput(text: string) {
+export function preprocessAiInput(text: string, mode?: string) {
   const originalLength = text.length;
   const withoutHtml = stripHtml(text);
-  const lines = compactLongBulletList(compactRepeatedWhitespace(withoutHtml)
+  const cleanedLines = compactRepeatedWhitespace(withoutHtml)
     .split("\n")
     .map((line) => line.trim())
     .filter((line) => {
       if (!line) return false;
       return !noisyLinePatterns.some((pattern) => pattern.test(line));
     })
-    .map(trimLongLine));
+    .map(trimLongLine);
+
+  const lines = mode === "steps" ? cleanedLines : compactLongBulletList(cleanedLines);
 
   let processed = compactRepeatedWhitespace(lines.join("\n"));
   if (processed.length > MAX_PREPROCESSED_CHARS) {

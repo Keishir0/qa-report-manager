@@ -48,7 +48,7 @@ export async function generateAiContent(
   mode: AiMode,
   text: string
 ): Promise<AiGenerationResult> {
-  const processed = preprocessAiInput(text);
+  const processed = preprocessAiInput(text, mode);
   const providerText = processed.text;
 
   // 1. Tenta Gemini diretamente se a chave estiver configurada

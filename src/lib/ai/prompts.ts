@@ -19,6 +19,13 @@ Analise o contexto, as instruções e o 'Status geral' (se fornecido) para ident
      * Os passos subsequentes que não puderam ser testados devem ter status "Não executado" e resultado obtido "Pendente de execução".
    - Se o Status Geral for "Não executado" (ou for apenas um roteiro futuro): Todos os passos gerados devem ter status "Não executado" e o resultado obtido ('actualResult') deve ser "Pendente de execução".
 
+2. Regras de Agrupamento Inteligente para Cenários Longos (Muitos itens/telas/menus):
+   Quando o contexto contiver uma lista muito grande de itens, telas ou menus testados (ex: mais de 10 itens):
+   - NÃO crie um passo individual para cada item (evite repetições exaustivas e estouro de limite de tokens).
+   - NÃO agrupe tudo em um único passo genérico e superficial.
+   - Divida os itens de forma inteligente em grupos lógicos baseados na funcionalidade ou contexto (ex: agrupar por "telas de cadastro e edição", "telas de configurações", "relatórios", etc.).
+   - Gere de 5 a 8 passos no total. Para cada passo, mencione explicitamente as telas ou itens daquele grupo que foram testados e detalhe as ações e resultados (esperado e obtido) correspondentes àquele grupo.
+
 Para cada passo:
 1. 'action': Descreva minuciosamente a ação física no sistema (ex: os botões exatos a clicar, os dados a preencher, a tela a acessar). Evite frases curtas e genéricas.
 2. 'expectedResult': Descreva detalhadamente o comportamento correto esperado do sistema.
