@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import { randomUUID } from "crypto";
 import { sanitizeSensitiveText } from "@/lib/serverLog";
+import { AuthUser } from "@/lib/auth";
 
 export const SNDESK_CONFIG_KEYS = {
   baseUrl: "sndesk_base_url",
@@ -400,7 +401,11 @@ function renderTemplate(template: string, context: Record<string, string>) {
   });
 }
 
-export async function sendPendingDecision(id: string, action: "aprovar" | "recusar") {
+export async function sendPendingDecision(
+  id: string,
+  action: "aprovar" | "recusar",
+  activeUser?: AuthUser | null
+) {
   const [ticket] = await prisma.$queryRaw<PendingTicketRow[]>`
     SELECT
       p."id",
@@ -439,8 +444,10 @@ export async function sendPendingDecision(id: string, action: "aprovar" | "recus
   const template =
     action === "aprovar" ? config.approveTemplate : config.rejectTemplate;
 
-  if (!config.defaultUserId || !statusId) {
-    throw new Error("Configure o usuario padrao e o status de envio.");
+  const sndeskUserId = activeUser?.sndeskUserId || config.defaultUserId;
+
+  if (!sndeskUserId || !statusId) {
+    throw new Error("Configure o ID do tecnico no seu perfil ou defina o usuario padrao nas configuracoes.");
   }
 
   const descricao = renderTemplate(template, {
@@ -454,7 +461,7 @@ export async function sendPendingDecision(id: string, action: "aprovar" | "recus
   await callSndesk(config, "/api/chamado/interacao", {
     method: "POST",
     body: JSON.stringify({
-      iduser: Number(config.defaultUserId),
+      iduser: Number(sndeskUserId),
       idchamado: Number(ticket.idChamado),
       descricao,
       interacao_status: Number(statusId),

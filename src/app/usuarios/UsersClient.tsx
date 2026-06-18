@@ -17,6 +17,7 @@ interface UserView {
   email: string;
   role: UserRole;
   active: boolean;
+  sndeskUserId?: string | null;
   createdAt: string;
 }
 
@@ -39,6 +40,7 @@ const EMPTY_FORM = {
   confirmPassword: "",
   role: "QA" as UserRole,
   active: true,
+  sndeskUserId: "",
 };
 
 function formatDate(value: string) {
@@ -123,6 +125,7 @@ export default function UsersClient() {
       confirmPassword: "",
       role: user.role,
       active: user.active,
+      sndeskUserId: user.sndeskUserId || "",
     });
     setErrors({});
     setShowPassword(false);
@@ -161,9 +164,11 @@ export default function UsersClient() {
         password?: string;
         role?: UserRole;
         active?: boolean;
+        sndeskUserId?: string | null;
       } = {
         name: form.name,
         email: form.email,
+        sndeskUserId: form.sndeskUserId.trim() || null,
       };
 
       if (!isEditing || form.password.length > 0) {
@@ -297,6 +302,17 @@ export default function UsersClient() {
               autoComplete="email"
               required
             />
+            <Input
+              id="user-sndesk-id"
+              label="ID Técnico no SNDesk"
+              value={form.sndeskUserId}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, sndeskUserId: event.target.value }))
+              }
+              error={errors.sndeskUserId}
+              maxLength={20}
+              placeholder="Ex: 109 (opcional)"
+            />
             <Select
               id="user-role"
               label="Perfil de acesso"
@@ -424,6 +440,13 @@ export default function UsersClient() {
                           <div className="mt-0.5 text-xs font-medium text-slate-500">
                             {user.email}
                           </div>
+                          {user.sndeskUserId && (
+                            <div className="mt-1 flex items-center gap-1">
+                              <span className="inline-flex rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] font-bold text-slate-500">
+                                SNDesk ID: {user.sndeskUserId}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </td>
                       <td data-label="Perfil" className="p-4 max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-slate-100 max-lg:text-right max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]">

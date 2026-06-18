@@ -12,6 +12,7 @@ function publicUser(user: {
   email: string;
   role: UserRole;
   active: boolean;
+  sndeskUserId?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }) {
@@ -21,6 +22,7 @@ function publicUser(user: {
     email: user.email,
     role: user.role,
     active: user.active,
+    sndeskUserId: user.sndeskUserId ?? null,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };
@@ -39,6 +41,7 @@ export async function GET(request: NextRequest) {
         email: true,
         role: true,
         active: true,
+        sndeskUserId: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -75,6 +78,7 @@ export async function POST(request: NextRequest) {
     const email = String(body.email || "").trim().toLowerCase();
     const password = String(body.password || "");
     const role = String(body.role || "").toUpperCase();
+    const sndeskUserId = typeof body.sndeskUserId === "string" ? body.sndeskUserId.trim() || null : null;
 
     if (name.length < 2 || name.length > 120) {
       return NextResponse.json(
@@ -117,6 +121,7 @@ export async function POST(request: NextRequest) {
         passwordHash: await hashPassword(password),
         role: role as UserRole,
         active: true,
+        sndeskUserId,
       },
       select: {
         id: true,
@@ -124,6 +129,7 @@ export async function POST(request: NextRequest) {
         email: true,
         role: true,
         active: true,
+        sndeskUserId: true,
         createdAt: true,
         updatedAt: true,
       },

@@ -1,5 +1,6 @@
 import { requireQaAdmin } from "@/lib/adminAuth";
 import { markPendingError, sendPendingDecision } from "@/lib/sndesk";
+import { getApiUser } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { logServerError } from "@/lib/serverLog";
 
@@ -20,7 +21,8 @@ export async function POST(
     const unauthorized = await requireQaAdmin(request);
     if (unauthorized) return unauthorized;
 
-    const ticket = await sendPendingDecision(params.id, "aprovar");
+    const activeUser = await getApiUser(request);
+    const ticket = await sendPendingDecision(params.id, "aprovar", activeUser);
 
     return NextResponse.json({
       success: true,

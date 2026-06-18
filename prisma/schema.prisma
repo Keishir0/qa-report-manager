@@ -14,6 +14,7 @@ model User {
   passwordHash String
   role         UserRole      @default(QA)
   active       Boolean       @default(true)
+  sndeskUserId String?       @map("sndesk_user_id")
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   sessions     AuthSession[]
