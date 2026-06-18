@@ -38,13 +38,13 @@ function detectStatus(text: string) {
       text
     )
   ) {
-    return "Passou";
+    return "Aprovado QA";
   }
-  if (/(bloque|trav|impeditivo)/i.test(text)) return "Bloqueado";
   if (/(erro|falh|bug|nao funciona|não funciona|quebr)/i.test(text)) {
-    return "Falhou";
+    return "Reprovado QA";
   }
-  return "Não executado";
+  if (/(bloque|trav|impeditivo)/i.test(text)) return "Reprovado QA";
+  return "Não Executado";
 }
 
 function detectTestType(text: string) {
@@ -89,9 +89,10 @@ function buildCoverageSteps(text: string) {
   if (items.length < 4) return [];
 
   const status = detectStatus(text);
-  const stepStatus = status === "Passou" ? "Passou" : "Não executado";
+  const stepStatus =
+    status === "Aprovado QA" ? "Aprovado QA" : "Não Executado";
   const actualResult =
-    status === "Passou"
+    status === "Aprovado QA"
       ? "Os botões e fluxos validados funcionaram corretamente em todas as tentativas informadas."
       : "Pendente de execução";
 
@@ -131,7 +132,7 @@ function buildStep(text: string) {
     expectedResult:
       "O sistema deve apresentar o comportamento esperado conforme o relato informado.",
     actualResult:
-      status === "Passou"
+      status === "Aprovado QA"
         ? "Comportamento validado com sucesso conforme o relato informado."
         : "Pendente de execução",
     status,
@@ -165,7 +166,7 @@ export function generateLocalFallback(mode: AiMode, text: string): AiResult {
     bugDescription: isCoverageReport
       ? shortText(
           `Foram testados os botões de voltar do PWA nas telas informadas. ${
-            status === "Passou"
+            status === "Aprovado QA"
               ? "Todos funcionaram corretamente conforme o relato."
               : "Revise os resultados antes de salvar."
           }`,

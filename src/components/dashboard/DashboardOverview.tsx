@@ -45,8 +45,8 @@ interface DashboardOverviewProps {
 
 const filterTitles: Record<DashboardFilter, string> = {
   total: "Todos os Testes",
-  passed: "Testes que Passaram",
-  failed: "Testes que Falharam",
+  passed: "Testes Aprovados",
+  failed: "Testes Reprovados",
   blocked: "Testes Bloqueados",
   approval: "Testes Aprovados",
   week: "Testes dos Últimos 7 Dias",
@@ -117,7 +117,7 @@ export default function DashboardOverview({
 
   return (
     <>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="mx-auto grid max-w-5xl grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4">
         <MetricCard
           title="Total de Testes"
           value={metrics.total}
@@ -132,9 +132,9 @@ export default function DashboardOverview({
         />
 
         <MetricCard
-          title="Passaram"
+          title="Aprovado"
           value={metrics.passed}
-          onClick={() => applyFilter("passed", "status=Passou")}
+          onClick={() => applyFilter("passed", "status=Aprovado QA")}
           isActive={activeFilter === "passed"}
           statusColor="green"
           icon={
@@ -145,9 +145,9 @@ export default function DashboardOverview({
         />
 
         <MetricCard
-          title="Falharam"
+          title="Reprovado"
           value={metrics.failed}
-          onClick={() => applyFilter("failed", "status=Falhou")}
+          onClick={() => applyFilter("failed", "status=Reprovado QA")}
           isActive={activeFilter === "failed"}
           statusColor="red"
           icon={
@@ -157,7 +157,7 @@ export default function DashboardOverview({
           }
         />
 
-        <MetricCard
+        {/* <MetricCard
           title="Bloqueados"
           value={metrics.blocked}
           onClick={() => applyFilter("blocked", "status=Bloqueado")}
@@ -168,9 +168,9 @@ export default function DashboardOverview({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
             </svg>
           }
-        />
+        /> */}
 
-        <MetricCard
+        {/* <MetricCard
           title="Taxa de Aprovação"
           value={metrics.approvalRate}
           onClick={() => applyFilter("approval", "status=Passou")}
@@ -188,7 +188,7 @@ export default function DashboardOverview({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
             </svg>
           }
-        />
+        /> */}
 
         <MetricCard
           title="Testes da Semana"

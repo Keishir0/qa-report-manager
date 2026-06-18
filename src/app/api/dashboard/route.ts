@@ -27,16 +27,16 @@ export async function GET(request: NextRequest) {
     ] = await Promise.all([
       prisma.testReport.count({ where: activeReportWhere }),
       prisma.testReport.count({
-        where: { ...activeReportWhere, generalStatus: { in: ["Aprovado QA", "Passou"] } },
+        where: { ...activeReportWhere, generalStatus: "Aprovado QA" },
       }),
       prisma.testReport.count({
-        where: { ...activeReportWhere, generalStatus: { in: ["Reprovado QA", "Falhou"] } },
+        where: { ...activeReportWhere, generalStatus: "Reprovado QA" },
       }),
       prisma.testReport.count({
         where: { ...activeReportWhere, generalStatus: "Bloqueado" },
       }),
       prisma.testReport.count({
-        where: { ...activeReportWhere, generalStatus: { in: ["Não Executado", "Não executado"] } },
+        where: { ...activeReportWhere, generalStatus: "Não Executado" },
       }),
       prisma.testReport.findMany({
         where: activeReportWhere,

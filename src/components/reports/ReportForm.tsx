@@ -64,7 +64,7 @@ export default function ReportForm({
   const [newStepAction, setNewStepAction] = useState("");
   const [newStepExpected, setNewStepExpected] = useState("");
   const [newStepActual, setNewStepActual] = useState("");
-  const [newStepStatus, setNewStepStatus] = useState("Passou");
+  const [newStepStatus, setNewStepStatus] = useState("Aprovado QA");
   const [stepErrors, setStepErrors] = useState<Record<string, string>>({});
 
   // Estados da IA
@@ -141,7 +141,7 @@ export default function ReportForm({
             action: s.action || "",
             expectedResult: s.expectedResult || "",
             actualResult: s.actualResult || "",
-            status: s.status || "Passou",
+            status: s.status || "Não Executado",
           }))
         );
       }
@@ -275,7 +275,7 @@ export default function ReportForm({
     setNewStepAction("");
     setNewStepExpected("");
     setNewStepActual("");
-    setNewStepStatus("Passou");
+    setNewStepStatus("Aprovado QA");
     setStepErrors({});
   };
 

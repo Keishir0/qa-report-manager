@@ -58,6 +58,7 @@ export interface PendingTicketRow {
   chamadoSnapshot: any;
   reportId: string | null;
   reportCode: string | null;
+  reportTesterId: string | null;
   state: string;
   lastError: string | null;
   createdAt: Date;
@@ -74,14 +75,22 @@ export function getUserSndeskStatusId(user?: AuthUser | null) {
 
 export function canUserAccessPendingTicket(
   user: AuthUser | null | undefined,
-  ticket: Pick<PendingTicketRow, "statusId">
+  ticket: Pick<PendingTicketRow, "statusId"> & { reportTesterId?: string | null }
 ) {
   if (!user) return false;
   if (user.role === "ADMIN") return true;
   if (user.role !== "QA") return false;
 
   const userStatusId = getUserSndeskStatusId(user);
-  return userStatusId !== null && ticket.statusId === userStatusId;
+  if (userStatusId === null || ticket.statusId !== userStatusId) {
+    return false;
+  }
+
+  if (ticket.reportTesterId) {
+    return ticket.reportTesterId === user.id;
+  }
+
+  return true;
 }
 
 function normalizeBaseUrl(value: string) {
@@ -360,6 +369,7 @@ export async function upsertPendingTicketFromSndesk(
       "chamadoSnapshot",
       "reportId",
       NULL::text AS "reportCode",
+      NULL::text AS "reportTesterId",
       "state",
       "lastError",
       "createdAt",
@@ -380,6 +390,7 @@ export async function refreshPendingTicket(id: string) {
       p."chamadoSnapshot",
       p."reportId",
       r."code" AS "reportCode",
+      r."tester_id" AS "reportTesterId",
       p."state",
       p."lastError",
       p."createdAt",
@@ -436,6 +447,7 @@ export async function sendPendingDecision(
       p."chamadoSnapshot",
       p."reportId",
       r."code" AS "reportCode",
+      r."tester_id" AS "reportTesterId",
       p."state",
       p."lastError",
       p."createdAt",

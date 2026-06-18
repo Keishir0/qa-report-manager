@@ -27,10 +27,15 @@ export async function POST(
     if (unauthorized) return unauthorized;
 
     const activeUser = await getApiUser(request);
-    const [pendingTicket] = await prisma.$queryRaw<{ statusId: number | null }[]>`
-      SELECT "statusId"
-      FROM "qa_pending_tickets"
-      WHERE "id" = ${params.id}
+    const [pendingTicket] = await prisma.$queryRaw<
+      { statusId: number | null; reportTesterId: string | null }[]
+    >`
+      SELECT
+        p."statusId",
+        r."tester_id" AS "reportTesterId"
+      FROM "qa_pending_tickets" p
+      LEFT JOIN "test_reports" r ON r."id" = p."reportId" AND r."deleted_at" IS NULL
+      WHERE p."id" = ${params.id}
       LIMIT 1
     `;
 

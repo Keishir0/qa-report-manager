@@ -22,7 +22,7 @@ export default function StepForm({
   const [action, setAction] = useState("");
   const [expectedResult, setExpectedResult] = useState("");
   const [actualResult, setActualResult] = useState("");
-  const [status, setStatus] = useState("Passou");
+  const [status, setStatus] = useState("Aprovado QA");
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
