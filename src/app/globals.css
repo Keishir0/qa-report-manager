@@ -42,7 +42,8 @@ body {
 
 .app-background {
   position: relative;
-  overflow: hidden;
+  isolation: isolate;
+  overflow: clip;
   background-color: #f8fafc;
 }
 
@@ -58,11 +59,6 @@ body {
   pointer-events: none;
   animation: login-background-drift 28s ease-in-out infinite alternate;
   will-change: transform;
-}
-
-.app-background > * {
-  position: relative;
-  z-index: 1;
 }
 
 .login-background::before {
