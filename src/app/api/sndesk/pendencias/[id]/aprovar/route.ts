@@ -28,12 +28,13 @@ export async function POST(
 
     const activeUser = await getApiUser(request);
     const [pendingTicket] = await prisma.$queryRaw<
-      { statusId: number | null; chamadoSnapshot: any; reportTesterId: string | null }[]
+      { statusId: number | null; chamadoSnapshot: any; reportTesterId: string | null; stepsCount: number }[]
     >`
       SELECT
         p."statusId",
         p."chamadoSnapshot",
-        r."tester_id" AS "reportTesterId"
+        r."tester_id" AS "reportTesterId",
+        COALESCE((SELECT COUNT(*)::int FROM "test_steps" s WHERE s."reportId" = p."reportId"), 0) AS "stepsCount"
       FROM "qa_pending_tickets" p
       LEFT JOIN "test_reports" r ON r."id" = p."reportId" AND r."deleted_at" IS NULL
       WHERE p."id" = ${params.id}
@@ -46,6 +47,13 @@ export async function POST(
 
     if (!canUserAccessPendingTicket(activeUser, pendingTicket)) {
       return jsonError("Voce nao tem permissao para esta pendencia.", 403);
+    }
+
+    if (pendingTicket.stepsCount === 0) {
+      return jsonError(
+        "Nao é possivel aprovar uma pendencia sem passos de teste registrados no relatorio.",
+        400
+      );
     }
 
     const ticket = await sendPendingDecision(params.id, "aprovar", activeUser);

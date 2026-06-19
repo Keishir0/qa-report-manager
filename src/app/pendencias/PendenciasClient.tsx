@@ -37,6 +37,7 @@ interface PendingTicket {
   state: string;
   lastError: string | null;
   updatedAt: string;
+  stepsCount?: number;
 }
 
 interface PendingTicketActionsMenuProps {
@@ -197,7 +198,8 @@ function PendingTicketActionsMenu({
           <button
             type="button"
             role="menuitem"
-            disabled={isLoading}
+            disabled={isLoading || ticket.stepsCount === 0}
+            title={ticket.stepsCount === 0 ? "Adicione pelo menos um passo no relatorio para permitir aprovar." : undefined}
             onClick={() => {
               closeMenu();
               onApprove(ticket.id);
@@ -212,7 +214,8 @@ function PendingTicketActionsMenu({
           <button
             type="button"
             role="menuitem"
-            disabled={isLoading}
+            disabled={isLoading || ticket.stepsCount === 0}
+            title={ticket.stepsCount === 0 ? "Adicione pelo menos um passo no relatorio para permitir recusar." : undefined}
             onClick={() => {
               closeMenu();
               onReject(ticket.id);

@@ -64,6 +64,7 @@ export interface PendingTicketRow {
   lastError: string | null;
   createdAt: Date;
   updatedAt: Date;
+  stepsCount?: number;
 }
 
 export function getUserSndeskStatusId(user?: AuthUser | null) {

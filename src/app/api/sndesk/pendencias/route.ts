@@ -37,7 +37,8 @@ export async function GET(request: NextRequest) {
             p."state",
             p."lastError",
             p."createdAt",
-            p."updatedAt"
+            p."updatedAt",
+            COALESCE((SELECT COUNT(*)::int FROM "test_steps" s WHERE s."reportId" = p."reportId"), 0) AS "stepsCount"
           FROM "qa_pending_tickets" p
           LEFT JOIN "test_reports" r ON r."id" = p."reportId" AND r."deleted_at" IS NULL
           WHERE p."reportId" = ${reportId}
@@ -57,7 +58,8 @@ export async function GET(request: NextRequest) {
             p."state",
             p."lastError",
             p."createdAt",
-            p."updatedAt"
+            p."updatedAt",
+            COALESCE((SELECT COUNT(*)::int FROM "test_steps" s WHERE s."reportId" = p."reportId"), 0) AS "stepsCount"
           FROM "qa_pending_tickets" p
           LEFT JOIN "test_reports" r ON r."id" = p."reportId" AND r."deleted_at" IS NULL
           ORDER BY p."updatedAt" DESC

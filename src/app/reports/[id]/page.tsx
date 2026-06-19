@@ -299,6 +299,13 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
 
   const sendSndeskDecision = async (action: "aprovar" | "recusar") => {
     if (!pendingTicket) return;
+    if (sortedSteps.length === 0) {
+      setToast({
+        message: "Adicione pelo menos um passo no relatorio para permitir aprovar/recusar.",
+        type: "error",
+      });
+      return;
+    }
 
     setIsSndeskLoading(true);
     try {
