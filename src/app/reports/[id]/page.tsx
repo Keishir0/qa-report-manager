@@ -292,7 +292,7 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
   }, [id]);
 
   useEffect(() => {
-    if (report?.sndeskChamadoId && user?.role === "ADMIN") {
+    if (report?.sndeskChamadoId && (user?.role === "ADMIN" || user?.role === "QA")) {
       loadReportPending();
     }
   }, [loadReportPending, report?.sndeskChamadoId, user?.role]);
@@ -725,7 +725,7 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
           </div>
         )}
 
-        {report.sndeskChamadoId && user?.role === "ADMIN" && (
+        {report.sndeskChamadoId && (user?.role === "ADMIN" || user?.role === "QA") && (
           <div className="rounded-xl border border-indigo-100 bg-white p-4 shadow-xs sm:p-5">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
