@@ -279,13 +279,50 @@ export default function PendenciasClient() {
   const [tickets, setTickets] = useState<PendingTicket[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 10;
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("");
+  const [selectedState, setSelectedState] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
   const [lastTicketsRefresh, setLastTicketsRefresh] = useState<Date | null>(null);
 
-  const totalPages = Math.max(Math.ceil(tickets.length / PAGE_SIZE), 1);
+  const uniqueStatuses = Array.from(
+    new Set(
+      tickets
+        .map((t) => t.statusDescricao || (t.statusId ? String(t.statusId) : ""))
+        .filter(Boolean)
+    )
+  ).sort() as string[];
+
+  const filteredTickets = tickets.filter((ticket) => {
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      const idMatch = ticket.idChamado.toLowerCase().includes(term);
+      const titleMatch = getChamadoTitle(ticket).toLowerCase().includes(term);
+      const clientMatch = getCliente(ticket).toLowerCase().includes(term);
+      const statusMatch = String(ticket.statusDescricao || ticket.statusId || "")
+        .toLowerCase()
+        .includes(term);
+      if (!idMatch && !titleMatch && !clientMatch && !statusMatch) {
+        return false;
+      }
+    }
+
+    if (selectedStatus) {
+      const statusStr = String(ticket.statusDescricao || ticket.statusId || "");
+      if (statusStr !== selectedStatus) return false;
+    }
+
+    if (selectedState) {
+      if (ticket.state !== selectedState) return false;
+    }
+
+    return true;
+  });
+
+  const totalPages = Math.max(Math.ceil(filteredTickets.length / PAGE_SIZE), 1);
   const startIndex = (currentPage - 1) * PAGE_SIZE;
-  const paginatedTickets = tickets.slice(startIndex, startIndex + PAGE_SIZE);
+  const paginatedTickets = filteredTickets.slice(startIndex, startIndex + PAGE_SIZE);
 
   const goToPage = (page: number) => {
     const nextPage = Math.min(Math.max(page, 1), totalPages);
@@ -294,11 +331,15 @@ export default function PendenciasClient() {
   };
 
   useEffect(() => {
-    const calculatedTotalPages = Math.max(Math.ceil(tickets.length / PAGE_SIZE), 1);
+    setCurrentPage(1);
+  }, [searchTerm, selectedStatus, selectedState]);
+
+  useEffect(() => {
+    const calculatedTotalPages = Math.max(Math.ceil(filteredTickets.length / PAGE_SIZE), 1);
     if (currentPage > calculatedTotalPages) {
       setCurrentPage(calculatedTotalPages);
     }
-  }, [tickets.length, currentPage]);
+  }, [filteredTickets.length, currentPage]);
   const [isSavingConfig, setIsSavingConfig] = useState(false);
   const [actionId, setActionId] = useState<string | null>(null);
   const isPollingTickets = useRef(false);
@@ -731,6 +772,59 @@ export default function PendenciasClient() {
           </div>
         </div>
 
+        {/* Filtros Avançados */}
+        <div className="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-xs md:grid-cols-3">
+          <div>
+            <label htmlFor="filter-search" className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+              Pesquisar
+            </label>
+            <input
+              id="filter-search"
+              type="text"
+              placeholder="ID, título, cliente ou status..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="filter-status" className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+              Status SNDesk
+            </label>
+            <select
+              id="filter-status"
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none bg-white"
+            >
+              <option value="">Todos</option>
+              {uniqueStatuses.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="filter-state" className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+              Estado do Teste
+            </label>
+            <select
+              id="filter-state"
+              value={selectedState}
+              onChange={(e) => setSelectedState(e.target.value)}
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none bg-white"
+            >
+              <option value="">Todos</option>
+              <option value="pendente">pendente</option>
+              <option value="aprovado">aprovado</option>
+              <option value="recusado">recusado</option>
+            </select>
+          </div>
+        </div>
+ 
         <DataTable
         tableClassName="w-full min-w-[1040px] table-fixed text-left border-collapse"
         headerCellClassName="px-4 py-3"
@@ -755,12 +849,31 @@ export default function PendenciasClient() {
           "Acoes",
         ]}
         isLoading={isLoading}
-        isEmpty={!isLoading && tickets.length === 0}
+        isEmpty={!isLoading && filteredTickets.length === 0}
         emptyState={
-          <EmptyState
-            title="Nenhuma pendencia encontrada"
-            description="Quando o SNDesk enviar um status configurado para teste, a pendencia aparecera aqui."
-          />
+          tickets.length === 0 ? (
+            <EmptyState
+              title="Nenhuma pendencia encontrada"
+              description="Quando o SNDesk enviar um status configurado para teste, a pendencia aparecera aqui."
+            />
+          ) : (
+            <div className="p-12 text-center text-slate-500 flex flex-col items-center justify-center">
+              <p className="text-sm font-semibold text-slate-600">
+                Nenhuma pendência corresponde aos filtros aplicados.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchTerm("");
+                  setSelectedStatus("");
+                  setSelectedState("");
+                }}
+                className="mt-3 text-xs font-bold text-indigo-600 hover:text-indigo-800 hover:underline"
+              >
+                Limpar todos os filtros
+              </button>
+            </div>
+          )
         }
       >
         {paginatedTickets.map((ticket) => (
@@ -843,7 +956,7 @@ export default function PendenciasClient() {
         {totalPages > 1 && (
           <div className="flex flex-col gap-3 px-1 sm:flex-row sm:items-center sm:justify-between mt-2">
             <span className="text-xs font-semibold text-slate-500">
-              Pagina {currentPage} de {totalPages} ({tickets.length} chamados)
+              Pagina {currentPage} de {totalPages} ({filteredTickets.length} chamados)
             </span>
             <div className="flex flex-wrap items-center justify-end gap-2">
               <Button
