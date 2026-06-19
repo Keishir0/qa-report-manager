@@ -51,6 +51,18 @@ export async function generateAiContent(
   const processed = preprocessAiInput(text, mode);
   const providerText = processed.text;
 
+  if (!process.env.GEMINI_API_KEY && !process.env.OPENROUTER_API_KEY) {
+    console.warn("Nenhuma chave de API de IA configurada (GEMINI_API_KEY ou OPENROUTER_API_KEY). Usando fallback local imediatamente.");
+    return {
+      data: generateLocalFallback(mode, providerText),
+      provider: "local",
+      model: "local-template",
+      fallbackUsed: true,
+      localFallbackUsed: true,
+      inputReduced: processed.wasReduced,
+    };
+  }
+
   // 1. Tenta Gemini diretamente se a chave estiver configurada
   if (process.env.GEMINI_API_KEY) {
     try {
