@@ -25,6 +25,15 @@ export async function GET(request: NextRequest) {
     const tester = searchParams.get("tester");
     const dev = searchParams.get("dev");
     const search = searchParams.get("search");
+    const shouldPaginate = searchParams.has("page") || searchParams.has("limit");
+    const pageParam = Number(searchParams.get("page") || 1);
+    const limitParam = Number(searchParams.get("limit") || 10);
+    const page = Number.isFinite(pageParam)
+      ? Math.max(Math.trunc(pageParam), 1)
+      : 1;
+    const limit = Number.isFinite(limitParam)
+      ? Math.min(Math.max(Math.trunc(limitParam), 1), 50)
+      : 10;
 
     const where: any = { deletedAt: null, ...reportAccessWhere(user) };
     const andFilters: any[] = [];
@@ -106,19 +115,40 @@ export async function GET(request: NextRequest) {
       where.AND = andFilters;
     }
 
-    const reports = await prisma.testReport.findMany({
-      where,
-      include: {
-        steps: {
-          orderBy: {
-            stepNumber: "asc",
+    const [reports, total] = await Promise.all([
+      prisma.testReport.findMany({
+        where,
+        include: {
+          steps: {
+            orderBy: {
+              stepNumber: "asc",
+            },
           },
         },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+        orderBy: {
+          createdAt: "desc",
+        },
+        ...(shouldPaginate
+          ? {
+              skip: (page - 1) * limit,
+              take: limit,
+            }
+          : {}),
+      }),
+      shouldPaginate ? prisma.testReport.count({ where }) : Promise.resolve(0),
+    ]);
+
+    if (shouldPaginate) {
+      return NextResponse.json({
+        data: reports,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.max(Math.ceil(total / limit), 1),
+        },
+      });
+    }
 
     return NextResponse.json(reports);
   } catch (error: any) {

@@ -17,48 +17,39 @@ export async function GET(request: NextRequest) {
 
     const activeReportWhere = { deletedAt: null, ...reportAccessWhere(user) };
 
-    const [
-      total,
-      passed,
-      failed,
-      blocked,
-      notExecuted,
-      recentReports,
-    ] = await Promise.all([
-      prisma.testReport.count({ where: activeReportWhere }),
-      prisma.testReport.count({
-        where: { ...activeReportWhere, generalStatus: "Aprovado QA" },
-      }),
-      prisma.testReport.count({
-        where: { ...activeReportWhere, generalStatus: "Reprovado QA" },
-      }),
-      prisma.testReport.count({
-        where: { ...activeReportWhere, generalStatus: "Bloqueado" },
-      }),
-      prisma.testReport.count({
-        where: { ...activeReportWhere, generalStatus: "Não Executado" },
-      }),
-      prisma.testReport.findMany({
-        where: activeReportWhere,
-        take: 5,
-        orderBy: {
-          createdAt: "desc",
-        },
-        include: {
-          steps: {
-            orderBy: {
-              stepNumber: "asc",
+    const [total, passed, failed, notExecuted, recentReports] =
+      await Promise.all([
+        prisma.testReport.count({ where: activeReportWhere }),
+        prisma.testReport.count({
+          where: { ...activeReportWhere, generalStatus: "Aprovado QA" },
+        }),
+        prisma.testReport.count({
+          where: { ...activeReportWhere, generalStatus: "Reprovado QA" },
+        }),
+        prisma.testReport.count({
+          where: { ...activeReportWhere, generalStatus: "N\u00e3o Executado" },
+        }),
+        prisma.testReport.findMany({
+          where: activeReportWhere,
+          take: 10,
+          orderBy: {
+            createdAt: "desc",
+          },
+          include: {
+            steps: {
+              orderBy: {
+                stepNumber: "asc",
+              },
             },
           },
-        },
-      }),
-    ]);
+        }),
+      ]);
 
     return NextResponse.json({
       total,
       passed,
       failed,
-      blocked,
+      blocked: notExecuted,
       notExecuted,
       recentReports,
     });

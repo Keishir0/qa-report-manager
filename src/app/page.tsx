@@ -22,7 +22,7 @@ export default async function DashboardPage() {
       prisma.testReport.count({ where: activeReportWhere }),
       prisma.testReport.count({ where: { ...activeReportWhere, generalStatus: "Aprovado QA" } }),
       prisma.testReport.count({ where: { ...activeReportWhere, generalStatus: "Reprovado QA" } }),
-      prisma.testReport.count({ where: { ...activeReportWhere, generalStatus: "Bloqueado" } }),
+      prisma.testReport.count({ where: { ...activeReportWhere, generalStatus: "N\u00e3o Executado" } }),
       prisma.testReport.count({
         where: {
           ...activeReportWhere,
@@ -33,7 +33,7 @@ export default async function DashboardPage() {
       }),
       prisma.testReport.findMany({
         where: activeReportWhere,
-        take: 5,
+        take: 10,
         orderBy: {
           createdAt: "desc",
         },

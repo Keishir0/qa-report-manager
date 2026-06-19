@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 import {
@@ -29,10 +29,24 @@ interface UserOption {
   role: string;
 }
 
+interface PaginatedReportsResponse {
+  data: TestReportData[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+const PAGE_SIZE = 10;
+
 export default function ReportsListPage() {
   const user = useAuthUser();
   const canWrite = user?.role === "ADMIN" || user?.role === "QA";
   const [reports, setReports] = useState<TestReportData[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalReports, setTotalReports] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -40,6 +54,7 @@ export default function ReportsListPage() {
   const [isExportingPDF, setIsExportingPDF] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [userOptions, setUserOptions] = useState<UserOption[]>([]);
+  const requestId = useRef(0);
 
   // Estados dos filtros
   const [createdFrom, setCreatedFrom] = useState("");
@@ -126,10 +141,8 @@ export default function ReportsListPage() {
   }, []);
 
   // Função para buscar relatórios
-  const fetchReports = useCallback(async () => {
-    setIsLoading(true);
-    setError("");
-    try {
+  const buildReportParams = useCallback(
+    (page?: number) => {
       const params = new URLSearchParams();
       if (createdFrom) params.append("createdFrom", createdFrom);
       if (createdTo) params.append("createdTo", createdTo);
@@ -145,22 +158,78 @@ export default function ReportsListPage() {
       if (debouncedDev) params.append("dev", debouncedDev);
       if (debouncedSearch) params.append("search", debouncedSearch);
 
+      if (page) {
+        params.append("page", String(page));
+        params.append("limit", String(PAGE_SIZE));
+      }
+
+      return params;
+    },
+    [
+      createdFrom,
+      createdTo,
+      testedFrom,
+      testedTo,
+      branch,
+      status,
+      testType,
+      debouncedSystem,
+      debouncedTester,
+      debouncedDev,
+      debouncedSearch,
+      user?.role,
+    ]
+  );
+
+  const fetchReports = useCallback(async (page = currentPage) => {
+    const currentRequest = requestId.current + 1;
+    requestId.current = currentRequest;
+    setIsLoading(true);
+    setError("");
+    try {
+      const params = buildReportParams(page);
+
       const response = await fetch(`/api/reports?${params.toString()}`);
       if (!response.ok) {
         throw new Error("Erro ao buscar relatórios.");
       }
-      const data = await response.json();
-      setReports(data);
+      const result = (await response.json()) as PaginatedReportsResponse;
+      if (requestId.current === currentRequest) {
+        setReports(result.data);
+        setCurrentPage(result.pagination.page);
+        setTotalReports(result.pagination.total);
+      }
     } catch (err: any) {
-      setError(err.message || "Erro ao carregar dados.");
+      if (requestId.current === currentRequest) {
+        setError(err.message || "Erro ao carregar dados.");
+      }
     } finally {
-      setIsLoading(false);
+      if (requestId.current === currentRequest) {
+        setIsLoading(false);
+      }
     }
-  }, [createdFrom, createdTo, testedFrom, testedTo, branch, status, testType, debouncedSystem, debouncedTester, debouncedDev, debouncedSearch, user?.role]);
+  }, [buildReportParams, currentPage]);
 
   useEffect(() => {
-    fetchReports();
-  }, [fetchReports]);
+    setCurrentPage(1);
+  }, [
+    createdFrom,
+    createdTo,
+    testedFrom,
+    testedTo,
+    branch,
+    status,
+    testType,
+    debouncedSystem,
+    debouncedTester,
+    debouncedDev,
+    debouncedSearch,
+    user?.role,
+  ]);
+
+  useEffect(() => {
+    fetchReports(currentPage);
+  }, [fetchReports, currentPage]);
 
   // Função para limpar os filtros
   const handleClearFilters = () => {
@@ -177,16 +246,32 @@ export default function ReportsListPage() {
     setSearch("");
   };
 
+  const fetchReportsForExport = async () => {
+    const params = buildReportParams();
+    const response = await fetch(`/api/reports?${params.toString()}`);
+    if (!response.ok) {
+      throw new Error("Erro ao buscar relatorios para exportacao.");
+    }
+
+    return (await response.json()) as TestReportData[];
+  };
+
   // Handler para exportar Excel
-  const handleExportExcel = () => {
-    if (reports.length === 0) {
+  const handleExportExcel = async () => {
+    if (totalReports === 0) {
       setToast({ message: "Não há relatórios para exportar.", type: "error" });
       return;
     }
     setIsExportingExcel(true);
     try {
+      const exportReports = await fetchReportsForExport();
+      if (exportReports.length === 0) {
+        setToast({ message: "Nao ha relatorios para exportar.", type: "error" });
+        return;
+      }
+
       const filename = `qa-report-${format(new Date(), "yyyy-MM-dd")}`;
-      exportToExcel(reports, filename);
+      exportToExcel(exportReports, filename);
       setToast({ message: "Excel gerado com sucesso!", type: "success" });
     } catch (err) {
       console.error("Erro ao exportar para Excel:", err);
@@ -197,15 +282,21 @@ export default function ReportsListPage() {
   };
 
   // Handler para exportar PDF
-  const handleExportPDF = () => {
-    if (reports.length === 0) {
+  const handleExportPDF = async () => {
+    if (totalReports === 0) {
       setToast({ message: "Não há relatórios para exportar.", type: "error" });
       return;
     }
     setIsExportingPDF(true);
     try {
+      const exportReports = await fetchReportsForExport();
+      if (exportReports.length === 0) {
+        setToast({ message: "Nao ha relatorios para exportar.", type: "error" });
+        return;
+      }
+
       const filename = `qa-report-${format(new Date(), "yyyy-MM-dd")}`;
-      exportToPDF(reports, filename);
+      exportToPDF(exportReports, filename);
       setToast({ message: "PDF gerado com sucesso!", type: "success" });
     } catch (err) {
       console.error("Erro ao exportar para PDF:", err);
@@ -235,8 +326,7 @@ export default function ReportsListPage() {
         throw new Error(data.error || "Erro ao excluir o relatório.");
       }
 
-      // Atualizar lista local
-      setReports((prev) => prev.filter((r) => r.id !== id));
+      await fetchReports(reports.length === 1 && currentPage > 1 ? currentPage - 1 : currentPage);
       setToast({
         message: `Relatório ${code} excluído da lista com sucesso!`,
         type: "success",
@@ -306,6 +396,14 @@ export default function ReportsListPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const totalPages = Math.max(Math.ceil(totalReports / PAGE_SIZE), 1);
+
+  const goToPage = (page: number) => {
+    const nextPage = Math.min(Math.max(page, 1), totalPages);
+    if (nextPage === currentPage || isLoading) return;
+    setCurrentPage(nextPage);
   };
 
   return (
@@ -638,6 +736,49 @@ export default function ReportsListPage() {
           );
         })}
       </DataTable>
+
+      {totalPages > 1 && (
+        <div className="flex flex-col gap-3 px-1 sm:flex-row sm:items-center sm:justify-between">
+          <span className="text-xs font-semibold text-slate-500">
+            Pagina {currentPage} de {totalPages} ({totalReports} relatorios)
+          </span>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => goToPage(currentPage - 1)}
+              disabled={currentPage === 1 || isLoading}
+              className="px-3 py-1.5 text-xs"
+            >
+              Anterior
+            </Button>
+            {Array.from({ length: totalPages }, (_, index) => index + 1).map(
+              (page) => (
+                <button
+                  key={page}
+                  type="button"
+                  onClick={() => goToPage(page)}
+                  disabled={isLoading}
+                  className={`h-8 min-w-8 rounded-lg border px-2 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                    page === currentPage
+                      ? "border-indigo-600 bg-indigo-600 text-white"
+                      : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                  }`}
+                >
+                  {page}
+                </button>
+              )
+            )}
+            <Button
+              variant="secondary"
+              onClick={() => goToPage(currentPage + 1)}
+              disabled={currentPage === totalPages || isLoading}
+              className="px-3 py-1.5 text-xs"
+            >
+              Proxima
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Renderização do Toast */}
       {toast && (

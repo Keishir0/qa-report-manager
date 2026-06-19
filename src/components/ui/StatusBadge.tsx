@@ -36,11 +36,13 @@ export default function StatusBadge({ status, size = "md" }: StatusBadgeProps) {
     dotColors[status as keyof typeof dotColors] || "bg-slate-400";
 
   const sizeClasses =
-    size === "sm" ? "px-2 py-0.5 text-[11px]" : "px-2.5 py-1 text-xs";
+    size === "sm"
+      ? "min-w-[7.5rem] px-2 py-0.5 text-[11px]"
+      : "min-w-[8.25rem] px-2.5 py-1 text-xs";
 
   return (
     <span
-      className={`inline-flex items-center font-bold border rounded-full tracking-wide shadow-xs ${sizeClasses} ${getColors(
+      className={`inline-flex items-center justify-center whitespace-nowrap font-bold border rounded-full tracking-wide shadow-xs ${sizeClasses} ${getColors(
         status
       )}`}
     >
