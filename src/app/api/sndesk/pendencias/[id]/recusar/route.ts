@@ -28,10 +28,11 @@ export async function POST(
 
     const activeUser = await getApiUser(request);
     const [pendingTicket] = await prisma.$queryRaw<
-      { statusId: number | null; reportTesterId: string | null }[]
+      { statusId: number | null; chamadoSnapshot: any; reportTesterId: string | null }[]
     >`
       SELECT
         p."statusId",
+        p."chamadoSnapshot",
         r."tester_id" AS "reportTesterId"
       FROM "qa_pending_tickets" p
       LEFT JOIN "test_reports" r ON r."id" = p."reportId" AND r."deleted_at" IS NULL

@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import { randomUUID } from "crypto";
 import { sanitizeSensitiveText } from "@/lib/serverLog";
 import { AuthUser } from "@/lib/auth";
+import { getSndeskTechnicianId } from "./sndeskTechnician";
 
 export const SNDESK_CONFIG_KEYS = {
   baseUrl: "sndesk_base_url",
@@ -75,15 +76,25 @@ export function getUserSndeskStatusId(user?: AuthUser | null) {
 
 export function canUserAccessPendingTicket(
   user: AuthUser | null | undefined,
-  ticket: Pick<PendingTicketRow, "statusId"> & { reportTesterId?: string | null }
+  ticket: Pick<PendingTicketRow, "statusId" | "chamadoSnapshot"> & { reportTesterId?: string | null }
 ) {
   if (!user) return false;
   if (user.role === "ADMIN") return true;
   if (user.role !== "QA") return false;
 
   const userStatusId = getUserSndeskStatusId(user);
-  if (userStatusId === null || ticket.statusId !== userStatusId) {
-    return false;
+  if (userStatusId !== null) {
+    if (ticket.statusId !== userStatusId) {
+      return false;
+    }
+  } else {
+    const mySndeskId = user.sndeskUserId;
+    if (!mySndeskId) return false;
+
+    const techId = getSndeskTechnicianId(ticket.chamadoSnapshot);
+    if (techId !== mySndeskId) {
+      return false;
+    }
   }
 
   if (ticket.reportTesterId) {

@@ -130,6 +130,7 @@ export async function DELETE(
       select: {
         reportId: true,
         statusId: true,
+        chamadoSnapshot: true,
         report: {
           select: { testerId: true, deletedAt: true },
         },
@@ -140,6 +141,7 @@ export async function DELETE(
     if (
       !canUserAccessPendingTicket(user, {
         statusId: ticket.statusId,
+        chamadoSnapshot: ticket.chamadoSnapshot,
         reportTesterId: ticket.report?.deletedAt ? null : ticket.report?.testerId || null,
       })
     ) {
