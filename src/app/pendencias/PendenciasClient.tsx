@@ -44,10 +44,12 @@ interface PendingTicketActionsMenuProps {
   isLoading: boolean;
   onView: (ticket: PendingTicket) => void;
   onDeleteReport: (ticket: PendingTicket) => void;
+  onApprove: (ticketId: string) => void;
+  onReject: (ticketId: string) => void;
 }
 
 const ACTIONS_MENU_WIDTH = 176;
-const ACTIONS_MENU_HEIGHT = 104;
+const ACTIONS_MENU_HEIGHT = 180;
 const ACTIONS_VIEW_ONLY_HEIGHT = 52;
 const VIEWPORT_MARGIN = 8;
 
@@ -100,6 +102,8 @@ function PendingTicketActionsMenu({
   isLoading,
   onView,
   onDeleteReport,
+  onApprove,
+  onReject,
 }: PendingTicketActionsMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0 });
@@ -189,6 +193,37 @@ function PendingTicketActionsMenu({
 
       {ticket.reportId && (
         <>
+          <div className="mx-2 my-1 border-t border-slate-100" />
+          <button
+            type="button"
+            role="menuitem"
+            disabled={isLoading}
+            onClick={() => {
+              closeMenu();
+              onApprove(ticket.id);
+            }}
+            className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm font-semibold text-emerald-600 transition-colors hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            Aprovar
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            disabled={isLoading}
+            onClick={() => {
+              closeMenu();
+              onReject(ticket.id);
+            }}
+            className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm font-semibold text-rose-600 transition-colors hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            Recusar
+          </button>
           <div className="mx-2 my-1 border-t border-slate-100" />
           <button
             type="button"
@@ -775,6 +810,8 @@ export default function PendenciasClient() {
                 isLoading={actionId === ticket.id}
                 onView={viewTicket}
                 onDeleteReport={deleteLinkedReport}
+                onApprove={approve}
+                onReject={reject}
               />
             </td>
           </tr>
