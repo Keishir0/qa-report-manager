@@ -12,6 +12,8 @@ function publicUser(user: {
   email: string;
   role: UserRole;
   active: boolean;
+  sndeskUserId?: string | null;
+  sndeskStatusId?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }) {
@@ -21,6 +23,8 @@ function publicUser(user: {
     email: user.email,
     role: user.role,
     active: user.active,
+    sndeskUserId: user.sndeskUserId ?? null,
+    sndeskStatusId: user.sndeskStatusId ?? null,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };
@@ -63,6 +67,10 @@ export async function PUT(
       typeof body.role === "string" ? body.role.toUpperCase() : undefined;
     const requestedActive =
       typeof body.active === "boolean" ? body.active : undefined;
+    const sndeskUserId =
+      typeof body.sndeskUserId === "string" ? body.sndeskUserId.trim() || null : undefined;
+    const sndeskStatusId =
+      typeof body.sndeskStatusId === "string" ? body.sndeskStatusId.trim() || null : undefined;
 
     if (name.length < 2 || name.length > 120) {
       return errorResponse("O nome deve ter entre 2 e 120 caracteres.", 400);
@@ -123,6 +131,13 @@ export async function PUT(
       email,
     };
 
+    if (sndeskUserId !== undefined) {
+      data.sndeskUserId = sndeskUserId;
+    }
+    if (sndeskStatusId !== undefined) {
+      data.sndeskStatusId = sndeskStatusId;
+    }
+
     if (password) {
       data.passwordHash = await hashPassword(password);
     }
@@ -144,6 +159,8 @@ export async function PUT(
         email: true,
         role: true,
         active: true,
+        sndeskUserId: true,
+        sndeskStatusId: true,
         createdAt: true,
         updatedAt: true,
       },

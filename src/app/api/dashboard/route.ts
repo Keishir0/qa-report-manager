@@ -1,58 +1,55 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
-import { requireApiAccess } from "@/lib/auth";
+import { getApiUser, requireApiAccess } from "@/lib/auth";
+import { reportAccessWhere } from "@/lib/reports";
 
 export const dynamic = "force-dynamic";
-
-const activeReportWhere = { deletedAt: null };
 
 export async function GET(request: NextRequest) {
   try {
     const denied = await requireApiAccess(request);
     if (denied) return denied;
+    const user = await getApiUser(request);
 
-    const [
-      total,
-      passed,
-      failed,
-      blocked,
-      notExecuted,
-      recentReports,
-    ] = await Promise.all([
-      prisma.testReport.count({ where: activeReportWhere }),
-      prisma.testReport.count({
-        where: { ...activeReportWhere, generalStatus: "Passou" },
-      }),
-      prisma.testReport.count({
-        where: { ...activeReportWhere, generalStatus: "Falhou" },
-      }),
-      prisma.testReport.count({
-        where: { ...activeReportWhere, generalStatus: "Bloqueado" },
-      }),
-      prisma.testReport.count({
-        where: { ...activeReportWhere, generalStatus: "Não executado" },
-      }),
-      prisma.testReport.findMany({
-        where: activeReportWhere,
-        take: 5,
-        orderBy: {
-          createdAt: "desc",
-        },
-        include: {
-          steps: {
-            orderBy: {
-              stepNumber: "asc",
+    if (!user) {
+      return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    }
+
+    const activeReportWhere = { deletedAt: null, ...reportAccessWhere(user) };
+
+    const [total, passed, failed, notExecuted, recentReports] =
+      await Promise.all([
+        prisma.testReport.count({ where: activeReportWhere }),
+        prisma.testReport.count({
+          where: { ...activeReportWhere, generalStatus: "Aprovado QA" },
+        }),
+        prisma.testReport.count({
+          where: { ...activeReportWhere, generalStatus: "Reprovado QA" },
+        }),
+        prisma.testReport.count({
+          where: { ...activeReportWhere, generalStatus: "N\u00e3o Executado" },
+        }),
+        prisma.testReport.findMany({
+          where: activeReportWhere,
+          take: 10,
+          orderBy: {
+            createdAt: "desc",
+          },
+          include: {
+            steps: {
+              orderBy: {
+                stepNumber: "asc",
+              },
             },
           },
-        },
-      }),
-    ]);
+        }),
+      ]);
 
     return NextResponse.json({
       total,
       passed,
       failed,
-      blocked,
+      blocked: notExecuted,
       notExecuted,
       recentReports,
     });

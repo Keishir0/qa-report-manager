@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import { randomUUID } from "crypto";
 import { sanitizeSensitiveText } from "@/lib/serverLog";
+import { AuthUser } from "@/lib/auth";
 
 export const SNDESK_CONFIG_KEYS = {
   baseUrl: "sndesk_base_url",
@@ -57,10 +58,39 @@ export interface PendingTicketRow {
   chamadoSnapshot: any;
   reportId: string | null;
   reportCode: string | null;
+  reportTesterId: string | null;
   state: string;
   lastError: string | null;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export function getUserSndeskStatusId(user?: AuthUser | null) {
+  const rawStatusId = user?.sndeskStatusId?.trim();
+  if (!rawStatusId) return null;
+
+  const statusId = Number(rawStatusId);
+  return Number.isInteger(statusId) ? statusId : null;
+}
+
+export function canUserAccessPendingTicket(
+  user: AuthUser | null | undefined,
+  ticket: Pick<PendingTicketRow, "statusId"> & { reportTesterId?: string | null }
+) {
+  if (!user) return false;
+  if (user.role === "ADMIN") return true;
+  if (user.role !== "QA") return false;
+
+  const userStatusId = getUserSndeskStatusId(user);
+  if (userStatusId === null || ticket.statusId !== userStatusId) {
+    return false;
+  }
+
+  if (ticket.reportTesterId) {
+    return ticket.reportTesterId === user.id;
+  }
+
+  return true;
 }
 
 function normalizeBaseUrl(value: string) {
@@ -339,6 +369,7 @@ export async function upsertPendingTicketFromSndesk(
       "chamadoSnapshot",
       "reportId",
       NULL::text AS "reportCode",
+      NULL::text AS "reportTesterId",
       "state",
       "lastError",
       "createdAt",
@@ -359,6 +390,7 @@ export async function refreshPendingTicket(id: string) {
       p."chamadoSnapshot",
       p."reportId",
       r."code" AS "reportCode",
+      r."tester_id" AS "reportTesterId",
       p."state",
       p."lastError",
       p."createdAt",
@@ -400,7 +432,11 @@ function renderTemplate(template: string, context: Record<string, string>) {
   });
 }
 
-export async function sendPendingDecision(id: string, action: "aprovar" | "recusar") {
+export async function sendPendingDecision(
+  id: string,
+  action: "aprovar" | "recusar",
+  activeUser?: AuthUser | null
+) {
   const [ticket] = await prisma.$queryRaw<PendingTicketRow[]>`
     SELECT
       p."id",
@@ -411,6 +447,7 @@ export async function sendPendingDecision(id: string, action: "aprovar" | "recus
       p."chamadoSnapshot",
       p."reportId",
       r."code" AS "reportCode",
+      r."tester_id" AS "reportTesterId",
       p."state",
       p."lastError",
       p."createdAt",
@@ -439,8 +476,10 @@ export async function sendPendingDecision(id: string, action: "aprovar" | "recus
   const template =
     action === "aprovar" ? config.approveTemplate : config.rejectTemplate;
 
-  if (!config.defaultUserId || !statusId) {
-    throw new Error("Configure o usuario padrao e o status de envio.");
+  const sndeskUserId = activeUser?.sndeskUserId || config.defaultUserId;
+
+  if (!sndeskUserId || !statusId) {
+    throw new Error("Configure o ID do tecnico no seu perfil ou defina o usuario padrao nas configuracoes.");
   }
 
   const descricao = renderTemplate(template, {
@@ -454,7 +493,7 @@ export async function sendPendingDecision(id: string, action: "aprovar" | "recus
   await callSndesk(config, "/api/chamado/interacao", {
     method: "POST",
     body: JSON.stringify({
-      iduser: Number(config.defaultUserId),
+      iduser: Number(sndeskUserId),
       idchamado: Number(ticket.idChamado),
       descricao,
       interacao_status: Number(statusId),

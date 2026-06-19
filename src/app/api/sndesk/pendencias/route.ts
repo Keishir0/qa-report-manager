@@ -1,8 +1,9 @@
-import { requireQaAdmin } from "@/lib/adminAuth";
+import { requireQaOrAdmin } from "@/lib/adminAuth";
 import prisma from "@/lib/prisma";
-import { PendingTicketRow } from "@/lib/sndesk";
+import { canUserAccessPendingTicket, PendingTicketRow } from "@/lib/sndesk";
 import { NextRequest, NextResponse } from "next/server";
 import { logServerError } from "@/lib/serverLog";
+import { getApiUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -15,9 +16,10 @@ function jsonError(message: string, status: number, details?: unknown) {
 
 export async function GET(request: NextRequest) {
   try {
-    const unauthorized = await requireQaAdmin(request);
+    const unauthorized = await requireQaOrAdmin(request);
     if (unauthorized) return unauthorized;
 
+    const user = await getApiUser(request);
     const reportId = request.nextUrl.searchParams.get("reportId");
 
     const tickets = reportId
@@ -31,6 +33,7 @@ export async function GET(request: NextRequest) {
             p."chamadoSnapshot",
             p."reportId",
             r."code" AS "reportCode",
+            r."tester_id" AS "reportTesterId",
             p."state",
             p."lastError",
             p."createdAt",
@@ -50,6 +53,7 @@ export async function GET(request: NextRequest) {
             p."chamadoSnapshot",
             p."reportId",
             r."code" AS "reportCode",
+            r."tester_id" AS "reportTesterId",
             p."state",
             p."lastError",
             p."createdAt",
@@ -59,9 +63,16 @@ export async function GET(request: NextRequest) {
           ORDER BY p."updatedAt" DESC
         `;
 
+    let filteredTickets = tickets;
+    if (user?.role === "QA") {
+      filteredTickets = tickets.filter((ticket) =>
+        canUserAccessPendingTicket(user, ticket)
+      );
+    }
+
     return NextResponse.json({
       success: true,
-      data: tickets,
+      data: filteredTickets,
     });
   } catch (error: unknown) {
     logServerError("Error in GET /api/sndesk/pendencias", error);

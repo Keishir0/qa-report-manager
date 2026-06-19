@@ -1,8 +1,30 @@
 import prisma from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
+import type { AuthUser } from "@/lib/auth";
 
 type NextReportCodeRow = {
   nextNumber: number | bigint;
 };
+
+export function reportAccessWhere(
+  user: AuthUser | null | undefined
+): Prisma.TestReportWhereInput {
+  if (user?.role === "QA") {
+    return { testerId: user.id };
+  }
+
+  return {};
+}
+
+export function canUserAccessReport(
+  user: AuthUser | null | undefined,
+  report: { testerId: string | null }
+) {
+  if (!user) return false;
+  if (user.role === "ADMIN" || user.role === "VIEWER") return true;
+  if (user.role === "QA") return report.testerId === user.id;
+  return false;
+}
 
 export async function generateNextReportCode() {
   const [row] = await prisma.$queryRaw<NextReportCodeRow[]>`
@@ -62,20 +84,25 @@ export async function recalculateReportGeneralStatus(reportId: string, tx?: any)
   if (steps.length === 0) {
     await db.testReport.update({
       where: { id: reportId },
-      data: { generalStatus: "Não executado" },
+      data: { generalStatus: "Não Executado" },
     });
     return;
   }
 
   const statuses = steps.map((s: any) => s.status);
 
-  let nextStatus = "Passou";
-  if (statuses.includes("Falhou")) {
-    nextStatus = "Falhou";
-  } else if (statuses.includes("Bloqueado")) {
-    nextStatus = "Bloqueado";
-  } else if (statuses.includes("Não executado")) {
-    nextStatus = "Não executado";
+  let nextStatus = "Aprovado QA";
+  if (
+    statuses.includes("Reprovado QA") ||
+    statuses.includes("Falhou") ||
+    statuses.includes("Bloqueado")
+  ) {
+    nextStatus = "Reprovado QA";
+  } else if (
+    statuses.includes("Não Executado") ||
+    statuses.includes("Não executado")
+  ) {
+    nextStatus = "Não Executado";
   }
 
   await db.testReport.update({

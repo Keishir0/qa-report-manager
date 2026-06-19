@@ -1,5 +1,11 @@
-import { requireQaAdmin } from "@/lib/adminAuth";
-import { markPendingError, sendPendingDecision } from "@/lib/sndesk";
+import { requireQaOrAdmin } from "@/lib/adminAuth";
+import {
+  canUserAccessPendingTicket,
+  markPendingError,
+  sendPendingDecision,
+} from "@/lib/sndesk";
+import { getApiUser } from "@/lib/auth";
+import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { logServerError } from "@/lib/serverLog";
 
@@ -17,10 +23,31 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const unauthorized = await requireQaAdmin(request);
+    const unauthorized = await requireQaOrAdmin(request);
     if (unauthorized) return unauthorized;
 
-    const ticket = await sendPendingDecision(params.id, "aprovar");
+    const activeUser = await getApiUser(request);
+    const [pendingTicket] = await prisma.$queryRaw<
+      { statusId: number | null; reportTesterId: string | null }[]
+    >`
+      SELECT
+        p."statusId",
+        r."tester_id" AS "reportTesterId"
+      FROM "qa_pending_tickets" p
+      LEFT JOIN "test_reports" r ON r."id" = p."reportId" AND r."deleted_at" IS NULL
+      WHERE p."id" = ${params.id}
+      LIMIT 1
+    `;
+
+    if (!pendingTicket) {
+      return jsonError("Pendencia nao encontrada.", 404);
+    }
+
+    if (!canUserAccessPendingTicket(activeUser, pendingTicket)) {
+      return jsonError("Voce nao tem permissao para esta pendencia.", 403);
+    }
+
+    const ticket = await sendPendingDecision(params.id, "aprovar", activeUser);
 
     return NextResponse.json({
       success: true,

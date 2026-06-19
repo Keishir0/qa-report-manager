@@ -1,12 +1,17 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { getApiUser, requireApiAccess, WRITE_ROLES } from "@/lib/auth";
-import { generateNextReportCode } from "@/lib/reports";
+import { generateNextReportCode, reportAccessWhere } from "@/lib/reports";
 
 export async function GET(request: NextRequest) {
   try {
     const denied = await requireApiAccess(request);
     if (denied) return denied;
+    const user = await getApiUser(request);
+
+    if (!user) {
+      return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    }
 
     const { searchParams } = request.nextUrl;
     const testedFrom = searchParams.get("testedFrom") || searchParams.get("dateFrom");
@@ -20,8 +25,17 @@ export async function GET(request: NextRequest) {
     const tester = searchParams.get("tester");
     const dev = searchParams.get("dev");
     const search = searchParams.get("search");
+    const shouldPaginate = searchParams.has("page") || searchParams.has("limit");
+    const pageParam = Number(searchParams.get("page") || 1);
+    const limitParam = Number(searchParams.get("limit") || 10);
+    const page = Number.isFinite(pageParam)
+      ? Math.max(Math.trunc(pageParam), 1)
+      : 1;
+    const limit = Number.isFinite(limitParam)
+      ? Math.min(Math.max(Math.trunc(limitParam), 1), 50)
+      : 10;
 
-    const where: any = { deletedAt: null };
+    const where: any = { deletedAt: null, ...reportAccessWhere(user) };
     const andFilters: any[] = [];
 
     if (testedFrom || testedTo) {
@@ -49,7 +63,14 @@ export async function GET(request: NextRequest) {
     }
 
     if (branch && branch.trim() !== "") {
-      where.branch = branch;
+      const branches = branch.split(",").map((b) => b.trim()).filter(Boolean);
+      if (branches.length > 0) {
+        andFilters.push({
+          OR: branches.map((b) => ({
+            branch: { contains: b, mode: "insensitive" },
+          })),
+        });
+      }
     }
 
     if (status && status.trim() !== "") {
@@ -94,19 +115,40 @@ export async function GET(request: NextRequest) {
       where.AND = andFilters;
     }
 
-    const reports = await prisma.testReport.findMany({
-      where,
-      include: {
-        steps: {
-          orderBy: {
-            stepNumber: "asc",
+    const [reports, total] = await Promise.all([
+      prisma.testReport.findMany({
+        where,
+        include: {
+          steps: {
+            orderBy: {
+              stepNumber: "asc",
+            },
           },
         },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+        orderBy: {
+          createdAt: "desc",
+        },
+        ...(shouldPaginate
+          ? {
+              skip: (page - 1) * limit,
+              take: limit,
+            }
+          : {}),
+      }),
+      shouldPaginate ? prisma.testReport.count({ where }) : Promise.resolve(0),
+    ]);
+
+    if (shouldPaginate) {
+      return NextResponse.json({
+        data: reports,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.max(Math.ceil(total / limit), 1),
+        },
+      });
+    }
 
     return NextResponse.json(reports);
   } catch (error: any) {
@@ -123,6 +165,10 @@ export async function POST(request: NextRequest) {
     const denied = await requireApiAccess(request, WRITE_ROLES);
     if (denied) return denied;
     const user = await getApiUser(request);
+
+    if (!user) {
+      return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    }
 
     const body = await request.json();
     const {
@@ -160,14 +206,16 @@ export async function POST(request: NextRequest) {
 
     // Gerar código automaticamente: QA-XXX (total de relatórios existentes + 1)
     const code = await generateNextReportCode();
-    const tester = testerId
+    const tester = user.role === "QA"
+      ? user
+      : testerId
       ? await prisma.user.findFirst({
           where: { id: String(testerId), active: true },
           select: { id: true, name: true },
         })
       : user;
 
-    if (testerId && !tester) {
+    if (user.role !== "QA" && testerId && !tester) {
       return NextResponse.json(
         { error: "Usuario testador nao encontrado." },
         { status: 400 }

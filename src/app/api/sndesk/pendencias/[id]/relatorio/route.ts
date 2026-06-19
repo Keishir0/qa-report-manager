@@ -1,10 +1,15 @@
-import { requireQaAdmin } from "@/lib/adminAuth";
+import { requireQaOrAdmin } from "@/lib/adminAuth";
 import { getApiUser } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { logServerError } from "@/lib/serverLog";
 import { getSndeskTechnicianName } from "@/lib/sndeskTechnician";
-import { generateNextReportCode, softDeleteReport } from "@/lib/reports";
+import {
+  canUserAccessReport,
+  generateNextReportCode,
+  softDeleteReport,
+} from "@/lib/reports";
+import { canUserAccessPendingTicket } from "@/lib/sndesk";
 
 export const dynamic = "force-dynamic";
 
@@ -20,18 +25,26 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const unauthorized = await requireQaAdmin(request);
+    const unauthorized = await requireQaOrAdmin(request);
     if (unauthorized) return unauthorized;
     const user = await getApiUser(request);
 
+    if (!user) return jsonError("Nao autenticado.", 401);
+
     const [ticket] = await prisma.$queryRaw<any[]>`
-      SELECT *
-      FROM "qa_pending_tickets"
-      WHERE "id" = ${params.id}
+      SELECT
+        p.*,
+        r."tester_id" AS "reportTesterId"
+      FROM "qa_pending_tickets" p
+      LEFT JOIN "test_reports" r ON r."id" = p."reportId" AND r."deleted_at" IS NULL
+      WHERE p."id" = ${params.id}
       LIMIT 1
     `;
 
     if (!ticket) return jsonError("Pendencia nao encontrada.", 404);
+    if (!canUserAccessPendingTicket(user, ticket)) {
+      return jsonError("Voce nao tem permissao para esta pendencia.", 403);
+    }
 
     if (ticket.reportId) {
       const report = await prisma.testReport.findUnique({
@@ -39,6 +52,10 @@ export async function POST(
       });
 
       if (report && !report.deletedAt) {
+        if (!canUserAccessReport(user, report)) {
+          return jsonError("Relatorio nao encontrado.", 404);
+        }
+
         return NextResponse.json({
           success: true,
           data: report,
@@ -70,7 +87,7 @@ export async function POST(
           snapshot?.descricao ||
           `Validacao pendente do chamado ${ticket.idChamado} (${clienteNome}).`,
         testType: "Reteste",
-        generalStatus: "Não executado",
+        generalStatus: "Não Executado",
         testerId: user?.id || null,
         testerName: user?.name || null,
         sndeskTechnicianName,
@@ -102,16 +119,42 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const unauthorized = await requireQaAdmin(request);
+    const unauthorized = await requireQaOrAdmin(request);
     if (unauthorized) return unauthorized;
+    const user = await getApiUser(request);
+
+    if (!user) return jsonError("Nao autenticado.", 401);
 
     const ticket = await prisma.qaPendingTicket.findUnique({
       where: { id: params.id },
-      select: { reportId: true },
+      select: {
+        reportId: true,
+        statusId: true,
+        report: {
+          select: { testerId: true, deletedAt: true },
+        },
+      },
     });
 
     if (!ticket) return jsonError("Pendencia nao encontrada.", 404);
+    if (
+      !canUserAccessPendingTicket(user, {
+        statusId: ticket.statusId,
+        reportTesterId: ticket.report?.deletedAt ? null : ticket.report?.testerId || null,
+      })
+    ) {
+      return jsonError("Voce nao tem permissao para esta pendencia.", 403);
+    }
     if (!ticket.reportId) return jsonError("Pendencia sem relatorio vinculado.", 400);
+
+    const report = await prisma.testReport.findFirst({
+      where: { id: ticket.reportId, deletedAt: null },
+      select: { testerId: true },
+    });
+
+    if (!report || !canUserAccessReport(user, report)) {
+      return jsonError("Relatorio nao encontrado.", 404);
+    }
 
     const deleted = await softDeleteReport(ticket.reportId);
     if (!deleted) return jsonError("Relatorio nao encontrado.", 404);

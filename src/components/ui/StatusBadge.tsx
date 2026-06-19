@@ -8,12 +8,14 @@ interface StatusBadgeProps {
 export default function StatusBadge({ status, size = "md" }: StatusBadgeProps) {
   const getColors = (statusStr: string) => {
     switch (statusStr) {
+      case "Aprovado QA":
       case "Passou":
         return "bg-emerald-50 text-emerald-700 border-emerald-100";
+      case "Reprovado QA":
       case "Falhou":
-        return "bg-rose-50 text-rose-700 border-rose-100";
       case "Bloqueado":
-        return "bg-orange-50 text-orange-700 border-orange-100";
+        return "bg-rose-50 text-rose-700 border-rose-100";
+      case "Não Executado":
       case "Não executado":
       default:
         return "bg-slate-50 text-slate-600 border-slate-200";
@@ -21,9 +23,12 @@ export default function StatusBadge({ status, size = "md" }: StatusBadgeProps) {
   };
 
   const dotColors = {
+    "Aprovado QA": "bg-emerald-500",
     Passou: "bg-emerald-500",
+    "Reprovado QA": "bg-rose-500",
     Falhou: "bg-rose-500",
     Bloqueado: "bg-orange-500",
+    "Não Executado": "bg-slate-400",
     "Não executado": "bg-slate-400",
   };
 
@@ -31,11 +36,13 @@ export default function StatusBadge({ status, size = "md" }: StatusBadgeProps) {
     dotColors[status as keyof typeof dotColors] || "bg-slate-400";
 
   const sizeClasses =
-    size === "sm" ? "px-2 py-0.5 text-[11px]" : "px-2.5 py-1 text-xs";
+    size === "sm"
+      ? "min-w-[7.5rem] px-2 py-0.5 text-[11px]"
+      : "min-w-[8.25rem] px-2.5 py-1 text-xs";
 
   return (
     <span
-      className={`inline-flex items-center font-bold border rounded-full tracking-wide shadow-xs ${sizeClasses} ${getColors(
+      className={`inline-flex items-center justify-center whitespace-nowrap font-bold border rounded-full tracking-wide shadow-xs ${sizeClasses} ${getColors(
         status
       )}`}
     >

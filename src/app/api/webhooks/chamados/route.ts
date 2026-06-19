@@ -118,14 +118,31 @@ async function processTicketPendingEvent(evento: ExternalWebhookEventRow) {
     return;
   }
 
-  if (!config.pendingStatusIds.includes(statusId)) {
+  // Obter IDs de status personalizados de todos os usuários ativos
+  const activeUserStatuses = await prisma.user.findMany({
+    where: {
+      active: true,
+      sndeskStatusId: { not: null },
+    },
+    select: {
+      sndeskStatusId: true,
+    },
+  });
+
+  const customStatusIds = activeUserStatuses
+    .map((u) => Number(u.sndeskStatusId))
+    .filter((id) => Number.isInteger(id));
+
+  const allowedStatusIds = new Set([...config.pendingStatusIds, ...customStatusIds]);
+
+  if (!allowedStatusIds.has(statusId)) {
     await updateEventStatus(evento.id, "ignorado");
     return;
   }
 
   const status = await getSndeskStatus(config, evento.idChamado);
 
-  if (!status?.idstatus || !config.pendingStatusIds.includes(Number(status.idstatus))) {
+  if (!status?.idstatus || !allowedStatusIds.has(Number(status.idstatus))) {
     await updateEventStatus(evento.id, "ignorado");
     return;
   }

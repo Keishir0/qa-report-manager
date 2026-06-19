@@ -5,6 +5,7 @@ import Button from "@/components/ui/Button";
 import PageHeader from "@/components/ui/PageHeader";
 import DashboardOverview from "@/components/dashboard/DashboardOverview";
 import { requirePageUser, WRITE_ROLES } from "@/lib/auth";
+import { reportAccessWhere } from "@/lib/reports";
 
 export const revalidate = 0;
 
@@ -14,24 +15,25 @@ export default async function DashboardPage() {
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
   sevenDaysAgo.setHours(0, 0, 0, 0);
+  const activeReportWhere = { deletedAt: null, ...reportAccessWhere(user) };
 
   const [total, passed, failed, blocked, weeklyTests, recentReports] =
     await Promise.all([
-      prisma.testReport.count({ where: { deletedAt: null } }),
-      prisma.testReport.count({ where: { deletedAt: null, generalStatus: "Passou" } }),
-      prisma.testReport.count({ where: { deletedAt: null, generalStatus: "Falhou" } }),
-      prisma.testReport.count({ where: { deletedAt: null, generalStatus: "Bloqueado" } }),
+      prisma.testReport.count({ where: activeReportWhere }),
+      prisma.testReport.count({ where: { ...activeReportWhere, generalStatus: "Aprovado QA" } }),
+      prisma.testReport.count({ where: { ...activeReportWhere, generalStatus: "Reprovado QA" } }),
+      prisma.testReport.count({ where: { ...activeReportWhere, generalStatus: "N\u00e3o Executado" } }),
       prisma.testReport.count({
         where: {
-          deletedAt: null,
+          ...activeReportWhere,
           testDate: {
             gte: sevenDaysAgo,
           },
         },
       }),
       prisma.testReport.findMany({
-        where: { deletedAt: null },
-        take: 5,
+        where: activeReportWhere,
+        take: 10,
         orderBy: {
           createdAt: "desc",
         },

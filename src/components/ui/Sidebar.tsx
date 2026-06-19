@@ -113,7 +113,7 @@ export default function Sidebar({ user }: { user: AuthUser }) {
     {
       name: "Pendencias",
       href: "/pendencias",
-      roles: ["ADMIN"],
+      roles: ["ADMIN", "QA"],
       icon: (
         <svg
           className="w-5 h-5"

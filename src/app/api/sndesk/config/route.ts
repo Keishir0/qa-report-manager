@@ -1,4 +1,4 @@
-import { requireQaAdmin } from "@/lib/adminAuth";
+import { requireQaAdmin, requireQaOrAdmin } from "@/lib/adminAuth";
 import { getSndeskConfig, saveSndeskConfig } from "@/lib/sndesk";
 import { NextRequest, NextResponse } from "next/server";
 import { logServerError } from "@/lib/serverLog";
@@ -41,7 +41,7 @@ function publicConfig(config: Awaited<ReturnType<typeof getSndeskConfig>>) {
 
 export async function GET(request: NextRequest) {
   try {
-    const unauthorized = await requireQaAdmin(request);
+    const unauthorized = await requireQaOrAdmin(request);
     if (unauthorized) return unauthorized;
 
     const config = await getSndeskConfig();

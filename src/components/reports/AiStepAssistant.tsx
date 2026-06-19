@@ -28,7 +28,7 @@ interface AiStepAssistantProps {
 function normalizeStatus(value: unknown): StepStatus {
   return STEP_STATUS_OPTIONS.includes(value as StepStatus)
     ? (value as StepStatus)
-    : "Não executado";
+    : "Não Executado";
 }
 
 export default function AiStepAssistant({
@@ -59,7 +59,7 @@ export default function AiStepAssistant({
       "Gere passos de teste claros, objetivos e sequenciais para o relatório abaixo.",
       "Use os dados existentes como fonte principal.",
       "Não invente credenciais, nomes de pessoas ou informações não fornecidas.",
-      `Siga rigorosamente as regras de status e resultado obtido com base no Status geral do relatório: se for "Passou", todos os passos devem ter status "Passou" e o resultado obtido correspondente de sucesso preenchido detalhadamente. Se for "Falhou" ou "Bloqueado", os passos devem refletir o fluxo até a falha.`,
+      `Siga rigorosamente as regras de status e resultado obtido com base no Status geral do relatório: se for "Aprovado QA", todos os passos devem ter status "Aprovado QA" e o resultado obtido correspondente de sucesso preenchido detalhadamente. Se for "Reprovado QA", os passos devem refletir o fluxo até a falha. Se for "Não Executado", use "Não Executado" nos passos pendentes.`,
       `Sistema: ${report.systemName}`,
       `Branch: ${report.branch}`,
       `Tela ou menu: ${report.screenPath}`,

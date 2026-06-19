@@ -1,7 +1,18 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
-import { requireApiAccess, WRITE_ROLES } from "@/lib/auth";
-import { softDeleteReport } from "@/lib/reports";
+import { getApiUser, requireApiAccess, WRITE_ROLES } from "@/lib/auth";
+import { reportAccessWhere, softDeleteReport } from "@/lib/reports";
+
+function unauthenticatedResponse() {
+  return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+}
+
+function notFoundResponse() {
+  return NextResponse.json(
+    { error: "Relatorio nao encontrado" },
+    { status: 404 }
+  );
+}
 
 export async function GET(
   request: NextRequest,
@@ -11,10 +22,11 @@ export async function GET(
     const denied = await requireApiAccess(request);
     if (denied) return denied;
 
-    const { id } = params;
+    const user = await getApiUser(request);
+    if (!user) return unauthenticatedResponse();
 
     const report = await prisma.testReport.findFirst({
-      where: { id, deletedAt: null },
+      where: { id: params.id, deletedAt: null, ...reportAccessWhere(user) },
       include: {
         steps: {
           orderBy: {
@@ -24,12 +36,7 @@ export async function GET(
       },
     });
 
-    if (!report) {
-      return NextResponse.json(
-        { error: "Relatório não encontrado" },
-        { status: 404 }
-      );
-    }
+    if (!report) return notFoundResponse();
 
     return NextResponse.json(report);
   } catch (error: any) {
@@ -49,10 +56,17 @@ export async function PUT(
     const denied = await requireApiAccess(request, WRITE_ROLES);
     if (denied) return denied;
 
-    const { id } = params;
-    const body = await request.json();
+    const user = await getApiUser(request);
+    if (!user) return unauthenticatedResponse();
 
-    // Desestruturação para remover campos que não devem ser modificados via API
+    const exists = await prisma.testReport.findFirst({
+      where: { id: params.id, deletedAt: null, ...reportAccessWhere(user) },
+      select: { id: true },
+    });
+
+    if (!exists) return notFoundResponse();
+
+    const body = await request.json();
     const {
       id: _id,
       code: _code,
@@ -63,13 +77,23 @@ export async function PUT(
       ...updateData
     } = body;
 
-    // Converter testDate para Date se enviado na requisição
+    if (user.role === "QA") {
+      delete updateData.testerId;
+      delete updateData.testerName;
+    }
+
     if (updateData.testDate !== undefined && updateData.testDate !== null) {
       updateData.testDate = new Date(updateData.testDate);
     }
 
-    if (Object.prototype.hasOwnProperty.call(updateData, "testerId")) {
-      const nextTesterId = updateData.testerId ? String(updateData.testerId) : null;
+    if (
+      user.role === "ADMIN" &&
+      Object.prototype.hasOwnProperty.call(updateData, "testerId")
+    ) {
+      const nextTesterId = updateData.testerId
+        ? String(updateData.testerId)
+        : null;
+
       if (nextTesterId) {
         const tester = await prisma.user.findFirst({
           where: { id: nextTesterId, active: true },
@@ -97,19 +121,8 @@ export async function PUT(
         : null;
     }
 
-    const exists = await prisma.testReport.findFirst({
-      where: { id, deletedAt: null },
-    });
-
-    if (!exists) {
-      return NextResponse.json(
-        { error: "Relatório não encontrado" },
-        { status: 404 }
-      );
-    }
-
     const updatedReport = await prisma.testReport.update({
-      where: { id },
+      where: { id: params.id },
       data: updateData,
       include: {
         steps: {
@@ -138,16 +151,19 @@ export async function DELETE(
     const denied = await requireApiAccess(request, WRITE_ROLES);
     if (denied) return denied;
 
-    const { id } = params;
+    const user = await getApiUser(request);
+    if (!user) return unauthenticatedResponse();
 
-    const deleted = await softDeleteReport(id);
+    const exists = await prisma.testReport.findFirst({
+      where: { id: params.id, deletedAt: null, ...reportAccessWhere(user) },
+      select: { id: true },
+    });
 
-    if (!deleted) {
-      return NextResponse.json(
-        { error: "Relatório não encontrado" },
-        { status: 404 }
-      );
-    }
+    if (!exists) return notFoundResponse();
+
+    const deleted = await softDeleteReport(params.id);
+
+    if (!deleted) return notFoundResponse();
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

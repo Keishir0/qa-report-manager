@@ -4,6 +4,6 @@ import { ADMIN_ROLES, requirePageUser } from "@/lib/auth";
 export const revalidate = 0;
 
 export default async function PendenciasPage() {
-  await requirePageUser(ADMIN_ROLES);
+  await requirePageUser(["ADMIN", "QA"]);
   return <PendenciasClient />;
 }

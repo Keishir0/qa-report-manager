@@ -43,11 +43,23 @@ interface DashboardOverviewProps {
   canWrite: boolean;
 }
 
+interface PaginatedReportsResponse {
+  data: DashboardReport[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+const PAGE_SIZE = 10;
+
 const filterTitles: Record<DashboardFilter, string> = {
   total: "Todos os Testes",
-  passed: "Testes que Passaram",
-  failed: "Testes que Falharam",
-  blocked: "Testes Bloqueados",
+  passed: "Testes Aprovados",
+  failed: "Testes Reprovados",
+  blocked: "Testes N\u00e3o Executados",
   approval: "Testes Aprovados",
   week: "Testes dos Últimos 7 Dias",
 };
@@ -60,13 +72,41 @@ export default function DashboardOverview({
 }: DashboardOverviewProps) {
   const [activeFilter, setActiveFilter] = useState<DashboardFilter | null>(null);
   const [reports, setReports] = useState(recentReports);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalReports, setTotalReports] = useState(metrics.total);
+  const [activeQuery, setActiveQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const requestId = useRef(0);
 
+  const fetchReportsPage = async (
+    page: number,
+    query: string,
+    currentRequest: number
+  ) => {
+    const params = new URLSearchParams(query);
+    params.set("page", String(page));
+    params.set("limit", String(PAGE_SIZE));
+
+    const response = await fetch(`/api/reports?${params.toString()}`);
+    if (!response.ok) {
+      throw new Error("NÃ£o foi possÃ­vel carregar os relatÃ³rios.");
+    }
+
+    const result = (await response.json()) as PaginatedReportsResponse;
+    if (requestId.current === currentRequest) {
+      setReports(result.data);
+      setCurrentPage(result.pagination.page);
+      setTotalReports(result.pagination.total);
+    }
+  };
+
   const clearFilter = () => {
     requestId.current += 1;
     setActiveFilter(null);
+    setActiveQuery("");
+    setCurrentPage(1);
+    setTotalReports(metrics.total);
     setReports(recentReports);
     setIsLoading(false);
     setError("");
@@ -81,22 +121,19 @@ export default function DashboardOverview({
     const currentRequest = requestId.current + 1;
     requestId.current = currentRequest;
     setActiveFilter(filter);
+    setActiveQuery(query);
+    setCurrentPage(1);
     setIsLoading(true);
     setError("");
 
     try {
-      const response = await fetch(`/api/reports${query ? `?${query}` : ""}`);
-      if (!response.ok) {
-        throw new Error("Não foi possível filtrar os relatórios.");
-      }
-
-      const filteredReports = (await response.json()) as DashboardReport[];
-      if (requestId.current === currentRequest) {
-        setReports(filteredReports);
-      }
+      await fetchReportsPage(1, query, currentRequest);
     } catch (filterError) {
       if (requestId.current === currentRequest) {
         setActiveFilter(null);
+        setActiveQuery("");
+        setCurrentPage(1);
+        setTotalReports(metrics.total);
         setReports(recentReports);
         setError(
           filterError instanceof Error
@@ -111,13 +148,41 @@ export default function DashboardOverview({
     }
   };
 
+  const goToPage = async (page: number) => {
+    const totalPages = Math.max(Math.ceil(totalReports / PAGE_SIZE), 1);
+    const nextPage = Math.min(Math.max(page, 1), totalPages);
+    if (nextPage === currentPage || isLoading) return;
+
+    const currentRequest = requestId.current + 1;
+    requestId.current = currentRequest;
+    setIsLoading(true);
+    setError("");
+
+    try {
+      await fetchReportsPage(nextPage, activeQuery, currentRequest);
+    } catch (pageError) {
+      if (requestId.current === currentRequest) {
+        setError(
+          pageError instanceof Error
+            ? pageError.message
+            : "NÃ£o foi possÃ­vel carregar os relatÃ³rios."
+        );
+      }
+    } finally {
+      if (requestId.current === currentRequest) {
+        setIsLoading(false);
+      }
+    }
+  };
+
   const tableTitle = activeFilter
     ? filterTitles[activeFilter]
     : "Testes Recentes";
+  const totalPages = Math.max(Math.ceil(totalReports / PAGE_SIZE), 1);
 
   return (
     <>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-5">
         <MetricCard
           title="Total de Testes"
           value={metrics.total}
@@ -132,9 +197,9 @@ export default function DashboardOverview({
         />
 
         <MetricCard
-          title="Passaram"
+          title="Aprovado"
           value={metrics.passed}
-          onClick={() => applyFilter("passed", "status=Passou")}
+          onClick={() => applyFilter("passed", "status=Aprovado QA")}
           isActive={activeFilter === "passed"}
           statusColor="green"
           icon={
@@ -145,9 +210,9 @@ export default function DashboardOverview({
         />
 
         <MetricCard
-          title="Falharam"
+          title="Reprovado"
           value={metrics.failed}
-          onClick={() => applyFilter("failed", "status=Falhou")}
+          onClick={() => applyFilter("failed", "status=Reprovado QA")}
           isActive={activeFilter === "failed"}
           statusColor="red"
           icon={
@@ -158,9 +223,11 @@ export default function DashboardOverview({
         />
 
         <MetricCard
-          title="Bloqueados"
+          title={"N\u00e3o Executado"}
           value={metrics.blocked}
-          onClick={() => applyFilter("blocked", "status=Bloqueado")}
+          onClick={() =>
+            applyFilter("blocked", `status=${encodeURIComponent("N\u00e3o Executado")}`)
+          }
           isActive={activeFilter === "blocked"}
           statusColor="amber"
           icon={
@@ -170,7 +237,7 @@ export default function DashboardOverview({
           }
         />
 
-        <MetricCard
+        {/* <MetricCard
           title="Taxa de Aprovação"
           value={metrics.approvalRate}
           onClick={() => applyFilter("approval", "status=Passou")}
@@ -188,7 +255,7 @@ export default function DashboardOverview({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
             </svg>
           }
-        />
+        /> */}
 
         <MetricCard
           title="Testes da Semana"
@@ -214,7 +281,7 @@ export default function DashboardOverview({
             <h2 className="text-lg font-extrabold text-slate-800">{tableTitle}</h2>
             {!isLoading && (
               <span className="inline-flex items-center rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-1 text-xs font-bold tabular-nums text-indigo-700">
-                {reports.length} {reports.length === 1}
+                {totalReports}
               </span>
             )}
           </div>
@@ -328,6 +395,49 @@ export default function DashboardOverview({
             );
           })}
         </DataTable>
+
+        {totalPages > 1 && (
+          <div className="flex flex-col gap-3 px-1 sm:flex-row sm:items-center sm:justify-between">
+            <span className="text-xs font-semibold text-slate-500">
+              Pagina {currentPage} de {totalPages}
+            </span>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage === 1 || isLoading}
+                className="px-3 py-1.5 text-xs"
+              >
+                Anterior
+              </Button>
+              {Array.from({ length: totalPages }, (_, index) => index + 1).map(
+                (page) => (
+                  <button
+                    key={page}
+                    type="button"
+                    onClick={() => goToPage(page)}
+                    disabled={isLoading}
+                    className={`h-8 min-w-8 rounded-lg border px-2 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                      page === currentPage
+                        ? "border-indigo-600 bg-indigo-600 text-white"
+                        : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                )
+              )}
+              <Button
+                variant="secondary"
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage === totalPages || isLoading}
+                className="px-3 py-1.5 text-xs"
+              >
+                Proxima
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

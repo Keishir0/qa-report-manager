@@ -12,10 +12,12 @@ import {
 } from "@/types";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
+import MultiSelectCreatable from "@/components/ui/MultiSelectCreatable";
 import Textarea from "@/components/ui/Textarea";
 import Button from "@/components/ui/Button";
 import StatusBadge from "@/components/ui/StatusBadge";
 import { AI_INPUT_MAX_CHARS } from "@/lib/ai/schemas";
+import { useAuthUser } from "@/components/auth/AuthProvider";
 
 interface ReportFormProps {
   initialData?: Partial<TestReportData>;
@@ -36,6 +38,8 @@ export default function ReportForm({
   isLoading,
 }: ReportFormProps) {
   const isCreate = !initialData?.id;
+  const currentUser = useAuthUser();
+  const isQaUser = currentUser?.role === "QA";
 
   // Inicialização do estado do relatório
   const [testDate, setTestDate] = useState("");
@@ -51,6 +55,8 @@ export default function ReportForm({
   const [notes, setNotes] = useState("");
   const [userOptions, setUserOptions] = useState<UserOption[]>([]);
 
+
+
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Estado dos passos dinâmicos (apenas criação)
@@ -58,7 +64,7 @@ export default function ReportForm({
   const [newStepAction, setNewStepAction] = useState("");
   const [newStepExpected, setNewStepExpected] = useState("");
   const [newStepActual, setNewStepActual] = useState("");
-  const [newStepStatus, setNewStepStatus] = useState("Passou");
+  const [newStepStatus, setNewStepStatus] = useState("Aprovado QA");
   const [stepErrors, setStepErrors] = useState<Record<string, string>>({});
 
   // Estados da IA
@@ -135,7 +141,7 @@ export default function ReportForm({
             action: s.action || "",
             expectedResult: s.expectedResult || "",
             actualResult: s.actualResult || "",
-            status: s.status || "Passou",
+            status: s.status || "Não Executado",
           }))
         );
       }
@@ -236,7 +242,7 @@ export default function ReportForm({
       bugDescription,
       testType,
       generalStatus: generalStatus as any,
-      testerId: testerId || null,
+      testerId: isQaUser ? currentUser?.id || null : testerId || null,
       sndeskTechnicianName: sndeskTechnicianName.trim() || null,
       notes: notes || null,
       steps: isCreate ? steps : undefined,
@@ -269,7 +275,7 @@ export default function ReportForm({
     setNewStepAction("");
     setNewStepExpected("");
     setNewStepActual("");
-    setNewStepStatus("Passou");
+    setNewStepStatus("Aprovado QA");
     setStepErrors({});
   };
 
@@ -429,12 +435,13 @@ export default function ReportForm({
           </div>
 
           <div className="xl:col-span-4">
-            <Select
+            <MultiSelectCreatable
               label="Branch / Ambiente *"
               id="branch"
-              value={branch}
-              onChange={(e) => setBranch(e.target.value)}
+              placeholder="Selecione ou digite a branch..."
               options={BRANCH_OPTIONS}
+              value={branch}
+              onChange={setBranch}
               error={errors.branch}
             />
           </div>
@@ -462,19 +469,29 @@ export default function ReportForm({
           </div>
 
           <div className="xl:col-span-3">
-            <Select
-              label="QA"
-              id="testerId"
-              value={testerId}
-              onChange={(e) => setTesterId(e.target.value)}
-            >
-              <option value="">Selecione o QA</option>
-              {userOptions.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.name} ({option.role})
-                </option>
-              ))}
-            </Select>
+            {isQaUser ? (
+              <Input
+                label="QA"
+                id="testerName"
+                value={currentUser?.name || "Usuario atual"}
+                disabled
+                className="bg-slate-50 text-slate-500"
+              />
+            ) : (
+              <Select
+                label="QA"
+                id="testerId"
+                value={testerId}
+                onChange={(e) => setTesterId(e.target.value)}
+              >
+                <option value="">Selecione o QA</option>
+                {userOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.name} ({option.role})
+                  </option>
+                ))}
+              </Select>
+            )}
           </div>
 
           <div className="xl:col-span-3">
