@@ -277,9 +277,28 @@ export default function PendenciasClient() {
   const isAdmin = currentUser?.role === "ADMIN";
   const [config, setConfig] = useState<SndeskConfigView | null>(null);
   const [tickets, setTickets] = useState<PendingTicket[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
   const [isLoading, setIsLoading] = useState(false);
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
   const [lastTicketsRefresh, setLastTicketsRefresh] = useState<Date | null>(null);
+
+  const totalPages = Math.max(Math.ceil(tickets.length / PAGE_SIZE), 1);
+  const startIndex = (currentPage - 1) * PAGE_SIZE;
+  const paginatedTickets = tickets.slice(startIndex, startIndex + PAGE_SIZE);
+
+  const goToPage = (page: number) => {
+    const nextPage = Math.min(Math.max(page, 1), totalPages);
+    if (nextPage === currentPage || isLoading) return;
+    setCurrentPage(nextPage);
+  };
+
+  useEffect(() => {
+    const calculatedTotalPages = Math.max(Math.ceil(tickets.length / PAGE_SIZE), 1);
+    if (currentPage > calculatedTotalPages) {
+      setCurrentPage(calculatedTotalPages);
+    }
+  }, [tickets.length, currentPage]);
   const [isSavingConfig, setIsSavingConfig] = useState(false);
   const [actionId, setActionId] = useState<string | null>(null);
   const isPollingTickets = useRef(false);
@@ -744,7 +763,7 @@ export default function PendenciasClient() {
           />
         }
       >
-        {tickets.map((ticket) => (
+        {paginatedTickets.map((ticket) => (
           <tr key={ticket.id} className="text-sm transition-colors hover:bg-slate-50">
             <td className="p-4 whitespace-nowrap align-middle">
               <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 font-mono text-[11px] font-bold text-slate-600">
@@ -820,6 +839,49 @@ export default function PendenciasClient() {
           </tr>
         ))}
         </DataTable>
+
+        {totalPages > 1 && (
+          <div className="flex flex-col gap-3 px-1 sm:flex-row sm:items-center sm:justify-between mt-2">
+            <span className="text-xs font-semibold text-slate-500">
+              Pagina {currentPage} de {totalPages} ({tickets.length} chamados)
+            </span>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage === 1 || isLoading}
+                className="px-3 py-1.5 text-xs"
+              >
+                Anterior
+              </Button>
+              {Array.from({ length: totalPages }, (_, index) => index + 1).map(
+                (page) => (
+                  <button
+                    key={page}
+                    type="button"
+                    onClick={() => goToPage(page)}
+                    disabled={isLoading}
+                    className={`h-8 min-w-8 rounded-lg border px-2 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                      page === currentPage
+                        ? "border-indigo-600 bg-indigo-600 text-white"
+                        : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                )
+              )}
+              <Button
+                variant="secondary"
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage === totalPages || isLoading}
+                className="px-3 py-1.5 text-xs"
+              >
+                Proxima
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {toast && (
