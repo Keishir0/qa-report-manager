@@ -753,14 +753,7 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
                 )}
               </div>
 
-              <div className="grid gap-2 sm:grid-cols-3 lg:min-w-[360px]">
-                <Button
-                  variant="secondary"
-                  onClick={loadReportPending}
-                  isLoading={isSndeskLoading}
-                >
-                  Atualizar
-                </Button>
+              <div className="grid gap-2 sm:grid-cols-2 lg:min-w-[240px]">
                 <Button
                   variant="primary"
                   onClick={() => sendSndeskDecision("aprovar")}
