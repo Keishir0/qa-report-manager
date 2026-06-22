@@ -5,11 +5,8 @@ import { createPortal } from "react-dom";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import EmptyState from "@/components/ui/EmptyState";
-import Input from "@/components/ui/Input";
 import PageHeader from "@/components/ui/PageHeader";
-import Textarea from "@/components/ui/Textarea";
 import Toast from "@/components/ui/Toast";
-import { useAuthUser } from "@/components/auth/AuthProvider";
 
 interface SndeskConfigView {
   baseUrl: string;
@@ -273,8 +270,6 @@ function PendingTicketActionsMenu({
 }
 
 export default function PendenciasClient() {
-  const currentUser = useAuthUser();
-  const isAdmin = currentUser?.role === "ADMIN";
   const [config, setConfig] = useState<SndeskConfigView | null>(null);
   const [tickets, setTickets] = useState<PendingTicket[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -340,22 +335,8 @@ export default function PendenciasClient() {
       setCurrentPage(calculatedTotalPages);
     }
   }, [filteredTickets.length, currentPage]);
-  const [isSavingConfig, setIsSavingConfig] = useState(false);
   const [actionId, setActionId] = useState<string | null>(null);
   const isPollingTickets = useRef(false);
-  const [configForm, setConfigForm] = useState({
-    baseUrl: "",
-    token: "",
-    defaultUserId: "",
-    pendingStatusIds: "",
-    approveStatusId: "",
-    rejectStatusId: "",
-    approveTemplate: "",
-    rejectTemplate: "",
-    visibleClient: true,
-    emailClient: false,
-    emailTechnician: false,
-  });
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const loadConfig = useCallback(async () => {
@@ -370,24 +351,6 @@ export default function PendenciasClient() {
 
     setConfig(result.data);
   }, []);
-
-  useEffect(() => {
-    if (!config) return;
-
-    setConfigForm((current) => ({
-      ...current,
-      baseUrl: config.baseUrl || "",
-      defaultUserId: config.defaultUserId || "",
-      pendingStatusIds: config.pendingStatusIds?.join(",") || "",
-      approveStatusId: config.approveStatusId || "",
-      rejectStatusId: config.rejectStatusId || "",
-      approveTemplate: config.approveTemplate || "",
-      rejectTemplate: config.rejectTemplate || "",
-      visibleClient: config.visibleClient,
-      emailClient: config.emailClient,
-      emailTechnician: config.emailTechnician,
-    }));
-  }, [config]);
 
   const loadTickets = useCallback(async () => {
     const response = await fetch("/api/sndesk/pendencias", {
@@ -518,32 +481,6 @@ export default function PendenciasClient() {
     if (data) setToast({ message: "Recusa enviada ao SNDesk.", type: "success" });
   }
 
-  async function saveConfig() {
-    setIsSavingConfig(true);
-    try {
-      const response = await fetch("/api/sndesk/config", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(configForm),
-      });
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.message || "Nao foi possivel salvar a configuracao.");
-      }
-
-      setConfig(result.data);
-      setConfigForm((current) => ({ ...current, token: "" }));
-      setToast({ message: "Configuracao SNDesk salva no banco.", type: "success" });
-    } catch (error: any) {
-      setToast({ message: error.message || "Erro ao salvar configuracao.", type: "error" });
-    } finally {
-      setIsSavingConfig(false);
-    }
-  }
-
   return (
     <div className="mx-auto max-w-7xl space-y-6 animate-fade-in sm:space-y-8">
       <PageHeader
@@ -596,139 +533,6 @@ export default function PendenciasClient() {
           </p>
         </div>
       </section>
-
-      {isAdmin && (
-        <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
-          <div className="mb-4">
-            <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Editar integracao
-              </span>
-              <p className="mt-1 text-sm font-medium text-slate-500">
-                Esses dados ficam salvos no banco em `webhook_settings`.
-              </p>
-            </div>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-3">
-            <Input
-              id="sndesk-base-url"
-              label="Dominio SNDesk"
-              value={configForm.baseUrl}
-              onChange={(event) =>
-                setConfigForm((current) => ({ ...current, baseUrl: event.target.value }))
-              }
-              placeholder="https://seudominio.sndesk.com.br"
-            />
-            <Input
-              id="sndesk-api-token"
-              label="Novo token API"
-              type="password"
-              value={configForm.token}
-              onChange={(event) =>
-                setConfigForm((current) => ({ ...current, token: event.target.value }))
-              }
-              placeholder={config?.tokenConfigured ? "Token ja configurado" : "Bearer token"}
-              autoComplete="off"
-            />
-            <Input
-              id="sndesk-default-user"
-              label="Usuario padrao"
-              value={configForm.defaultUserId}
-              onChange={(event) =>
-                setConfigForm((current) => ({ ...current, defaultUserId: event.target.value }))
-              }
-              placeholder="1"
-            />
-            <Input
-              id="sndesk-pending-status"
-              label="Status pendentes"
-              value={configForm.pendingStatusIds}
-              onChange={(event) =>
-                setConfigForm((current) => ({ ...current, pendingStatusIds: event.target.value }))
-              }
-              placeholder="1,5"
-            />
-            <Input
-              id="sndesk-approve-status"
-              label="Status ao aprovar"
-              value={configForm.approveStatusId}
-              onChange={(event) =>
-                setConfigForm((current) => ({ ...current, approveStatusId: event.target.value }))
-              }
-              placeholder="2"
-            />
-            <Input
-              id="sndesk-reject-status"
-              label="Status ao recusar"
-              value={configForm.rejectStatusId}
-              onChange={(event) =>
-                setConfigForm((current) => ({ ...current, rejectStatusId: event.target.value }))
-              }
-              placeholder="1"
-            />
-          </div>
-
-          <div className="mt-4 grid gap-4 lg:grid-cols-2">
-            <Textarea
-              id="sndesk-approve-template"
-              label="Modelo de aprovacao"
-              value={configForm.approveTemplate}
-              onChange={(event) =>
-                setConfigForm((current) => ({ ...current, approveTemplate: event.target.value }))
-              }
-              rows={6}
-            />
-            <Textarea
-              id="sndesk-reject-template"
-              label="Modelo de recusa"
-              value={configForm.rejectTemplate}
-              onChange={(event) =>
-                setConfigForm((current) => ({ ...current, rejectTemplate: event.target.value }))
-              }
-              rows={6}
-            />
-          </div>
-
-          <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex flex-wrap gap-4 text-sm font-semibold text-slate-700">
-              <label className="inline-flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={configForm.visibleClient}
-                  onChange={(event) =>
-                    setConfigForm((current) => ({ ...current, visibleClient: event.target.checked }))
-                  }
-                />
-                Visivel ao cliente
-              </label>
-              <label className="inline-flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={configForm.emailClient}
-                  onChange={(event) =>
-                    setConfigForm((current) => ({ ...current, emailClient: event.target.checked }))
-                  }
-                />
-                Enviar email ao cliente
-              </label>
-              <label className="inline-flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={configForm.emailTechnician}
-                  onChange={(event) =>
-                    setConfigForm((current) => ({ ...current, emailTechnician: event.target.checked }))
-                  }
-                />
-                Enviar email ao tecnico
-              </label>
-            </div>
-            <Button onClick={saveConfig} isLoading={isSavingConfig}>
-              Salvar configuracao
-            </Button>
-          </div>
-        </section>
-      )}
 
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-xs sm:px-5">

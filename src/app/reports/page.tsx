@@ -45,6 +45,7 @@ export default function ReportsListPage() {
   const user = useAuthUser();
   const canWrite = user?.role === "ADMIN" || user?.role === "QA";
   const [reports, setReports] = useState<TestReportData[]>([]);
+  const [selectedReportsById, setSelectedReportsById] = useState<Record<string, TestReportData>>({});
   const [currentPage, setCurrentPage] = useState(1);
   const [totalReports, setTotalReports] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -55,6 +56,7 @@ export default function ReportsListPage() {
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [userOptions, setUserOptions] = useState<UserOption[]>([]);
   const requestId = useRef(0);
+  const pageSelectionCheckboxRef = useRef<HTMLInputElement>(null);
 
   // Estados dos filtros
   const [createdFrom, setCreatedFrom] = useState("");
@@ -212,6 +214,7 @@ export default function ReportsListPage() {
 
   useEffect(() => {
     setCurrentPage(1);
+    setSelectedReportsById({});
   }, [
     createdFrom,
     createdTo,
@@ -256,21 +259,87 @@ export default function ReportsListPage() {
     return (await response.json()) as TestReportData[];
   };
 
+  const selectedReports = Object.values(selectedReportsById);
+  const visibleSelectableReports = reports.filter((report) => report.id);
+  const selectedCount = selectedReports.length;
+  const selectedVisibleCount = visibleSelectableReports.filter(
+    (report) => report.id && selectedReportsById[report.id]
+  ).length;
+  const areAllVisibleReportsSelected =
+    visibleSelectableReports.length > 0 &&
+    selectedVisibleCount === visibleSelectableReports.length;
+  const hasReportsToExport = selectedCount > 0 || totalReports > 0;
+
+  useEffect(() => {
+    if (pageSelectionCheckboxRef.current) {
+      pageSelectionCheckboxRef.current.indeterminate =
+        selectedVisibleCount > 0 && !areAllVisibleReportsSelected;
+    }
+  }, [areAllVisibleReportsSelected, selectedVisibleCount]);
+
+  const clearReportSelection = () => {
+    setSelectedReportsById({});
+  };
+
+  const getReportsForExport = async () => {
+    if (selectedReports.length > 0) {
+      return selectedReports;
+    }
+
+    return fetchReportsForExport();
+  };
+
+  const toggleReportSelection = (report: TestReportData) => {
+    if (!report.id) return;
+
+    setSelectedReportsById((current) => {
+      const next = { ...current };
+
+      if (next[report.id!]) {
+        delete next[report.id!];
+      } else {
+        next[report.id!] = report;
+      }
+
+      return next;
+    });
+  };
+
+  const toggleVisibleReportsSelection = () => {
+    setSelectedReportsById((current) => {
+      const next = { ...current };
+
+      if (areAllVisibleReportsSelected) {
+        visibleSelectableReports.forEach((report) => {
+          if (report.id) delete next[report.id];
+        });
+      } else {
+        visibleSelectableReports.forEach((report) => {
+          if (report.id) next[report.id] = report;
+        });
+      }
+
+      return next;
+    });
+  };
+
   // Handler para exportar Excel
   const handleExportExcel = async () => {
-    if (totalReports === 0) {
+    if (!hasReportsToExport) {
       setToast({ message: "Não há relatórios para exportar.", type: "error" });
       return;
     }
     setIsExportingExcel(true);
     try {
-      const exportReports = await fetchReportsForExport();
+      const exportReports = await getReportsForExport();
       if (exportReports.length === 0) {
         setToast({ message: "Nao ha relatorios para exportar.", type: "error" });
         return;
       }
 
-      const filename = `qa-report-${format(new Date(), "yyyy-MM-dd")}`;
+      const filename = selectedCount > 0
+        ? `qa-report-selecionados-${format(new Date(), "yyyy-MM-dd")}`
+        : `qa-report-${format(new Date(), "yyyy-MM-dd")}`;
       exportToExcel(exportReports, filename);
       setToast({ message: "Excel gerado com sucesso!", type: "success" });
     } catch (err) {
@@ -283,19 +352,21 @@ export default function ReportsListPage() {
 
   // Handler para exportar PDF
   const handleExportPDF = async () => {
-    if (totalReports === 0) {
+    if (!hasReportsToExport) {
       setToast({ message: "Não há relatórios para exportar.", type: "error" });
       return;
     }
     setIsExportingPDF(true);
     try {
-      const exportReports = await fetchReportsForExport();
+      const exportReports = await getReportsForExport();
       if (exportReports.length === 0) {
         setToast({ message: "Nao ha relatorios para exportar.", type: "error" });
         return;
       }
 
-      const filename = `qa-report-${format(new Date(), "yyyy-MM-dd")}`;
+      const filename = selectedCount > 0
+        ? `qa-report-selecionados-${format(new Date(), "yyyy-MM-dd")}`
+        : `qa-report-${format(new Date(), "yyyy-MM-dd")}`;
       exportToPDF(exportReports, filename);
       setToast({ message: "PDF gerado com sucesso!", type: "success" });
     } catch (err) {
@@ -327,6 +398,11 @@ export default function ReportsListPage() {
       }
 
       await fetchReports(reports.length === 1 && currentPage > 1 ? currentPage - 1 : currentPage);
+      setSelectedReportsById((current) => {
+        const next = { ...current };
+        delete next[id];
+        return next;
+      });
       setToast({
         message: `Relatório ${code} excluído da lista com sucesso!`,
         type: "success",
@@ -416,7 +492,7 @@ export default function ReportsListPage() {
         <Button
           variant="secondary"
           onClick={handleExportExcel}
-          disabled={isExportingExcel || isLoading}
+          disabled={isExportingExcel || isLoading || !hasReportsToExport}
           icon={
             <svg
               className="w-4 h-4 text-emerald-600"
@@ -438,7 +514,7 @@ export default function ReportsListPage() {
         <Button
           variant="secondary"
           onClick={handleExportPDF}
-          disabled={isExportingPDF || isLoading}
+          disabled={isExportingPDF || isLoading || !hasReportsToExport}
           icon={
             <svg
               className="w-4 h-4 text-rose-500"
@@ -636,24 +712,70 @@ export default function ReportsListPage() {
         )}
       </div>
 
+      {reports.length > 0 && (
+        <div className="flex items-center justify-between gap-2 lg:hidden">
+          <span className="text-xs font-semibold text-slate-500">
+            {selectedCount > 0
+              ? `${selectedCount} selecionado${selectedCount === 1 ? "" : "s"}`
+              : "Nenhum selecionado"}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={toggleVisibleReportsSelection}
+              disabled={isLoading || visibleSelectableReports.length === 0}
+              className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 shadow-xs transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {areAllVisibleReportsSelected ? "Desmarcar pagina" : "Pagina"}
+            </button>
+            {selectedCount > 0 && (
+              <button
+                type="button"
+                onClick={clearReportSelection}
+                className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 shadow-xs transition-colors hover:bg-slate-50"
+              >
+                Limpar
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Tabela de Relatórios */}
       <DataTable
-        tableClassName="w-full min-w-0 table-fixed text-left border-collapse"
-        headerCellClassName="px-3 py-3"
+        tableClassName="w-full min-w-[1080px] table-fixed text-left border-collapse"
+        headerCellClassName="px-2 py-2.5"
         headerClassNames={[
-          "w-[7%]",
-          "w-[9%]",
-          "w-[9%]",
-          "w-[12%]",
-          "w-[15%]",
-          "w-[8%]",
-          "w-[11%]",
-          "w-[11%]",
-          "w-[7%]",
-          "w-[9%]",
-          "w-[8%] text-right",
+          "w-[40px]",
+          "w-[112px]",
+          "w-[84px]",
+          "w-[104px]",
+          "w-[126px]",
+          "w-[154px]",
+          "w-[84px]",
+          "w-[116px]",
+          "w-[100px]",
+          "w-[74px]",
+          "w-[122px]",
+          "w-[48px] text-right",
         ]}
         headers={[
+          <div
+            key="selection"
+            data-label="Seleção"
+            className="flex items-center justify-center gap-1 normal-case tracking-normal"
+          >
+            <input
+              ref={pageSelectionCheckboxRef}
+              type="checkbox"
+              checked={areAllVisibleReportsSelected}
+              onChange={toggleVisibleReportsSelection}
+              disabled={isLoading || visibleSelectableReports.length === 0}
+              aria-label="Selecionar pagina atual"
+              title="Selecionar pagina atual"
+              className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+          </div>,
           "Código",
           "Data",
           "Branch",
@@ -668,6 +790,7 @@ export default function ReportsListPage() {
         ]}
         isLoading={isLoading}
         isEmpty={reports.length === 0}
+        className="[&_td]:px-2 [&_td]:py-3 [&_td]:text-[13px]"
         emptyState={
           <EmptyState
             title="Nenhum teste encontrado"
@@ -687,43 +810,55 @@ export default function ReportsListPage() {
             : "bg-white hover:bg-slate-50";
 
           const stepsCount = report.steps?.length || 0;
+          const isSelected = Boolean(report.id && selectedReportsById[report.id]);
 
           return (
             <tr
               key={report.id}
-              className={`transition-colors text-sm border-b border-slate-100 ${rowHighlightClass}`}
+              className={`transition-colors text-sm border-b border-slate-100 ${
+                isSelected ? "bg-indigo-50 hover:bg-indigo-100" : rowHighlightClass
+              }`}
             >
-              <td className="px-3 py-4 font-mono font-bold text-slate-900 whitespace-nowrap">
+              <td className="px-2 py-3 text-center">
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onChange={() => toggleReportSelection(report)}
+                  aria-label={`Selecionar relatorio ${report.code}`}
+                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                />
+              </td>
+              <td className="px-2 py-3 font-mono font-bold text-slate-900 whitespace-nowrap">
                 {report.code}
               </td>
-              <td className="px-3 py-4 text-slate-500 whitespace-nowrap">
+              <td className="px-2 py-3 text-slate-500 whitespace-nowrap">
                 {format(new Date(report.testDate), "dd/MM/yyyy")}
               </td>
-              <td className="px-3 py-4 text-slate-600 truncate max-w-0" title={report.branch}>
+              <td className="px-2 py-3 text-slate-600 truncate max-w-0" title={report.branch}>
                 {report.branch}
               </td>
-              <td className="px-3 py-4 text-slate-600 truncate max-w-0" title={report.screenPath}>
+              <td className="px-2 py-3 text-slate-600 truncate max-w-0" title={report.screenPath}>
                 {report.screenPath}
               </td>
-              <td className="px-3 py-4 text-slate-600 truncate max-w-0" title={report.functionality}>
+              <td className="px-2 py-3 text-slate-600 truncate max-w-0" title={report.functionality}>
                 {report.functionality}
               </td>
-              <td className="px-3 py-4 text-slate-600 truncate max-w-0" title={report.testType}>
+              <td className="px-2 py-3 text-slate-600 truncate max-w-0" title={report.testType}>
                 {report.testType}
               </td>
-              <td className="px-3 py-4 font-semibold text-slate-800 truncate max-w-0" title={report.testerName || "Nao informado"}>
+              <td className="px-2 py-3 font-semibold text-slate-800 truncate max-w-0" title={report.testerName || "Nao informado"}>
                 {report.testerName || "Nao informado"}
               </td>
-              <td className="px-3 py-4 text-slate-600 truncate max-w-0" title={report.sndeskTechnicianName || "Nao informado"}>
+              <td className="px-2 py-3 text-slate-600 truncate max-w-0" title={report.sndeskTechnicianName || "Nao informado"}>
                 {report.sndeskTechnicianName || "Nao informado"}
               </td>
-              <td className="px-3 py-4 text-center font-medium text-slate-500 whitespace-nowrap">
+              <td className="px-2 py-3 text-center font-medium text-slate-500 whitespace-nowrap">
                 {stepsCount} {stepsCount === 1 ? "passo" : "passos"}
               </td>
-              <td className="px-3 py-4 whitespace-nowrap">
-                <StatusBadge status={report.generalStatus} />
+              <td className="px-2 py-3 whitespace-nowrap">
+                <StatusBadge status={report.generalStatus} size="sm" />
               </td>
-              <td className="px-3 py-4 whitespace-nowrap text-right">
+              <td className="px-2 py-3 whitespace-nowrap text-right">
                 <ReportActionsMenu
                   reportId={report.id!}
                   reportCode={report.code}

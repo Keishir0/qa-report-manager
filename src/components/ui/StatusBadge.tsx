@@ -37,7 +37,7 @@ export default function StatusBadge({ status, size = "md" }: StatusBadgeProps) {
 
   const sizeClasses =
     size === "sm"
-      ? "min-w-[7.5rem] px-2 py-0.5 text-[11px]"
+      ? "min-w-[6.75rem] px-2 py-0.5 text-[11px]"
       : "min-w-[8.25rem] px-2.5 py-1 text-xs";
 
   return (

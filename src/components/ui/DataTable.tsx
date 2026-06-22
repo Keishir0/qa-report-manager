@@ -1,7 +1,7 @@
 import React from "react";
 
 interface DataTableProps {
-  headers: string[];
+  headers: React.ReactNode[];
   children: React.ReactNode;
   isLoading?: boolean;
   isEmpty?: boolean;
@@ -13,7 +13,20 @@ interface DataTableProps {
   responsiveCards?: boolean;
 }
 
-function labelTableCells(children: React.ReactNode, headers: string[]): React.ReactNode {
+function getHeaderLabel(header: React.ReactNode) {
+  if (typeof header === "string" || typeof header === "number") {
+    return String(header);
+  }
+
+  if (React.isValidElement(header)) {
+    const props = header.props as { "data-label"?: string; "aria-label"?: string };
+    return props["data-label"] || props["aria-label"] || "";
+  }
+
+  return "";
+}
+
+function labelTableCells(children: React.ReactNode, headers: React.ReactNode[]): React.ReactNode {
   return React.Children.map(children, (child) => {
     if (!React.isValidElement(child)) return child;
 
@@ -29,7 +42,7 @@ function labelTableCells(children: React.ReactNode, headers: string[]): React.Re
       if (!React.isValidElement(cell)) return cell;
 
       return React.cloneElement(cell as React.ReactElement<any>, {
-        "data-label": headers[index] || "",
+        "data-label": getHeaderLabel(headers[index]),
       });
     });
 

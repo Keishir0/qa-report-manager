@@ -7,6 +7,7 @@ import DataTable from "@/components/ui/DataTable";
 import EmptyState from "@/components/ui/EmptyState";
 import Input from "@/components/ui/Input";
 import PageHeader from "@/components/ui/PageHeader";
+import SndeskIntegrationConfig from "@/components/sndesk/SndeskIntegrationConfig";
 
 interface WebhookEvent {
   id: string;
@@ -297,6 +298,8 @@ export default function WebhookMonitor() {
           </div>
         </div>
       </form>
+
+      <SndeskIntegrationConfig />
 
       {error && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
