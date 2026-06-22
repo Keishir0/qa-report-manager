@@ -1,5 +1,7 @@
 import fs from "fs";
 import path from "path";
+import { randomUUID } from "crypto";
+import prisma from "@/lib/prisma";
 
 const MAX_LOG_MESSAGE_LENGTH = 1000;
 
@@ -37,6 +39,15 @@ export function writeLog(
   } else {
     console.log(consoleMsg);
   }
+
+  prisma
+    .$executeRaw`
+      INSERT INTO "server_logs" ("id", "level", "context", "message", "stack", "createdAt")
+      VALUES (${randomUUID()}, ${level}, ${context}, ${sanitizedMessage}, ${sanitizedStack || null}, CURRENT_TIMESTAMP)
+    `
+    .catch((err) => {
+      console.error("Critical: Failed to write log to database:", err);
+    });
 
   try {
     const logsDir = path.join(process.cwd(), "logs");

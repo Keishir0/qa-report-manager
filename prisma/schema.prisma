@@ -67,6 +67,19 @@ model LoginThrottle {
   @@map("login_throttles")
 }
 
+model ServerLog {
+  id        String   @id @default(cuid())
+  level     String
+  context   String
+  message   String
+  stack     String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([level, createdAt])
+  @@map("server_logs")
+}
+
 model TestReport {
   id              String           @id @default(cuid())
   code            String           @unique

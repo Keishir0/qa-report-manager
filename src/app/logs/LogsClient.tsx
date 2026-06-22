@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Button from "@/components/ui/Button";
-import PageHeader from "@/components/ui/PageHeader";
 import Toast from "@/components/ui/Toast";
 
 interface LogLine {
@@ -147,63 +146,64 @@ export default function LogsClient() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Logs do Sistema"
-        description="Monitore erros do servidor e logs de execução em tempo real para depuração."
-      >
-        <div className="flex gap-2">
-          <Button
-            variant="secondary"
-            onClick={fetchLogs}
-            isLoading={isLoading}
-            icon={
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89M9 11l3-3m0 0l3 3m-3-3v8"
-                />
-              </svg>
-            }
-          >
-            Atualizar
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={handleDownload}
-            icon={
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                />
-              </svg>
-            }
-          >
-            Baixar Completo
-          </Button>
-          <Button
-            variant="danger"
-            onClick={() => setShowConfirmClear(true)}
-            isLoading={isClearing}
-            icon={
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                />
-              </svg>
-            }
-          >
-            Limpar
-          </Button>
+      <div className="flex flex-col gap-3 pb-1 md:flex-row md:items-center md:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-xl font-extrabold leading-tight text-slate-900 sm:text-2xl">
+            Logs do Sistema
+          </h1>
+          <p className="mt-1 text-sm font-medium text-slate-500">
+            Monitore erros do servidor e logs de execucao em tempo real para depuracao.
+          </p>
         </div>
-      </PageHeader>
+        <div className="flex min-w-fit flex-wrap items-center gap-2 md:justify-end">
+          <button
+            type="button"
+            onClick={fetchLogs}
+            disabled={isLoading}
+            className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 shadow-xs transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isLoading ? (
+              <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+            ) : (
+              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89M9 11l3-3m0 0l3 3m-3-3v8" />
+              </svg>
+            )}
+            <span>Atualizar</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleDownload}
+            className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 shadow-xs transition-colors hover:bg-slate-50"
+          >
+            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            <span>Baixar</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowConfirmClear(true)}
+            disabled={isClearing}
+            className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-red-600 px-3 text-xs font-bold text-white shadow-xs transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isClearing ? (
+              <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+            ) : (
+              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            )}
+            <span>Limpar</span>
+          </button>
+        </div>
+      </div>
 
       {/* Control Panel / Filters */}
       <div className="grid grid-cols-1 gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-3">
@@ -277,7 +277,7 @@ export default function LogsClient() {
             <span className="h-3 w-3 rounded-full bg-green-500/80 inline-block" />
           </div>
           <span className="text-[10px] font-mono text-slate-500 tracking-wider">
-            logs/app.log ({filteredLines.length} de {allParsedLines.length} linhas)
+            logs do servidor ({filteredLines.length} de {allParsedLines.length} linhas)
           </span>
         </div>
 
@@ -325,7 +325,7 @@ export default function LogsClient() {
           <div className="relative w-full max-w-md rounded-xl bg-white p-6 shadow-xl border border-slate-100">
             <h3 className="text-lg font-bold text-slate-900">Limpar logs do sistema?</h3>
             <p className="mt-2 text-sm text-slate-500">
-              Esta ação irá esvaziar permanentemente o arquivo <code className="bg-slate-100 px-1.5 py-0.5 rounded font-mono text-xs text-red-600">logs/app.log</code>.
+              Esta ação irá esvaziar permanentemente os logs persistidos do sistema.
               Isso não pode ser desfeito.
             </p>
             <div className="mt-6 flex justify-end gap-3">
