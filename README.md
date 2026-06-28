@@ -45,7 +45,7 @@ Siga os comandos abaixo a partir da pasta raiz do projeto (`qa-report-manager`) 
    ```env
    DATABASE_URL=""
    OPENROUTER_API_KEY="SUA_OPENROUTER_API_KEY"
-   OPENROUTER_MODEL_CHAIN="google/gemma-4-31b-it:free,google/gemma-4-26b-a4b-it:free,openai/gpt-oss-120b:free"
+   OPENROUTER_MODEL_CHAIN="google/gemma-4-31b-it:free,google/gemma-4-26b-a4b-it:free"
    OPENROUTER_TIMEOUT_MS="45000"
    AI_COOLDOWN_SECONDS="10"
    AI_DAILY_LIMIT="30"

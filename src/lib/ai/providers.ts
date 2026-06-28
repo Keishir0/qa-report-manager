@@ -184,7 +184,7 @@ export async function generateWithOpenRouter(
     throw new AiProviderError("OpenRouter não configurado.", false, 503);
   }
 
-  const modelName = modelOverride || "openai/gpt-oss-120b:free";
+  const modelName = modelOverride || "google/gemma-4-31b-it:free";
   const messages = buildAiMessages(mode, text);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);

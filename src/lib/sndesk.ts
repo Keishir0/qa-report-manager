@@ -67,6 +67,11 @@ export interface PendingTicketRow {
   stepsCount?: number;
 }
 
+function getStatusId(status: SndeskStatus | null | undefined) {
+  const statusId = Number(status?.idstatus);
+  return Number.isInteger(statusId) ? statusId : null;
+}
+
 export function getUserSndeskStatusId(user?: AuthUser | null) {
   const rawStatusId = user?.sndeskStatusId?.trim();
   if (!rawStatusId) return null;
@@ -103,6 +108,32 @@ export function canUserAccessPendingTicket(
   }
 
   return true;
+}
+
+export async function getActivePendingStatusIds(config: SndeskConfig) {
+  const activeUserStatuses = await prisma.user.findMany({
+    where: {
+      active: true,
+      sndeskStatusId: { not: null },
+    },
+    select: {
+      sndeskStatusId: true,
+    },
+  });
+
+  const customStatusIds = activeUserStatuses
+    .map((user) => Number(user.sndeskStatusId))
+    .filter((id) => Number.isInteger(id));
+
+  return new Set([...config.pendingStatusIds, ...customStatusIds]);
+}
+
+export function isActivePendingStatus(
+  status: SndeskStatus | null | undefined,
+  activeStatusIds: Set<number>
+) {
+  const statusId = getStatusId(status);
+  return statusId !== null && activeStatusIds.has(statusId);
 }
 
 function normalizeBaseUrl(value: string) {
@@ -391,6 +422,46 @@ export async function upsertPendingTicketFromSndesk(
   return ticket;
 }
 
+export async function archivePendingTicketFromSndesk(
+  idChamado: string,
+  status: SndeskStatus | null | undefined,
+  chamado: any
+) {
+  const snapshot = JSON.stringify(chamado || {});
+  const statusId = getStatusId(status);
+  const statusDescricao = status?.status || chamado?.status?.descricao || null;
+  const statusCor = status?.cor || chamado?.status?.cor || null;
+
+  const [ticket] = await prisma.$queryRaw<PendingTicketRow[]>`
+    UPDATE "qa_pending_tickets"
+    SET
+      "statusId" = ${statusId},
+      "statusDescricao" = ${statusDescricao},
+      "statusCor" = ${statusCor},
+      "chamadoSnapshot" = ${snapshot}::jsonb,
+      "state" = 'encerrado',
+      "lastError" = NULL,
+      "updatedAt" = CURRENT_TIMESTAMP
+    WHERE "idChamado" = ${idChamado}
+    RETURNING
+      "id",
+      "idChamado",
+      "statusId",
+      "statusDescricao",
+      "statusCor",
+      "chamadoSnapshot",
+      "reportId",
+      NULL::text AS "reportCode",
+      NULL::text AS "reportTesterId",
+      "state",
+      "lastError",
+      "createdAt",
+      "updatedAt"
+  `;
+
+  return ticket || null;
+}
+
 export async function refreshPendingTicket(id: string) {
   const [ticket] = await prisma.$queryRaw<PendingTicketRow[]>`
     SELECT
@@ -418,6 +489,16 @@ export async function refreshPendingTicket(id: string) {
   const config = await getSndeskConfig();
   const status = await getSndeskStatus(config, ticket.idChamado);
   const chamado = await getSndeskChamado(config, ticket.idChamado);
+  const activeStatusIds = await getActivePendingStatusIds(config);
+
+  if (!isActivePendingStatus(status, activeStatusIds)) {
+    const archivedTicket = await archivePendingTicketFromSndesk(
+      ticket.idChamado,
+      status,
+      chamado
+    );
+    if (archivedTicket) return archivedTicket;
+  }
 
   return upsertPendingTicketFromSndesk(ticket.idChamado, status, chamado);
 }

@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
             provider: "unavailable",
             model:
               process.env.OPENROUTER_MODEL_CHAIN ||
-              "google/gemma-4-31b-it:free,google/gemma-4-26b-a4b-it:free,openai/gpt-oss-120b:free",
+              "google/gemma-4-31b-it:free,google/gemma-4-26b-a4b-it:free",
             status: "failed",
             latencyMs,
           },
