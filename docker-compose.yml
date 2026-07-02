@@ -28,6 +28,9 @@ services:
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - OPENROUTER_MODEL_CHAIN=${OPENROUTER_MODEL_CHAIN}
       - APP_URL=http://localhost:3000
+      - ADMIN_NAME=${ADMIN_NAME}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
     depends_on:
       - postgres
     volumes:

@@ -136,6 +136,40 @@ export function isActivePendingStatus(
   return statusId !== null && activeStatusIds.has(statusId);
 }
 
+async function syncLinkedReportTesterWithStatus(ticket: PendingTicketRow) {
+  if (!ticket.reportId || ticket.statusId === null) return ticket;
+
+  const assignedQa = await prisma.user.findFirst({
+    where: {
+      active: true,
+      role: "QA",
+      sndeskStatusId: String(ticket.statusId),
+    },
+    select: {
+      id: true,
+      name: true,
+    },
+  });
+
+  if (!assignedQa) return ticket;
+
+  await prisma.testReport.updateMany({
+    where: {
+      id: ticket.reportId,
+      deletedAt: null,
+    },
+    data: {
+      testerId: assignedQa.id,
+      testerName: assignedQa.name,
+    },
+  });
+
+  return {
+    ...ticket,
+    reportTesterId: assignedQa.id,
+  };
+}
+
 function normalizeBaseUrl(value: string) {
   return value.trim().replace(/\/+$/, "");
 }
@@ -419,7 +453,7 @@ export async function upsertPendingTicketFromSndesk(
       "updatedAt"
   `;
 
-  return ticket;
+  return syncLinkedReportTesterWithStatus(ticket);
 }
 
 export async function archivePendingTicketFromSndesk(
