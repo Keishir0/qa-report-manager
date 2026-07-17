@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { getApiUser, requireApiAccess, WRITE_ROLES } from "@/lib/auth";
 import { reportAccessWhere, softDeleteReport } from "@/lib/reports";
+import { getSndeskStepPendingCounts } from "@/lib/sndesk";
 
 function unauthenticatedResponse() {
   return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
@@ -38,7 +39,14 @@ export async function GET(
 
     if (!report) return notFoundResponse();
 
-    return NextResponse.json(report);
+    const sndeskStepCounts = getSndeskStepPendingCounts(report.steps);
+
+    return NextResponse.json({
+      ...report,
+      sndeskPendingStepsCount: sndeskStepCounts.pendingStepsCount,
+      sndeskNewStepsCount: sndeskStepCounts.newStepsCount,
+      sndeskChangedStepsCount: sndeskStepCounts.changedStepsCount,
+    });
   } catch (error: any) {
     console.error(`Error in GET /api/reports/${params.id}:`, error);
     return NextResponse.json(

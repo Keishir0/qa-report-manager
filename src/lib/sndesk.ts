@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma";
-import { randomUUID } from "crypto";
+import { createHash, randomUUID } from "crypto";
 import { sanitizeSensitiveText } from "@/lib/serverLog";
 import { AuthUser } from "@/lib/auth";
 import { getSndeskTechnicianId } from "./sndeskTechnician";
@@ -19,10 +19,10 @@ export const SNDESK_CONFIG_KEYS = {
 };
 
 const DEFAULT_APPROVE_TEMPLATE =
-  "Teste aprovado no QA Manager.\n\nChamado: {id_chamado}\nRelatorio: {codigo_teste}\nStatus geral: {status_geral}\n\nResumo:\n{resumo}\n\nPassos executados:\n{passos}";
+  "Teste aprovado no QA Manager.\n\nChamado: {id_chamado}\nRelatorio: {codigo_teste}\nStatus geral: {status_geral}\n\nResumo:\n{resumo}\n\nPassos novos:\n{passos_novos}\n\nPassos alterados:\n{passos_alterados}";
 
 const DEFAULT_REJECT_TEMPLATE =
-  "Teste recusado no QA Manager.\n\nChamado: {id_chamado}\nRelatorio: {codigo_teste}\nStatus geral: {status_geral}\n\nResumo:\n{resumo}\n\nPassos executados:\n{passos}";
+  "Teste recusado no QA Manager.\n\nChamado: {id_chamado}\nRelatorio: {codigo_teste}\nStatus geral: {status_geral}\n\nResumo:\n{resumo}\n\nPassos novos:\n{passos_novos}\n\nPassos alterados:\n{passos_alterados}";
 
 interface SettingRow {
   key: string;
@@ -65,6 +65,28 @@ export interface PendingTicketRow {
   createdAt: Date;
   updatedAt: Date;
   stepsCount?: number;
+  pendingStepsCount?: number;
+  newStepsCount?: number;
+  changedStepsCount?: number;
+}
+
+interface SndeskStep {
+  id: string;
+  stepNumber: number;
+  action: string;
+  expectedResult: string;
+  actualResult: string;
+  status: string;
+  sndeskSentAt?: Date | string | null;
+  sndeskSentHash?: string | null;
+}
+
+type ClassifiedSndeskStep = SndeskStep & {
+  currentSndeskHash: string;
+};
+
+export class SndeskDecisionValidationError extends Error {
+  status = 400;
 }
 
 function getStatusId(status: SndeskStatus | null | undefined) {
@@ -167,6 +189,59 @@ async function syncLinkedReportTesterWithStatus(ticket: PendingTicketRow) {
   return {
     ...ticket,
     reportTesterId: assignedQa.id,
+  };
+}
+
+export function getSndeskStepHash(step: Pick<
+  SndeskStep,
+  "stepNumber" | "action" | "expectedResult" | "actualResult" | "status"
+>) {
+  return createHash("sha256")
+    .update(
+      JSON.stringify({
+        stepNumber: Number(step.stepNumber),
+        action: String(step.action || ""),
+        expectedResult: String(step.expectedResult || ""),
+        actualResult: String(step.actualResult || ""),
+        status: String(step.status || ""),
+      })
+    )
+    .digest("hex");
+}
+
+export function classifySndeskSteps(steps: SndeskStep[]) {
+  const newSteps: ClassifiedSndeskStep[] = [];
+  const changedSteps: ClassifiedSndeskStep[] = [];
+
+  for (const step of steps) {
+    const currentSndeskHash = getSndeskStepHash(step);
+    const classifiedStep = { ...step, currentSndeskHash };
+
+    if (!step.sndeskSentAt) {
+      newSteps.push(classifiedStep);
+      continue;
+    }
+
+    if (step.sndeskSentHash !== currentSndeskHash) {
+      changedSteps.push(classifiedStep);
+    }
+  }
+
+  return {
+    newSteps,
+    changedSteps,
+    pendingSteps: [...newSteps, ...changedSteps],
+  };
+}
+
+export function getSndeskStepPendingCounts(steps: SndeskStep[]) {
+  const { newSteps, changedSteps, pendingSteps } = classifySndeskSteps(steps);
+
+  return {
+    stepsCount: steps.length,
+    pendingStepsCount: pendingSteps.length,
+    newStepsCount: newSteps.length,
+    changedStepsCount: changedSteps.length,
   };
 }
 
@@ -431,10 +506,7 @@ export async function upsertPendingTicketFromSndesk(
       "statusDescricao" = EXCLUDED."statusDescricao",
       "statusCor" = EXCLUDED."statusCor",
       "chamadoSnapshot" = EXCLUDED."chamadoSnapshot",
-      "state" = CASE
-        WHEN "qa_pending_tickets"."state" IN ('aprovado', 'recusado') THEN "qa_pending_tickets"."state"
-        ELSE 'pendente'
-      END,
+      "state" = 'pendente',
       "lastError" = NULL,
       "updatedAt" = CURRENT_TIMESTAMP
     RETURNING
@@ -537,8 +609,8 @@ export async function refreshPendingTicket(id: string) {
   return upsertPendingTicketFromSndesk(ticket.idChamado, status, chamado);
 }
 
-function formatSteps(steps: any[]) {
-  if (!steps.length) return "Nenhum passo cadastrado.";
+function formatSteps(steps: SndeskStep[], emptyMessage = "Nenhum passo cadastrado.") {
+  if (!steps.length) return emptyMessage;
 
   return steps
     .sort((a, b) => Number(a.stepNumber) - Number(b.stepNumber))
@@ -551,6 +623,23 @@ function formatSteps(steps: any[]) {
       ].join("\n");
     })
     .join("\n\n");
+}
+
+function formatGroupedSteps(newSteps: SndeskStep[], changedSteps: SndeskStep[]) {
+  const passosNovos = formatSteps(newSteps, "Nenhum passo novo.");
+  const passosAlterados = formatSteps(changedSteps, "Nenhum passo alterado.");
+
+  return {
+    passosNovos,
+    passosAlterados,
+    passos: [
+      "Passos novos:",
+      passosNovos,
+      "",
+      "Passos alterados:",
+      passosAlterados,
+    ].join("\n"),
+  };
 }
 
 function renderTemplate(template: string, context: Record<string, string>) {
@@ -590,10 +679,26 @@ export async function sendPendingDecision(
 
   const report = await prisma.testReport.findUnique({
     where: { id: ticket.reportId },
-    include: { steps: true },
+    include: {
+      steps: {
+        orderBy: {
+          stepNumber: "asc",
+        },
+      },
+    },
   });
 
   if (!report) throw new Error("Relatorio vinculado nao encontrado.");
+
+  const { newSteps, changedSteps, pendingSteps } = classifySndeskSteps(
+    report.steps || []
+  );
+
+  if (!pendingSteps.length) {
+    throw new SndeskDecisionValidationError(
+      "Nao ha passos novos ou alterados para enviar ao SNDesk."
+    );
+  }
 
   const config = await getSndeskConfig();
   assertSndeskConfig(config);
@@ -609,12 +714,16 @@ export async function sendPendingDecision(
     throw new Error("Configure o ID do tecnico no seu perfil ou defina o usuario padrao nas configuracoes.");
   }
 
+  const groupedSteps = formatGroupedSteps(newSteps, changedSteps);
+
   const descricao = renderTemplate(template, {
     codigo_teste: report.code,
     id_chamado: ticket.idChamado,
     status_geral: report.generalStatus,
     resumo: report.bugDescription || report.notes || "",
-    passos: formatSteps(report.steps || []),
+    passos: groupedSteps.passos,
+    passos_novos: groupedSteps.passosNovos,
+    passos_alterados: groupedSteps.passosAlterados,
   });
 
   await callSndesk(config, "/api/chamado/interacao", {
@@ -633,12 +742,27 @@ export async function sendPendingDecision(
   });
 
   const nextState = action === "aprovar" ? "aprovado" : "recusado";
+  const sentAt = new Date();
 
-  await prisma.$executeRaw`
-    UPDATE "qa_pending_tickets"
-    SET "state" = ${nextState}, "lastError" = NULL, "updatedAt" = CURRENT_TIMESTAMP
-    WHERE "id" = ${id}
-  `;
+  await prisma.$transaction([
+    ...pendingSteps.map((step) =>
+      prisma.testStep.update({
+        where: { id: step.id },
+        data: {
+          sndeskSentAt: sentAt,
+          sndeskSentAction: action,
+          sndeskSentHash: step.currentSndeskHash,
+        },
+      })
+    ),
+    prisma.qaPendingTicket.update({
+      where: { id },
+      data: {
+        state: nextState,
+        lastError: null,
+      },
+    }),
+  ]);
 
   return refreshPendingTicket(id);
 }

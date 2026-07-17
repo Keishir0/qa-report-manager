@@ -59,6 +59,9 @@ export async function PUT(
       reportId: _reportId,
       createdAt: _createdAt,
       updatedAt: _updatedAt,
+      sndeskSentAt: _sndeskSentAt,
+      sndeskSentAction: _sndeskSentAction,
+      sndeskSentHash: _sndeskSentHash,
       ...updateData
     } = body;
 

@@ -118,6 +118,9 @@ model TestStep {
   expectedResult String
   actualResult   String
   status         String
+  sndeskSentAt   DateTime?
+  sndeskSentAction String?
+  sndeskSentHash String?
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
   report         TestReport @relation(fields: [reportId], references: [id], onDelete: Cascade)

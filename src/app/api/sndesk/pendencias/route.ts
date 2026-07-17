@@ -1,6 +1,10 @@
 import { requireQaOrAdmin } from "@/lib/adminAuth";
 import prisma from "@/lib/prisma";
-import { canUserAccessPendingTicket, PendingTicketRow } from "@/lib/sndesk";
+import {
+  canUserAccessPendingTicket,
+  getSndeskStepPendingCounts,
+  PendingTicketRow,
+} from "@/lib/sndesk";
 import { NextRequest, NextResponse } from "next/server";
 import { logServerError } from "@/lib/serverLog";
 import { getApiUser } from "@/lib/auth";
@@ -12,6 +16,55 @@ function jsonError(message: string, status: number, details?: unknown) {
     { success: false, message, ...(details ? { details } : {}) },
     { status }
   );
+}
+
+async function enrichTicketsWithStepCounts(tickets: PendingTicketRow[]) {
+  const reportIds = Array.from(
+    new Set(tickets.map((ticket) => ticket.reportId).filter(Boolean))
+  ) as string[];
+
+  if (reportIds.length === 0) {
+    return tickets.map((ticket) => ({
+      ...ticket,
+      stepsCount: 0,
+      pendingStepsCount: 0,
+      newStepsCount: 0,
+      changedStepsCount: 0,
+    }));
+  }
+
+  const steps = await prisma.testStep.findMany({
+    where: {
+      reportId: {
+        in: reportIds,
+      },
+    },
+    select: {
+      id: true,
+      reportId: true,
+      stepNumber: true,
+      action: true,
+      expectedResult: true,
+      actualResult: true,
+      status: true,
+      sndeskSentAt: true,
+      sndeskSentHash: true,
+    },
+  });
+
+  const stepsByReportId = new Map<string, typeof steps>();
+  for (const step of steps) {
+    const reportSteps = stepsByReportId.get(step.reportId) || [];
+    reportSteps.push(step);
+    stepsByReportId.set(step.reportId, reportSteps);
+  }
+
+  return tickets.map((ticket) => ({
+    ...ticket,
+    ...getSndeskStepPendingCounts(
+      ticket.reportId ? stepsByReportId.get(ticket.reportId) || [] : []
+    ),
+  }));
 }
 
 export async function GET(request: NextRequest) {
@@ -74,9 +127,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const enrichedTickets = await enrichTicketsWithStepCounts(filteredTickets);
+
     return NextResponse.json({
       success: true,
-      data: filteredTickets,
+      data: enrichedTickets,
     });
   } catch (error: unknown) {
     logServerError("Error in GET /api/sndesk/pendencias", error);

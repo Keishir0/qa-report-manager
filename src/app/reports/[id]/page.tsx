@@ -28,6 +28,9 @@ interface PendingTicket {
   statusDescricao: string | null;
   state: string;
   lastError: string | null;
+  pendingStepsCount?: number;
+  newStepsCount?: number;
+  changedStepsCount?: number;
 }
 
 export default function ReportDetailPage({ params }: ReportDetailPageProps) {
@@ -299,9 +302,10 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
 
   const sendSndeskDecision = async (action: "aprovar" | "recusar") => {
     if (!pendingTicket) return;
-    if (sortedSteps.length === 0) {
+    const pendingSndeskSteps = report?.sndeskPendingStepsCount ?? 0;
+    if (pendingSndeskSteps === 0) {
       setToast({
-        message: "Adicione pelo menos um passo no relatorio para permitir aprovar/recusar.",
+        message: "Adicione ou altere pelo menos um passo para enviar ao SNDesk.",
         type: "error",
       });
       return;
@@ -322,6 +326,7 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
       }
 
       setPendingTicket(result.data);
+      await Promise.all([fetchReport(), loadReportPending()]);
       setToast({
         message: action === "aprovar" ? "Aprovado no SNDesk." : "Recusado no SNDesk.",
         type: "success",
@@ -377,6 +382,9 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
   const sortedSteps = report.steps
     ? [...report.steps].sort((a, b) => a.stepNumber - b.stepNumber)
     : [];
+  const sndeskPendingStepsCount = report.sndeskPendingStepsCount ?? 0;
+  const sndeskNewStepsCount = report.sndeskNewStepsCount ?? 0;
+  const sndeskChangedStepsCount = report.sndeskChangedStepsCount ?? 0;
 
   const nextStepNumber =
     sortedSteps.length > 0
@@ -748,9 +756,15 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
                     ? ` • ${pendingTicket.statusDescricao || pendingTicket.state}`
                     : " • pendencia ainda nao carregada"}
                 </p>
-                {sortedSteps.length === 0 && (
+                <p className="mt-2 text-xs font-bold text-slate-600">
+                  {sndeskPendingStepsCount} passo(s) pendente(s) para o SNDesk
+                  {sndeskPendingStepsCount > 0
+                    ? ` (${sndeskNewStepsCount} novo(s), ${sndeskChangedStepsCount} alterado(s))`
+                    : ""}
+                </p>
+                {sndeskPendingStepsCount === 0 && (
                   <p className="mt-2 text-xs font-bold text-amber-700">
-                    Adicione pelo menos um passo antes de aprovar ou recusar.
+                    Adicione ou altere pelo menos um passo antes de aprovar ou recusar.
                   </p>
                 )}
                 {pendingTicket?.lastError && (
@@ -764,14 +778,14 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
                 <Button
                   variant="primary"
                   onClick={() => sendSndeskDecision("aprovar")}
-                  disabled={!pendingTicket || sortedSteps.length === 0 || isSndeskLoading}
+                  disabled={!pendingTicket || sndeskPendingStepsCount === 0 || isSndeskLoading}
                 >
                   Aprovar
                 </Button>
                 <Button
                   variant="danger"
                   onClick={() => sendSndeskDecision("recusar")}
-                  disabled={!pendingTicket || sortedSteps.length === 0 || isSndeskLoading}
+                  disabled={!pendingTicket || sndeskPendingStepsCount === 0 || isSndeskLoading}
                 >
                   Recusar
                 </Button>

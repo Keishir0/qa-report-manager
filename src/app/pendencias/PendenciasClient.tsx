@@ -35,6 +35,9 @@ interface PendingTicket {
   lastError: string | null;
   updatedAt: string;
   stepsCount?: number;
+  pendingStepsCount?: number;
+  newStepsCount?: number;
+  changedStepsCount?: number;
 }
 
 interface PendingTicketActionsMenuProps {
@@ -110,6 +113,7 @@ function PendingTicketActionsMenu({
   const menuHeight = ticket.reportId
     ? ACTIONS_MENU_HEIGHT
     : ACTIONS_VIEW_ONLY_HEIGHT;
+  const pendingStepsCount = ticket.pendingStepsCount ?? ticket.stepsCount ?? 0;
 
   useEffect(() => {
     if (!isOpen || !buttonRef.current) return;
@@ -195,8 +199,8 @@ function PendingTicketActionsMenu({
           <button
             type="button"
             role="menuitem"
-            disabled={isLoading || ticket.stepsCount === 0}
-            title={ticket.stepsCount === 0 ? "Adicione pelo menos um passo no relatorio para permitir aprovar." : undefined}
+            disabled={isLoading || pendingStepsCount === 0}
+            title={pendingStepsCount === 0 ? "Adicione ou altere pelo menos um passo para enviar ao SNDesk." : undefined}
             onClick={() => {
               closeMenu();
               onApprove(ticket.id);
@@ -211,8 +215,8 @@ function PendingTicketActionsMenu({
           <button
             type="button"
             role="menuitem"
-            disabled={isLoading || ticket.stepsCount === 0}
-            title={ticket.stepsCount === 0 ? "Adicione pelo menos um passo no relatorio para permitir recusar." : undefined}
+            disabled={isLoading || pendingStepsCount === 0}
+            title={pendingStepsCount === 0 ? "Adicione ou altere pelo menos um passo para enviar ao SNDesk." : undefined}
             onClick={() => {
               closeMenu();
               onReject(ticket.id);
@@ -716,14 +720,19 @@ export default function PendenciasClient() {
             </td>
             <td className="p-4 text-center">
               {ticket.reportId ? (
-                <button
-                  type="button"
-                  onClick={() => viewTicket(ticket)}
-                  className="inline-flex items-center rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700 transition-colors hover:bg-indigo-100"
-                  title="Abrir relatorio vinculado"
-                >
-                  {ticket.reportCode || "Relatorio criado"}
-                </button>
+                <div className="flex flex-col items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => viewTicket(ticket)}
+                    className="inline-flex items-center rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700 transition-colors hover:bg-indigo-100"
+                    title="Abrir relatorio vinculado"
+                  >
+                    {ticket.reportCode || "Relatorio criado"}
+                  </button>
+                  <span className="text-[11px] font-bold text-slate-500">
+                    {ticket.pendingStepsCount ?? 0} pendente(s) SNDesk
+                  </span>
+                </div>
               ) : (
                 <Button
                   variant="secondary"

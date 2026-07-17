@@ -61,6 +61,9 @@ export interface TestStepData {
   expectedResult: string;
   actualResult: string;
   status: StepStatus;
+  sndeskSentAt?: Date | string | null;
+  sndeskSentAction?: string | null;
+  sndeskSentHash?: string | null;
   createdAt?: Date | string;
   updatedAt?: Date | string;
 }
@@ -84,6 +87,9 @@ export interface TestReportData {
   createdAt?: Date | string;
   updatedAt?: Date | string;
   deletedAt?: Date | string | null;
+  sndeskPendingStepsCount?: number;
+  sndeskNewStepsCount?: number;
+  sndeskChangedStepsCount?: number;
   steps?: TestStepData[];
 }
 
