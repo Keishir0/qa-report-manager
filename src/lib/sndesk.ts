@@ -112,9 +112,7 @@ export function canUserAccessPendingTicket(
 
   const userStatusId = getUserSndeskStatusId(user);
   if (userStatusId !== null) {
-    if (ticket.statusId !== userStatusId) {
-      return false;
-    }
+    return ticket.statusId === userStatusId;
   } else {
     const mySndeskId = user.sndeskUserId;
     if (!mySndeskId) return false;

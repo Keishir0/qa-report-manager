@@ -5,7 +5,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { logServerError } from "@/lib/serverLog";
 import { getSndeskTechnicianName } from "@/lib/sndeskTechnician";
 import {
-  canUserAccessReport,
   generateNextReportCode,
   softDeleteReport,
 } from "@/lib/reports";
@@ -52,10 +51,6 @@ export async function POST(
       });
 
       if (report && !report.deletedAt) {
-        if (!canUserAccessReport(user, report)) {
-          return jsonError("Relatorio nao encontrado.", 404);
-        }
-
         return NextResponse.json({
           success: true,
           data: report,
@@ -154,7 +149,7 @@ export async function DELETE(
       select: { testerId: true },
     });
 
-    if (!report || !canUserAccessReport(user, report)) {
+    if (!report) {
       return jsonError("Relatorio nao encontrado.", 404);
     }
 

@@ -2,6 +2,21 @@ import prisma from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 import type { AuthUser } from "@/lib/auth";
 
+type ReportAccessTarget = {
+  testerId: string | null;
+  pendingTicket?: {
+    statusId: number | null;
+  } | null;
+};
+
+function getUserSndeskStatusId(user: AuthUser | null | undefined) {
+  const rawStatusId = user?.sndeskStatusId?.trim();
+  if (!rawStatusId) return null;
+
+  const statusId = Number(rawStatusId);
+  return Number.isInteger(statusId) ? statusId : null;
+}
+
 type NextReportCodeRow = {
   nextNumber: number | bigint;
 };
@@ -10,6 +25,17 @@ export function reportAccessWhere(
   user: AuthUser | null | undefined
 ): Prisma.TestReportWhereInput {
   if (user?.role === "QA") {
+    const statusId = getUserSndeskStatusId(user);
+
+    if (statusId !== null) {
+      return {
+        OR: [
+          { pendingTicket: { is: { statusId } } },
+          { pendingTicket: { is: null }, testerId: user.id },
+        ],
+      };
+    }
+
     return { testerId: user.id };
   }
 
@@ -18,10 +44,17 @@ export function reportAccessWhere(
 
 export function canUserAccessReport(
   user: AuthUser | null | undefined,
-  report: { testerId: string | null }
+  report: ReportAccessTarget
 ) {
   if (!user) return false;
   if (user.role === "ADMIN" || user.role === "VIEWER") return true;
+  if (user.role !== "QA") return false;
+
+  if (report.pendingTicket) {
+    const statusId = getUserSndeskStatusId(user);
+    return statusId !== null && report.pendingTicket.statusId === statusId;
+  }
+
   if (user.role === "QA") return report.testerId === user.id;
   return false;
 }

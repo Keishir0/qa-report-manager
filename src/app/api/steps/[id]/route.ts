@@ -25,6 +25,11 @@ async function getAccessibleStep(stepId: string, request: NextRequest) {
         select: {
           testerId: true,
           deletedAt: true,
+          pendingTicket: {
+            select: {
+              statusId: true,
+            },
+          },
         },
       },
     },
