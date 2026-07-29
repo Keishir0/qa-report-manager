@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getApiUser, requireApiAccess, WRITE_ROLES } from "@/lib/auth";
-import { recalculateReportGeneralStatus, reportAccessWhere } from "@/lib/reports";
+import {
+  canUserAccessReport,
+  recalculateReportGeneralStatus,
+  reportAccessWhere,
+} from "@/lib/reports";
 import { STEP_STATUS_OPTIONS } from "@/types";
 import { logServerError } from "@/lib/serverLog";
 
@@ -115,6 +119,81 @@ export async function POST(request: NextRequest) {
     logServerError("Error in POST /api/steps/bulk", error);
     return NextResponse.json(
       { error: "Não foi possível salvar os passos." },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  const denied = await requireApiAccess(request, WRITE_ROLES);
+  if (denied) return denied;
+  const user = await getApiUser(request);
+
+  if (!user) {
+    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+  }
+
+  try {
+    const body = await request.json();
+    const ids: string[] = Array.isArray(body.ids)
+      ? Array.from(new Set(body.ids.map((id: unknown) => String(id))))
+      : [];
+
+    if (ids.length === 0 || ids.length > MAX_STEPS_PER_REQUEST) {
+      return NextResponse.json(
+        { error: "Informe entre 1 e 30 passos válidos." },
+        { status: 400 }
+      );
+    }
+
+    const steps = await prisma.testStep.findMany({
+      where: { id: { in: ids } },
+      include: {
+        report: {
+          select: {
+            testerId: true,
+            deletedAt: true,
+            pendingTicket: { select: { statusId: true } },
+          },
+        },
+      },
+    });
+
+    const deletableIds = steps
+      .filter(
+        (step) =>
+          !step.report.deletedAt && canUserAccessReport(user, step.report)
+      )
+      .map((step) => step.id);
+
+    if (deletableIds.length === 0) {
+      return NextResponse.json(
+        { error: "Nenhum passo válido para exclusão." },
+        { status: 404 }
+      );
+    }
+
+    const affectedReportIds = [
+      ...new Set(
+        steps
+          .filter((step) => deletableIds.includes(step.id))
+          .map((step) => step.reportId)
+      ),
+    ];
+
+    await prisma.testStep.deleteMany({
+      where: { id: { in: deletableIds } },
+    });
+
+    for (const reportId of affectedReportIds) {
+      await recalculateReportGeneralStatus(reportId);
+    }
+
+    return NextResponse.json({ success: true, deletedIds: deletableIds });
+  } catch (error) {
+    logServerError("Error in DELETE /api/steps/bulk", error);
+    return NextResponse.json(
+      { error: "Não foi possível excluir os passos selecionados." },
       { status: 500 }
     );
   }

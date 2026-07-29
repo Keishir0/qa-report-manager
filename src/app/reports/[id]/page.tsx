@@ -52,6 +52,8 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
   const [pendingTicket, setPendingTicket] = useState<PendingTicket | null>(null);
   const [isSndeskLoading, setIsSndeskLoading] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [selectedStepIds, setSelectedStepIds] = useState<string[]>([]);
+  const [isDeletingSteps, setIsDeletingSteps] = useState(false);
 
   // Buscar detalhes do relatório
   const fetchReport = useCallback(async () => {
@@ -78,6 +80,32 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
   useEffect(() => {
     fetchReport();
   }, [fetchReport]);
+
+  const loadReportPending = useCallback(async () => {
+    setIsSndeskLoading(true);
+    try {
+      const response = await fetch(`/api/sndesk/pendencias?reportId=${id}`, {
+        cache: "no-store",
+      });
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Nao foi possivel carregar a pendencia.");
+      }
+
+      setPendingTicket(result.data[0] || null);
+    } catch (err: any) {
+      setToast({ message: err.message || "Erro ao carregar pendencia.", type: "error" });
+    } finally {
+      setIsSndeskLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    if (report?.sndeskChamadoId && (user?.role === "ADMIN" || user?.role === "QA")) {
+      loadReportPending();
+    }
+  }, [loadReportPending, report?.sndeskChamadoId, user?.role]);
 
   // Capturar parâmetro de query "edit" para abrir em modo de edição
   useEffect(() => {
@@ -216,25 +244,91 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
     }
   };
 
+  // Recarrega relatório e pendência do SNDesk após qualquer alteração nos passos,
+  // já que a pendência não é atualizada automaticamente ao editar/adicionar/excluir passos.
+  const refreshAfterStepMutation = useCallback(() => {
+    fetchReport();
+    if (
+      report?.sndeskChamadoId &&
+      (user?.role === "ADMIN" || user?.role === "QA")
+    ) {
+      loadReportPending();
+    }
+  }, [fetchReport, loadReportPending, report?.sndeskChamadoId, user?.role]);
+
   // Funções de manipulação de passos
   const handleStepDelete = (stepId: string) => {
-    fetchReport();
+    refreshAfterStepMutation();
+    setSelectedStepIds((prev) => prev.filter((id) => id !== stepId));
     setToast({ message: "Passo de teste removido com sucesso!", type: "success" });
   };
 
+  const handleToggleStepSelect = (stepId: string) => {
+    setSelectedStepIds((prev) =>
+      prev.includes(stepId)
+        ? prev.filter((id) => id !== stepId)
+        : [...prev, stepId]
+    );
+  };
+
+  const handleToggleSelectAll = () => {
+    setSelectedStepIds((prev) =>
+      prev.length === sortedSteps.length ? [] : sortedSteps.map((s) => s.id!)
+    );
+  };
+
+  const handleDeleteSelectedSteps = async () => {
+    if (
+      selectedStepIds.length === 0 ||
+      !window.confirm(
+        `Deseja excluir ${selectedStepIds.length} passo(s) selecionado(s)?`
+      )
+    ) {
+      return;
+    }
+
+    setIsDeletingSteps(true);
+    try {
+      const response = await fetch("/api/steps/bulk", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: selectedStepIds }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Erro ao excluir os passos selecionados.");
+      }
+
+      setToast({
+        message: `${data.deletedIds.length} passo(s) excluído(s) com sucesso!`,
+        type: "success",
+      });
+      setSelectedStepIds([]);
+      refreshAfterStepMutation();
+    } catch (err: any) {
+      setToast({
+        message: err.message || "Erro ao excluir os passos selecionados.",
+        type: "error",
+      });
+    } finally {
+      setIsDeletingSteps(false);
+    }
+  };
+
   const handleStepUpdate = (updatedStep: TestStepData) => {
-    fetchReport();
+    refreshAfterStepMutation();
     setToast({ message: "Passo de teste atualizado!", type: "success" });
   };
 
   const handleStepCreateSuccess = () => {
-    fetchReport();
+    refreshAfterStepMutation();
     setToast({ message: "Passo de teste adicionado com sucesso!", type: "success" });
     setShowAddStep(false);
   };
 
   const handleAiStepsSaved = () => {
-    fetchReport();
+    refreshAfterStepMutation();
     setShowAiAssistant(false);
     setToast({
       message: "Passos gerados pela IA e adicionados com sucesso!",
@@ -273,32 +367,6 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
       setIsExportingPDF(false);
     }
   };
-
-  const loadReportPending = useCallback(async () => {
-    setIsSndeskLoading(true);
-    try {
-      const response = await fetch(`/api/sndesk/pendencias?reportId=${id}`, {
-        cache: "no-store",
-      });
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.message || "Nao foi possivel carregar a pendencia.");
-      }
-
-      setPendingTicket(result.data[0] || null);
-    } catch (err: any) {
-      setToast({ message: err.message || "Erro ao carregar pendencia.", type: "error" });
-    } finally {
-      setIsSndeskLoading(false);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    if (report?.sndeskChamadoId && (user?.role === "ADMIN" || user?.role === "QA")) {
-      loadReportPending();
-    }
-  }, [loadReportPending, report?.sndeskChamadoId, user?.role]);
 
   const sendSndeskDecision = async (action: "aprovar" | "recusar") => {
     if (!pendingTicket) return;
@@ -634,6 +702,22 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
           </div>
           {canWrite && (
             <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+              {selectedStepIds.length > 0 && (
+                <Button
+                  variant="danger"
+                  onClick={handleDeleteSelectedSteps}
+                  disabled={isDeletingSteps}
+                  icon={
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  }
+                >
+                  {isDeletingSteps
+                    ? "Excluindo..."
+                    : `Excluir Selecionado(s) (${selectedStepIds.length})`}
+                </Button>
+              )}
               {!showAiAssistant && (
                 <Button
                   variant="secondary"
@@ -703,6 +787,19 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
               <table className="w-full min-w-[860px] text-left border-collapse max-lg:block max-lg:min-w-0">
                 <thead className="max-lg:hidden">
                   <tr className="bg-slate-50 text-slate-500 font-bold text-[10px] border-b border-slate-200 uppercase tracking-wider">
+                    {canWrite && (
+                      <th className="p-4 w-10 text-center">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 rounded border-slate-300"
+                          checked={
+                            sortedSteps.length > 0 &&
+                            selectedStepIds.length === sortedSteps.length
+                          }
+                          onChange={handleToggleSelectAll}
+                        />
+                      </th>
+                    )}
                     <th className="p-4 w-16 text-center">#</th>
                     <th className="p-4">Ação / Passo</th>
                     <th className="p-4">Resultado Esperado</th>
@@ -719,6 +816,8 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
                       onDelete={handleStepDelete}
                       onUpdate={handleStepUpdate}
                       canEdit={canWrite}
+                      selected={selectedStepIds.includes(step.id!)}
+                      onToggleSelect={handleToggleStepSelect}
                     />
                   ))}
                 </tbody>

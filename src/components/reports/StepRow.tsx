@@ -9,6 +9,8 @@ interface StepRowProps {
   onDelete: (id: string) => void;
   onUpdate: (updatedStep: TestStepData) => void;
   canEdit?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (id: string) => void;
 }
 
 export default function StepRow({
@@ -16,6 +18,8 @@ export default function StepRow({
   onDelete,
   onUpdate,
   canEdit = true,
+  selected = false,
+  onToggleSelect,
 }: StepRowProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [action, setAction] = useState(step.action);
@@ -99,6 +103,16 @@ export default function StepRow({
   if (isEditing) {
     return (
       <tr className="border-b border-gray-100 bg-brand-50/10 max-lg:block max-lg:rounded-xl max-lg:border max-lg:border-slate-200 max-lg:bg-white max-lg:shadow-xs">
+        {canEdit && (
+          <td className="p-4 align-top text-center max-lg:hidden">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-slate-300"
+              checked={selected}
+              onChange={() => onToggleSelect?.(step.id!)}
+            />
+          </td>
+        )}
         <td data-label="#" className="p-4 align-top text-center text-sm font-mono text-gray-500 font-medium max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-slate-100 max-lg:text-right max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]">
           {step.stepNumber}
         </td>
@@ -184,6 +198,16 @@ export default function StepRow({
 
   return (
     <tr className="border-b border-gray-200 hover:bg-gray-50/50 transition-colors max-lg:block max-lg:rounded-xl max-lg:border max-lg:border-slate-200 max-lg:bg-white max-lg:shadow-xs">
+      {canEdit && (
+        <td className="p-4 text-center max-lg:hidden">
+          <input
+            type="checkbox"
+            className="h-4 w-4 rounded border-slate-300"
+            checked={selected}
+            onChange={() => onToggleSelect?.(step.id!)}
+          />
+        </td>
+      )}
       <td data-label="#" className="p-4 text-center text-sm font-mono text-gray-500 font-medium max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-slate-100 max-lg:text-right max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]">
         {step.stepNumber}
       </td>

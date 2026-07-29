@@ -1,6 +1,9 @@
 # Estágio de Build
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 WORKDIR /app
+
+# Instala o OpenSSL exigido pelos engines do Prisma
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
 # Copia arquivos de dependência
 COPY package*.json ./
@@ -16,8 +19,11 @@ RUN npx prisma generate
 RUN npm run build
 
 # Estágio de Execução (Production Runner)
-FROM node:20-alpine AS runner
+FROM node:20-slim AS runner
 WORKDIR /app
+
+# Instala o OpenSSL exigido pelos engines do Prisma
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production
 
