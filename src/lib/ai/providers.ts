@@ -138,6 +138,7 @@ export async function generateWithGemini(
           responseMimeType: "application/json",
           responseSchema: toGeminiSchema(mode),
           temperature: 0.2,
+          maxOutputTokens: 5000,
         },
       },
       { timeout: timeoutMs }
@@ -231,7 +232,7 @@ export async function generateWithOpenRouter(
       } | null;
       throw new AiProviderError(
         errorPayload?.error?.message || "Falha na geração pelo OpenRouter.",
-        false,
+        isRetriableStatus(response.status),
         response.status
       );
     }
@@ -262,7 +263,7 @@ export async function generateWithOpenRouter(
         error.name === "AbortError"
           ? "Tempo limite do OpenRouter excedido."
           : "Resposta inválida do OpenRouter.",
-        false,
+        error.name === "AbortError",
         error.name === "AbortError" ? 504 : undefined
       );
     }

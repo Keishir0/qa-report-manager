@@ -1,5 +1,6 @@
 import type { AiMode } from "@/lib/ai/schemas";
 import {
+  AiProviderError,
   AiProviderResult,
   generateWithGemini,
   generateWithOpenRouter,
@@ -19,6 +20,16 @@ function sleep(ms: number) {
 
 function retryDelay() {
   return 500 + Math.floor(Math.random() * 501);
+}
+
+// Erros de configuração (chave ausente/invalida) falham identicamente para
+// qualquer modelo da cadeia, entao nao vale a pena tentar os demais.
+function isChainFatalError(err: unknown) {
+  return (
+    err instanceof AiProviderError &&
+    !err.retriable &&
+    (err.status === 401 || err.status === 403 || err.status === 503)
+  );
 }
 
 function openRouterTimeout() {
@@ -98,7 +109,8 @@ export async function generateAiContent(
         localFallbackUsed: false,
         inputReduced: processed.wasReduced,
       };
-    } catch {
+    } catch (err) {
+      if (isChainFatalError(err)) break;
       if (index < modelChain.length - 1) {
         await sleep(retryDelay());
       }

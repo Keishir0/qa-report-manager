@@ -9,7 +9,7 @@ import {
 import { STEP_STATUS_OPTIONS } from "@/types";
 import { logServerError } from "@/lib/serverLog";
 
-const MAX_STEPS_PER_REQUEST = 30;
+const MAX_STEPS_PER_REQUEST = 50;
 const MAX_FIELD_LENGTH = 5000;
 
 interface StepCreateInput {
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
       inputSteps.length > MAX_STEPS_PER_REQUEST
     ) {
       return NextResponse.json(
-        { error: "Informe entre 1 e 30 passos válidos." },
+        { error: "Informe entre 1 e 50 passos válidos." },
         { status: 400 }
       );
     }
@@ -141,7 +141,7 @@ export async function DELETE(request: NextRequest) {
 
     if (ids.length === 0 || ids.length > MAX_STEPS_PER_REQUEST) {
       return NextResponse.json(
-        { error: "Informe entre 1 e 30 passos válidos." },
+        { error: "Informe entre 1 e 50 passos válidos." },
         { status: 400 }
       );
     }
