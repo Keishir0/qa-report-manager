@@ -41,6 +41,47 @@ interface PaginatedReportsResponse {
 
 const PAGE_SIZE = 10;
 
+function getPageNumbers(
+  currentPage: number,
+  totalPages: number
+): (number | "...")[] {
+  const siblingCount = 1;
+  const totalNumbers = siblingCount * 2 + 5; // first, last, current, 2 siblings, 2 ellipses
+
+  if (totalPages <= totalNumbers) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  const leftSibling = Math.max(currentPage - siblingCount, 1);
+  const rightSibling = Math.min(currentPage + siblingCount, totalPages);
+
+  const showLeftEllipsis = leftSibling > 2;
+  const showRightEllipsis = rightSibling < totalPages - 1;
+
+  const pages: (number | "...")[] = [1];
+
+  if (showLeftEllipsis) {
+    pages.push("...");
+  } else {
+    for (let page = 2; page < leftSibling; page++) pages.push(page);
+  }
+
+  for (let page = leftSibling; page <= rightSibling; page++) {
+    if (page !== 1 && page !== totalPages) pages.push(page);
+  }
+
+  if (showRightEllipsis) {
+    pages.push("...");
+  } else {
+    for (let page = rightSibling + 1; page < totalPages; page++)
+      pages.push(page);
+  }
+
+  pages.push(totalPages);
+
+  return pages;
+}
+
 export default function ReportsListPage() {
   const user = useAuthUser();
   const canWrite = user?.role === "ADMIN" || user?.role === "QA";
@@ -886,8 +927,15 @@ export default function ReportsListPage() {
             >
               Anterior
             </Button>
-            {Array.from({ length: totalPages }, (_, index) => index + 1).map(
-              (page) => (
+            {getPageNumbers(currentPage, totalPages).map((page, index) =>
+              page === "..." ? (
+                <span
+                  key={`ellipsis-${index}`}
+                  className="px-1 text-xs font-bold text-slate-400"
+                >
+                  …
+                </span>
+              ) : (
                 <button
                   key={page}
                   type="button"
