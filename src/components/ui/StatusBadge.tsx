@@ -3,50 +3,72 @@ import React from "react";
 interface StatusBadgeProps {
   status: string;
   size?: "sm" | "md";
+  variant?: "dot" | "pill";
 }
 
-export default function StatusBadge({ status, size = "md" }: StatusBadgeProps) {
-  const getColors = (statusStr: string) => {
-    switch (statusStr) {
-      case "Aprovado QA":
-      case "Passou":
-        return "bg-emerald-50 text-emerald-700 border-emerald-100";
-      case "Reprovado QA":
-      case "Falhou":
-      case "Bloqueado":
-        return "bg-rose-50 text-rose-700 border-rose-100";
-      case "Não Executado":
-      case "Não executado":
-      default:
-        return "bg-slate-50 text-slate-600 border-slate-200";
-    }
-  };
+type StatusColor = "ok" | "bad" | "warn" | "neutral";
 
-  const dotColors = {
-    "Aprovado QA": "bg-emerald-500",
-    Passou: "bg-emerald-500",
-    "Reprovado QA": "bg-rose-500",
-    Falhou: "bg-rose-500",
-    Bloqueado: "bg-orange-500",
-    "Não Executado": "bg-slate-400",
-    "Não executado": "bg-slate-400",
-  };
+const STATUS_COLOR: Record<string, StatusColor> = {
+  "Aprovado QA": "ok",
+  Passou: "ok",
+  "Reprovado QA": "bad",
+  Falhou: "bad",
+  Bloqueado: "warn",
+  "Não Executado": "neutral",
+  "Não executado": "neutral",
+};
 
-  const dotColorClass =
-    dotColors[status as keyof typeof dotColors] || "bg-slate-400";
+const DOT_CLASS: Record<StatusColor, string> = {
+  ok: "bg-ok",
+  bad: "bg-bad",
+  warn: "bg-warn",
+  neutral: "bg-neutral",
+};
 
-  const sizeClasses =
-    size === "sm"
-      ? "min-w-[6.75rem] px-2 py-0.5 text-[11px]"
-      : "min-w-[8.25rem] px-2.5 py-1 text-xs";
+const TEXT_CLASS: Record<StatusColor, string> = {
+  ok: "text-ok",
+  bad: "text-bad",
+  warn: "text-warn",
+  neutral: "text-neutral",
+};
+
+const PILL_CLASS: Record<StatusColor, string> = {
+  ok: "bg-ok/10 border-ok/30",
+  bad: "bg-bad/10 border-bad/30",
+  warn: "bg-warn/10 border-warn/30",
+  neutral: "bg-neutral/10 border-neutral/30",
+};
+
+export function getStatusColor(status: string): StatusColor {
+  return STATUS_COLOR[status] || "neutral";
+}
+
+export function getStatusColorVar(status: string) {
+  return `rgb(var(--${getStatusColor(status)}))`;
+}
+
+export default function StatusBadge({
+  status,
+  size = "md",
+  variant = "dot",
+}: StatusBadgeProps) {
+  const color = STATUS_COLOR[status] || "neutral";
+  const textSize = size === "sm" ? "text-[11px]" : "text-[11.5px]";
+
+  if (variant === "pill") {
+    return (
+      <span
+        className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 font-bold tracking-wide ${textSize} ${TEXT_CLASS[color]} ${PILL_CLASS[color]}`}
+      >
+        <span className={`h-1.5 w-1.5 rounded-full ${DOT_CLASS[color]}`} />
+        {status}
+      </span>
+    );
+  }
 
   return (
-    <span
-      className={`inline-flex items-center justify-center whitespace-nowrap font-bold border rounded-full tracking-wide shadow-xs ${sizeClasses} ${getColors(
-        status
-      )}`}
-    >
-      <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${dotColorClass}`} />
+    <span className={`inline-flex items-center gap-1.5 whitespace-nowrap font-bold ${textSize} ${TEXT_CLASS[color]}`}>
+      <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${DOT_CLASS[color]}`} />
       {status}
     </span>
   );

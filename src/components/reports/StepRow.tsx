@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { TestStepData, STEP_STATUS_OPTIONS } from "@/types";
-import StatusBadge from "@/components/ui/StatusBadge";
+import StatusBadge, { getStatusColor, getStatusColorVar } from "@/components/ui/StatusBadge";
 
 interface StepRowProps {
   step: TestStepData;
@@ -102,31 +102,36 @@ export default function StepRow({
 
   if (isEditing) {
     return (
-      <tr className="border-b border-gray-100 bg-brand-50/10 max-lg:block max-lg:rounded-xl max-lg:border max-lg:border-slate-200 max-lg:bg-white max-lg:shadow-xs">
+      <tr className="bg-panel2 max-lg:block max-lg:rounded-[14px] max-lg:border max-lg:border-line max-lg:bg-panel">
         {canEdit && (
-          <td className="p-4 align-top text-center max-lg:hidden">
+          <td
+            style={{ borderLeft: `3px solid ${getStatusColorVar(status)}` }}
+            className="p-4 align-top text-center max-lg:hidden"
+          >
             <input
               type="checkbox"
-              className="h-4 w-4 rounded border-slate-300"
+              className="h-4 w-4 rounded border-line text-accent focus:ring-accent"
               checked={selected}
               onChange={() => onToggleSelect?.(step.id!)}
             />
           </td>
         )}
-        <td data-label="#" className="p-4 align-top text-center text-sm font-mono text-gray-500 font-medium max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-slate-100 max-lg:text-right max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]">
+        <td
+          data-label="#"
+          style={canEdit ? undefined : { borderLeft: `3px solid ${getStatusColorVar(status)}` }}
+          className="p-4 align-top text-center font-mono text-[13px] font-medium text-faint max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-hairline max-lg:text-right max-lg:before:text-left max-lg:before:font-mono max-lg:before:text-[10px] max-lg:before:font-medium max-lg:before:uppercase max-lg:before:tracking-[0.12em] max-lg:before:text-faint max-lg:before:content-[attr(data-label)]"
+        >
           {step.stepNumber}
         </td>
-        <td data-label="Editar passo" className="p-4 align-top max-lg:block max-lg:w-full max-lg:before:mb-3 max-lg:before:block max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]" colSpan={4}>
+        <td data-label="Editar passo" className="p-4 align-top max-lg:block max-lg:w-full max-lg:before:mb-3 max-lg:before:block max-lg:before:text-left max-lg:before:font-mono max-lg:before:text-[10px] max-lg:before:font-medium max-lg:before:uppercase max-lg:before:tracking-[0.12em] max-lg:before:text-faint max-lg:before:content-[attr(data-label)]" colSpan={4}>
           {error && (
-            <div className="mb-3 text-xs text-red-600 bg-red-50 p-2 rounded border border-red-100">
+            <div className="mb-3 rounded-[8px] border border-bad/30 bg-bad/8 p-2 text-[12px] text-bad">
               {error}
             </div>
           )}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
-                Ação
-              </label>
+              <label className="label">Ação</label>
               <textarea
                 rows={3}
                 className="input"
@@ -135,9 +140,7 @@ export default function StepRow({
               />
             </div>
             <div>
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
-                Resultado Esperado
-              </label>
+              <label className="label">Resultado Esperado</label>
               <textarea
                 rows={3}
                 className="input"
@@ -146,9 +149,7 @@ export default function StepRow({
               />
             </div>
             <div>
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
-                Resultado Obtido
-              </label>
+              <label className="label">Resultado Obtido</label>
               <textarea
                 rows={3}
                 className="input"
@@ -159,11 +160,9 @@ export default function StepRow({
           </div>
           <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2">
-              <label className="text-xs font-semibold text-gray-500">
-                Status:
-              </label>
+              <label className="text-[12px] font-semibold text-muted">Status:</label>
               <select
-                className="input py-1 px-2 text-xs max-w-[150px]"
+                className="input max-w-[150px] py-1 px-2 text-[12px]"
                 value={status}
                 onChange={(e) => setStatus(e.target.value as any)}
               >
@@ -196,34 +195,46 @@ export default function StepRow({
     );
   }
 
+  const isFailed = getStatusColor(step.status) === "bad";
+  const borderAccent = { borderLeft: `3px solid ${getStatusColorVar(step.status)}` };
+
   return (
-    <tr className="border-b border-gray-200 hover:bg-gray-50/50 transition-colors max-lg:block max-lg:rounded-xl max-lg:border max-lg:border-slate-200 max-lg:bg-white max-lg:shadow-xs">
+    <tr className="border-t border-hairline transition-colors hover:bg-panel2 max-lg:block max-lg:rounded-[14px] max-lg:border max-lg:border-line max-lg:bg-panel">
       {canEdit && (
-        <td className="p-4 text-center max-lg:hidden">
+        <td style={borderAccent} className="p-4 text-center max-lg:hidden">
           <input
             type="checkbox"
-            className="h-4 w-4 rounded border-slate-300"
+            className="h-4 w-4 rounded border-line text-accent focus:ring-accent"
             checked={selected}
             onChange={() => onToggleSelect?.(step.id!)}
           />
         </td>
       )}
-      <td data-label="#" className="p-4 text-center text-sm font-mono text-gray-500 font-medium max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-slate-100 max-lg:text-right max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]">
+      <td
+        data-label="#"
+        style={canEdit ? undefined : borderAccent}
+        className="p-4 text-center font-mono text-[13px] font-medium text-faint max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-hairline max-lg:text-right max-lg:before:text-left max-lg:before:font-mono max-lg:before:text-[10px] max-lg:before:font-medium max-lg:before:uppercase max-lg:before:tracking-[0.12em] max-lg:before:text-faint max-lg:before:content-[attr(data-label)]"
+      >
         {step.stepNumber}
       </td>
-      <td data-label="Acao / Passo" className="p-4 text-sm text-gray-800 break-words whitespace-pre-line max-w-[240px] max-lg:flex max-lg:max-w-none max-lg:items-start max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-slate-100 max-lg:text-right max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]">
+      <td data-label="Acao / Passo" className="max-w-[240px] whitespace-pre-line break-words p-4 text-[13px] text-fg2 max-lg:flex max-lg:max-w-none max-lg:items-start max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-hairline max-lg:text-right max-lg:before:text-left max-lg:before:font-mono max-lg:before:text-[10px] max-lg:before:font-medium max-lg:before:uppercase max-lg:before:tracking-[0.12em] max-lg:before:text-faint max-lg:before:content-[attr(data-label)]">
         {step.action}
       </td>
-      <td data-label="Resultado Esperado" className="p-4 text-sm text-gray-600 break-words whitespace-pre-line max-w-[240px] max-lg:flex max-lg:max-w-none max-lg:items-start max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-slate-100 max-lg:text-right max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]">
+      <td data-label="Resultado Esperado" className="max-w-[240px] whitespace-pre-line break-words p-4 text-[13px] text-fg2 max-lg:flex max-lg:max-w-none max-lg:items-start max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-hairline max-lg:text-right max-lg:before:text-left max-lg:before:font-mono max-lg:before:text-[10px] max-lg:before:font-medium max-lg:before:uppercase max-lg:before:tracking-[0.12em] max-lg:before:text-faint max-lg:before:content-[attr(data-label)]">
         {step.expectedResult}
       </td>
-      <td data-label="Resultado Obtido" className="p-4 text-sm text-gray-600 break-words whitespace-pre-line max-w-[240px] max-lg:flex max-lg:max-w-none max-lg:items-start max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-slate-100 max-lg:text-right max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]">
+      <td
+        data-label="Resultado Obtido"
+        className={`max-w-[240px] whitespace-pre-line break-words p-4 text-[13px] max-lg:flex max-lg:max-w-none max-lg:items-start max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-hairline max-lg:text-right max-lg:before:text-left max-lg:before:font-mono max-lg:before:text-[10px] max-lg:before:font-medium max-lg:before:uppercase max-lg:before:tracking-[0.12em] max-lg:before:text-faint max-lg:before:content-[attr(data-label)] ${
+          isFailed ? "font-semibold text-bad" : "text-fg2"
+        }`}
+      >
         {step.actualResult}
       </td>
-      <td data-label="Status" className="p-4 whitespace-nowrap max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-slate-100 max-lg:text-right max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]">
+      <td data-label="Status" className="whitespace-nowrap p-4 max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-hairline max-lg:text-right max-lg:before:text-left max-lg:before:font-mono max-lg:before:text-[10px] max-lg:before:font-medium max-lg:before:uppercase max-lg:before:tracking-[0.12em] max-lg:before:text-faint max-lg:before:content-[attr(data-label)]">
         <StatusBadge status={step.status} size="sm" />
       </td>
-      <td data-label="Acoes" className="p-4 whitespace-nowrap text-right text-xs max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]">
+      <td data-label="Acoes" className="whitespace-nowrap p-4 text-right text-xs max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:before:text-left max-lg:before:font-mono max-lg:before:text-[10px] max-lg:before:font-medium max-lg:before:uppercase max-lg:before:tracking-[0.12em] max-lg:before:text-faint max-lg:before:content-[attr(data-label)]">
         {canEdit ? <div className="flex justify-end gap-2">
           <button
             onClick={() => setIsEditing(true)}
@@ -237,7 +248,7 @@ export default function StepRow({
           >
             Excluir
           </button>
-        </div> : <span className="font-medium text-slate-400">Somente leitura</span>}
+        </div> : <span className="font-medium text-faint">Somente leitura</span>}
       </td>
     </tr>
   );

@@ -15,7 +15,7 @@ import Select from "@/components/ui/Select";
 import MultiSelectCreatable from "@/components/ui/MultiSelectCreatable";
 import Textarea from "@/components/ui/Textarea";
 import Button from "@/components/ui/Button";
-import StatusBadge from "@/components/ui/StatusBadge";
+import StatusBadge, { getStatusColorVar } from "@/components/ui/StatusBadge";
 import { AI_INPUT_MAX_CHARS } from "@/lib/ai/schemas";
 import { useAuthUser } from "@/components/auth/AuthProvider";
 
@@ -68,7 +68,6 @@ export default function ReportForm({
   const [stepErrors, setStepErrors] = useState<Record<string, string>>({});
 
   // Estados da IA
-  const [isAiPanelOpen, setIsAiPanelOpen] = useState(false);
   const [aiInputText, setAiInputText] = useState("");
   const [isAiGenerating, setIsAiGenerating] = useState(false);
   const [aiError, setAiError] = useState("");
@@ -150,7 +149,6 @@ export default function ReportForm({
         result.meta?.fallbackUsed
           ? "Formulário preenchido com sucesso com o Assistente! Revise os dados antes de salvar." : "Formulário preenchido com sucesso com o Assistente! Revise os dados antes de salvar."
       );
-      setIsAiPanelOpen(false);
       setAiInputText("");
     } catch (err: any) {
       setAiError(err.message || "Ocorreu um erro desconhecido.");
@@ -306,11 +304,9 @@ export default function ReportForm({
   return (
     <form onSubmit={handleSubmit} className="min-w-0 space-y-6">
       {initialData?.code && (
-        <div className="w-full rounded-xl border border-slate-200 bg-slate-50 p-4 sm:max-w-[220px]">
-          <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-            Código do Relatório
-          </span>
-          <span className="font-mono text-sm font-bold text-slate-700 bg-slate-200/50 px-2 py-1.5 rounded-lg block text-center">
+        <div className="w-full rounded-[14px] border border-line bg-panel2 p-4 sm:max-w-[220px]">
+          <span className="label mb-1">Código do Relatório</span>
+          <span className="block rounded-[8px] bg-panel px-2 py-1.5 text-center font-mono text-[13px] font-bold text-fg">
             {initialData.code}
           </span>
         </div>
@@ -318,81 +314,55 @@ export default function ReportForm({
 
       {/* Assistente de IA */}
       {isCreate && (
-        <div className="space-y-4 rounded-xl border border-indigo-200 bg-indigo-50/20 p-4 shadow-2xs sm:p-5">
-          <div className="flex flex-col gap-3 border-b border-indigo-100 pb-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">✨</span>
-              <h3 className="font-extrabold text-indigo-900 text-sm">Preenchimento inteligente com o Assistente</h3>
-            </div>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => {
-                setIsAiPanelOpen(!isAiPanelOpen);
-                setAiError("");
-                setAiSuccessMessage("");
-              }}
-              className="w-full px-3 py-1.5 text-xs sm:w-auto"
-            >
-              {isAiPanelOpen ? "Fechar Painel" : "Abrir Assistente"}
-            </Button>
+        <div className="space-y-4 rounded-[14px] border border-accent/35 bg-[linear-gradient(180deg,rgb(var(--panel-2)),rgb(var(--panel)))] p-4 sm:p-5">
+          <div className="flex items-center gap-2 border-b border-accent/20 pb-3">
+            <span className="text-[16px]">✨</span>
+            <h3 className="text-[13px] font-bold text-fg">Preenchimento inteligente com o Assistente</h3>
           </div>
 
-          {isAiPanelOpen ? (
-            <div className="space-y-4 animate-fade-in">
-              <p className="text-xs text-indigo-700 font-semibold leading-relaxed">
-                Descreva os testes que você realizou. Nosso Assistente irá estruturar todo o formulário para sua verificação.
-              </p>
-              <Textarea
-                placeholder="Ex: Fui testar o SNDesk na branch Alfa e achei um bug na tela de Novo Chamado.  Quando cliquei para criar o chamado deu erro 500."
-                id="aiTextRelato"
-                rows={4}
-                value={aiInputText}
-                onChange={(e) => setAiInputText(e.target.value)}
-                maxLength={AI_INPUT_MAX_CHARS + 1000}
-                className={`border-indigo-200 focus:border-indigo-500 focus:ring-indigo-500/20 ${
-                  isAiInputTooLong ? "border-red-300 focus:border-red-500 focus:ring-red-500/20" : ""
-                }`}
-              />
-              <div className="flex flex-col gap-1 text-xs sm:flex-row sm:items-center sm:justify-between">
-                <span className="text-slate-500">
-                  Textos muito longos podem demorar mais. Se possivel, cole apenas o relato principal do bug/teste.
-                </span>
-                <span
-                  className={`font-bold ${
-                    isAiInputTooLong ? "text-red-600" : "text-slate-500"
-                  }`}
-                >
-                  {aiInputLength.toLocaleString("pt-BR")} / {AI_INPUT_MAX_CHARS.toLocaleString("pt-BR")}
-                </span>
-              </div>
-              {aiError && (
-                <div className="bg-red-50 text-red-700 text-xs p-3 rounded-lg border border-red-100 font-medium">
-                  {aiError}
-                </div>
-              )}
-              <div className="flex justify-stretch sm:justify-end">
-                <Button
-                  type="button"
-                  onClick={handleAiGenerate}
-                  isLoading={isAiGenerating}
-                  disabled={isAiGenerating || isAiInputTooLong}
-                  variant="primary"
-                  className="w-full bg-indigo-600 px-4 py-1.5 text-xs hover:bg-indigo-700 sm:w-auto"
-                >
-                  Gerar Estrutura de Teste
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <p className="text-xs text-slate-500 font-medium">
-              Cole seu relato de bug/teste e deixe que o Assistente preencha as seções e os passos sequenciais para você.
+          <div className="space-y-4">
+            <p className="text-[12px] font-semibold leading-relaxed text-muted">
+              Descreva os testes que você realizou. Nosso Assistente irá estruturar todo o formulário para sua verificação.
             </p>
-          )}
+            <Textarea
+              placeholder="Ex: Fui testar o SNDesk na branch Alfa e achei um bug na tela de Novo Chamado.  Quando cliquei para criar o chamado deu erro 500."
+              id="aiTextRelato"
+              rows={4}
+              value={aiInputText}
+              onChange={(e) => setAiInputText(e.target.value)}
+              maxLength={AI_INPUT_MAX_CHARS + 1000}
+              className={isAiInputTooLong ? "border-bad focus:border-bad focus:ring-bad/16" : ""}
+            />
+            <div className="flex flex-col gap-1 text-[12px] sm:flex-row sm:items-center sm:justify-between">
+              <span className="text-muted">
+                Textos muito longos podem demorar mais. Se possivel, cole apenas o relato principal do bug/teste.
+              </span>
+              <span className={`font-bold ${isAiInputTooLong ? "text-bad" : "text-muted"}`}>
+                {aiInputLength.toLocaleString("pt-BR")} / {AI_INPUT_MAX_CHARS.toLocaleString("pt-BR")}
+              </span>
+            </div>
+            {aiError && (
+              <div className="rounded-[9px] border border-bad/30 bg-bad/8 p-3 text-[12px] font-medium text-bad">
+                {aiError}
+              </div>
+            )}
+            <div className="flex justify-stretch sm:justify-end">
+              <Button
+                type="button"
+                onClick={handleAiGenerate}
+                isLoading={isAiGenerating}
+                disabled={isAiGenerating || isAiInputTooLong}
+                variant="primary"
+                className="w-full px-4 py-1.5 text-xs sm:w-auto"
+              >
+                Gerar Estrutura de Teste
+              </Button>
+            </div>
+          </div>
 
           {aiSuccessMessage && (
-            <div className="bg-emerald-50 text-emerald-800 text-xs p-3.5 rounded-lg border border-emerald-200 font-semibold animate-fade-in flex items-start gap-2">
-              <svg className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="flex items-start gap-2 rounded-[9px] border border-ok/30 bg-ok/8 p-3.5 text-[12px] font-semibold text-ok">
+              <svg className="mt-0.5 h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <span>{aiSuccessMessage}</span>
@@ -402,120 +372,105 @@ export default function ReportForm({
       )}
 
       {/* Seção 1: Identificação */}
-      <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-2xs sm:p-5">
-        <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-          <div className="w-6 h-6 rounded-full bg-indigo-50 text-indigo-600 font-bold text-xs flex items-center justify-center">
+      <div className="card space-y-4 p-4 sm:p-5">
+        <div className="flex items-center gap-2 border-b border-hairline pb-3">
+          <div className="flex h-[22px] w-[22px] items-center justify-center rounded-full bg-accent/10 font-mono text-[11px] font-bold text-accent">
             1
           </div>
-          <h3 className="font-extrabold text-slate-800 text-sm">Identificação do Teste</h3>
+          <h3 className="text-[13px] font-bold text-fg">Identificação do Teste</h3>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-5">
-          <div className="xl:col-span-4">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <Input
+            label="Data do Teste *"
+            id="testDate"
+            type="date"
+            value={testDate}
+            onChange={(e) => setTestDate(e.target.value)}
+            error={errors.testDate}
+          />
+
+          <Input
+            label="Nome do Sistema *"
+            id="systemName"
+            type="text"
+            placeholder="Ex: SNDesk, Financeiro"
+            value={systemName}
+            onChange={(e) => setSystemName(e.target.value)}
+            error={errors.systemName}
+          />
+
+          <MultiSelectCreatable
+            label="Branch / Ambiente *"
+            id="branch"
+            placeholder="Selecione ou digite a branch..."
+            options={BRANCH_OPTIONS}
+            value={branch}
+            onChange={setBranch}
+            error={errors.branch}
+          />
+
+          <Select
+            label="Tipo do Teste *"
+            id="testType"
+            value={testType}
+            onChange={(e) => setTestType(e.target.value)}
+            options={TEST_TYPE_OPTIONS}
+            error={errors.testType}
+          />
+
+          <Select
+            label="Status Geral *"
+            id="generalStatus"
+            value={generalStatus}
+            onChange={(e) => setGeneralStatus(e.target.value)}
+            options={GENERAL_STATUS_OPTIONS}
+            error={errors.generalStatus}
+          />
+
+          {isQaUser ? (
             <Input
-              label="Data do Teste *"
-              id="testDate"
-              type="date"
-              value={testDate}
-              onChange={(e) => setTestDate(e.target.value)}
-              error={errors.testDate}
+              label="QA"
+              id="testerName"
+              value={currentUser?.name || "Usuario atual"}
+              disabled
             />
-          </div>
-
-          <div className="xl:col-span-4">
-            <Input
-              label="Nome do Sistema *"
-              id="systemName"
-              type="text"
-              placeholder="Ex: SNDesk, Financeiro"
-              value={systemName}
-              onChange={(e) => setSystemName(e.target.value)}
-              error={errors.systemName}
-            />
-          </div>
-
-          <div className="xl:col-span-4">
-            <MultiSelectCreatable
-              label="Branch / Ambiente *"
-              id="branch"
-              placeholder="Selecione ou digite a branch..."
-              options={BRANCH_OPTIONS}
-              value={branch}
-              onChange={setBranch}
-              error={errors.branch}
-            />
-          </div>
-
-          <div className="xl:col-span-3">
+          ) : (
             <Select
-              label="Tipo do Teste *"
-              id="testType"
-              value={testType}
-              onChange={(e) => setTestType(e.target.value)}
-              options={TEST_TYPE_OPTIONS}
-              error={errors.testType}
-            />
-          </div>
+              label="QA"
+              id="testerId"
+              value={testerId}
+              onChange={(e) => setTesterId(e.target.value)}
+            >
+              <option value="">Selecione o QA</option>
+              {userOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.name} ({option.role})
+                </option>
+              ))}
+            </Select>
+          )}
 
-          <div className="xl:col-span-3">
-            <Select
-              label="Status Geral *"
-              id="generalStatus"
-              value={generalStatus}
-              onChange={(e) => setGeneralStatus(e.target.value)}
-              options={GENERAL_STATUS_OPTIONS}
-              error={errors.generalStatus}
-            />
-          </div>
-
-          <div className="xl:col-span-3">
-            {isQaUser ? (
-              <Input
-                label="QA"
-                id="testerName"
-                value={currentUser?.name || "Usuario atual"}
-                disabled
-                className="bg-slate-50 text-slate-500"
-              />
-            ) : (
-              <Select
-                label="QA"
-                id="testerId"
-                value={testerId}
-                onChange={(e) => setTesterId(e.target.value)}
-              >
-                <option value="">Selecione o QA</option>
-                {userOptions.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.name} ({option.role})
-                  </option>
-                ))}
-              </Select>
-            )}
-          </div>
-
-          <div className="xl:col-span-3">
-            <Input
-              label="Dev responsavel"
-              id="sndeskTechnicianName"
-              placeholder="Nome do dev/técnico do SNDesk"
-              value={sndeskTechnicianName}
-              onChange={(e) => setSndeskTechnicianName(e.target.value)}
-            />
-          </div>
+          <Input
+            label="Dev responsavel"
+            id="sndeskTechnicianName"
+            placeholder="Nome do dev/técnico do SNDesk"
+            value={sndeskTechnicianName}
+            onChange={(e) => setSndeskTechnicianName(e.target.value)}
+          />
         </div>
       </div>
 
-      {/* Seção 2: Localização do Teste */}
-      <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-2xs sm:p-5">
-        <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-          <div className="w-6 h-6 rounded-full bg-indigo-50 text-indigo-600 font-bold text-xs flex items-center justify-center">
+      {/* Seção 2: Localização e cenário */}
+      <div className="card space-y-4 p-4 sm:p-5">
+        <div className="flex items-center gap-2 border-b border-hairline pb-3">
+          <div className="flex h-[22px] w-[22px] items-center justify-center rounded-full bg-accent/10 font-mono text-[11px] font-bold text-accent">
             2
           </div>
-          <h3 className="font-extrabold text-slate-800 text-sm">Localização do Teste</h3>
+          <h3 className="text-[13px] font-bold text-fg">Localização e cenário</h3>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           <Input
             label="Caminho da Tela / Menu *"
             id="screenPath"
@@ -533,16 +488,6 @@ export default function ReportForm({
             onChange={(e) => setFunctionality(e.target.value)}
             error={errors.functionality}
           />
-        </div>
-      </div>
-
-      {/* Seção 3: Bug ou Cenário */}
-      <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-2xs sm:p-5">
-        <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-          <div className="w-6 h-6 rounded-full bg-indigo-50 text-indigo-600 font-bold text-xs flex items-center justify-center">
-            3
-          </div>
-          <h3 className="font-extrabold text-slate-800 text-sm">Bug ou Cenário Testado</h3>
         </div>
 
         <div className="space-y-4">
@@ -567,55 +512,59 @@ export default function ReportForm({
         </div>
       </div>
 
-      {/* Seção 4: Passos Dinâmicos (Apenas na Criação) */}
+      {/* Seção 3: Passos Dinâmicos (Apenas na Criação) */}
       {isCreate && (
-        <div className="space-y-6 rounded-xl border border-slate-200 bg-white p-4 shadow-2xs sm:p-5">
-          <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-            <div className="w-6 h-6 rounded-full bg-indigo-50 text-indigo-600 font-bold text-xs flex items-center justify-center">
-              4
+        <div className="card space-y-6 p-4 sm:p-5">
+          <div className="flex items-center gap-2 border-b border-hairline pb-3">
+            <div className="flex h-[22px] w-[22px] items-center justify-center rounded-full bg-accent/10 font-mono text-[11px] font-bold text-accent">
+              3
             </div>
-            <h3 className="font-extrabold text-slate-800 text-sm">Passos de Teste Adicionados ({steps.length})</h3>
+            <h3 className="text-[13px] font-bold text-fg">Passos de Teste Adicionados ({steps.length})</h3>
           </div>
 
           {/* Tabela de Passos Locais */}
           {steps.length > 0 ? (
-            <div className="overflow-x-auto overscroll-x-contain rounded-lg border border-slate-200 bg-slate-50/20 max-lg:overflow-visible max-lg:border-0 max-lg:bg-transparent">
+            <div className="overflow-x-auto overscroll-x-contain rounded-[10px] border border-line bg-panel2 max-lg:overflow-visible max-lg:border-0 max-lg:bg-transparent">
               <table className="w-full min-w-[860px] text-left border-collapse max-lg:block max-lg:min-w-0">
                 <thead className="max-lg:hidden">
-                  <tr className="bg-slate-50 text-slate-500 font-bold text-[10px] uppercase border-b border-slate-200">
-                    <th className="p-3 w-16 text-center">Nº</th>
-                    <th className="p-3">Ação</th>
-                    <th className="p-3">Resultado Esperado</th>
-                    <th className="p-3">Resultado Obtido</th>
-                    <th className="p-3 w-32">Status</th>
-                    <th className="p-3 w-44 text-right">Ações</th>
+                  <tr className="border-b border-line text-faint">
+                    <th className="w-16 p-3 text-center font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-faint">Nº</th>
+                    <th className="p-3 font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-faint">Ação</th>
+                    <th className="p-3 font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-faint">Resultado Esperado</th>
+                    <th className="p-3 font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-faint">Resultado Obtido</th>
+                    <th className="w-32 p-3 font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-faint">Status</th>
+                    <th className="w-44 p-3 text-right font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-faint">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 text-sm text-slate-700 max-lg:block max-lg:space-y-3 max-lg:divide-y-0">
+                <tbody className="text-[13px] text-fg2 max-lg:block max-lg:space-y-3">
                   {steps.map((step, index) => (
-                    <tr key={index} className="hover:bg-slate-50/40 max-lg:block max-lg:rounded-xl max-lg:border max-lg:border-slate-200 max-lg:bg-white max-lg:shadow-xs">
-                      <td data-label="Nº" className="p-3 text-center font-mono font-bold text-slate-400 max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-slate-100 max-lg:text-right max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]">
+                    <tr
+                      key={index}
+                      style={{ borderLeft: `3px solid ${getStatusColorVar(step.status)}` }}
+                      className="border-t border-hairline hover:bg-panel max-lg:block max-lg:rounded-[14px] max-lg:border max-lg:border-line max-lg:bg-panel"
+                    >
+                      <td data-label="Nº" className="p-3 text-center font-mono font-bold text-faint max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-hairline max-lg:text-right max-lg:before:text-left max-lg:before:font-mono max-lg:before:text-[10px] max-lg:before:font-medium max-lg:before:uppercase max-lg:before:tracking-[0.12em] max-lg:before:text-faint max-lg:before:content-[attr(data-label)]">
                         {step.stepNumber}
                       </td>
-                      <td data-label="Acao" className="p-3 break-words whitespace-pre-line max-w-[200px] max-lg:flex max-lg:max-w-none max-lg:items-start max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-slate-100 max-lg:text-right max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]">
+                      <td data-label="Acao" className="max-w-[200px] whitespace-pre-line break-words p-3 max-lg:flex max-lg:max-w-none max-lg:items-start max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-hairline max-lg:text-right max-lg:before:text-left max-lg:before:font-mono max-lg:before:text-[10px] max-lg:before:font-medium max-lg:before:uppercase max-lg:before:tracking-[0.12em] max-lg:before:text-faint max-lg:before:content-[attr(data-label)]">
                         {step.action}
                       </td>
-                      <td data-label="Resultado Esperado" className="p-3 break-words whitespace-pre-line max-w-[200px] max-lg:flex max-lg:max-w-none max-lg:items-start max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-slate-100 max-lg:text-right max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]">
+                      <td data-label="Resultado Esperado" className="max-w-[200px] whitespace-pre-line break-words p-3 max-lg:flex max-lg:max-w-none max-lg:items-start max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-hairline max-lg:text-right max-lg:before:text-left max-lg:before:font-mono max-lg:before:text-[10px] max-lg:before:font-medium max-lg:before:uppercase max-lg:before:tracking-[0.12em] max-lg:before:text-faint max-lg:before:content-[attr(data-label)]">
                         {step.expectedResult}
                       </td>
-                      <td data-label="Resultado Obtido" className="p-3 break-words whitespace-pre-line max-w-[200px] max-lg:flex max-lg:max-w-none max-lg:items-start max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-slate-100 max-lg:text-right max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]">
+                      <td data-label="Resultado Obtido" className="max-w-[200px] whitespace-pre-line break-words p-3 max-lg:flex max-lg:max-w-none max-lg:items-start max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-hairline max-lg:text-right max-lg:before:text-left max-lg:before:font-mono max-lg:before:text-[10px] max-lg:before:font-medium max-lg:before:uppercase max-lg:before:tracking-[0.12em] max-lg:before:text-faint max-lg:before:content-[attr(data-label)]">
                         {step.actualResult}
                       </td>
-                      <td data-label="Status" className="p-3 max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-slate-100 max-lg:text-right max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]">
+                      <td data-label="Status" className="p-3 max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-hairline max-lg:text-right max-lg:before:text-left max-lg:before:font-mono max-lg:before:text-[10px] max-lg:before:font-medium max-lg:before:uppercase max-lg:before:tracking-[0.12em] max-lg:before:text-faint max-lg:before:content-[attr(data-label)]">
                         <StatusBadge status={step.status} size="sm" />
                       </td>
-                      <td data-label="Acoes" className="p-3 text-right max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]">
+                      <td data-label="Acoes" className="p-3 text-right max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:before:text-left max-lg:before:font-mono max-lg:before:text-[10px] max-lg:before:font-medium max-lg:before:uppercase max-lg:before:tracking-[0.12em] max-lg:before:text-faint max-lg:before:content-[attr(data-label)]">
                         <div className="flex justify-end gap-1.5">
                           <button
                             type="button"
                             onClick={() => moveUp(index)}
                             disabled={index === 0}
-                            className="p-1.5 text-slate-400 hover:text-slate-700 disabled:opacity-30 transition-colors"
+                            className="p-1.5 text-faint transition-colors hover:text-fg2 disabled:opacity-30"
                             title="Mover para cima"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -626,7 +575,7 @@ export default function ReportForm({
                             type="button"
                             onClick={() => moveDown(index)}
                             disabled={index === steps.length - 1}
-                            className="p-1.5 text-slate-400 hover:text-slate-700 disabled:opacity-30 transition-colors"
+                            className="p-1.5 text-faint transition-colors hover:text-fg2 disabled:opacity-30"
                             title="Mover para baixo"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -636,7 +585,7 @@ export default function ReportForm({
                           <button
                             type="button"
                             onClick={() => handleRemoveStep(index)}
-                            className="p-1.5 text-red-500 hover:text-red-700 transition-colors"
+                            className="p-1.5 text-bad transition-colors hover:opacity-80"
                             title="Remover passo"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -651,18 +600,18 @@ export default function ReportForm({
               </table>
             </div>
           ) : (
-            <div className="p-6 text-center border-2 border-dashed border-slate-200 rounded-xl text-slate-400 text-xs font-semibold">
+            <div className="rounded-[14px] border-2 border-dashed border-line p-6 text-center text-[12px] font-semibold text-faint">
               Nenhum passo de teste adicionado ainda. Preencha os campos abaixo para adicionar o primeiro passo.
             </div>
           )}
 
           {/* Form Integrado para Adicionar Passo */}
-          <div className="bg-slate-50/50 border border-slate-200 rounded-xl p-4 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-              <span className="font-bold text-xs text-slate-700">
+          <div className="space-y-4 rounded-[14px] border border-line bg-panel2 p-4">
+            <div className="flex items-center justify-between border-b border-hairline pb-2">
+              <span className="text-[12px] font-bold text-fg">
                 Novo Passo #{steps.length + 1}
               </span>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              <span className="font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-faint">
                 Definindo passo
               </span>
             </div>
@@ -720,7 +669,7 @@ export default function ReportForm({
       )}
 
       {/* Ações do Form */}
-      <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end [&>*]:w-full sm:[&>*]:w-auto">
+      <div className="flex flex-col-reverse gap-3 border-t border-hairline pt-4 sm:flex-row sm:justify-end [&>*]:w-full sm:[&>*]:w-auto">
         <Link href="/reports" passHref legacyBehavior>
           <Button variant="secondary" disabled={isLoading}>
             Cancelar

@@ -19,14 +19,12 @@ export default function Toast({ message, type, onClose }: ToastProps) {
 
   return (
     <div
-      className={`fixed inset-x-4 bottom-4 z-[60] flex max-w-md items-center gap-3 rounded-xl border px-4 py-3.5 shadow-md transition-all duration-300 transform translate-y-0 animate-bounce-short sm:inset-x-auto sm:bottom-6 sm:right-6 ${
-        type === "success"
-          ? "bg-green-50 text-green-800 border-green-200"
-          : "bg-red-50 text-red-800 border-red-200"
+      className={`fixed inset-x-4 bottom-4 z-[60] flex max-w-md items-center gap-3 rounded-[10px] border bg-panel px-4 py-3.5 shadow-lg transition-all duration-300 sm:inset-x-auto sm:bottom-6 sm:right-6 ${
+        type === "success" ? "border-ok/30" : "border-bad/30"
       }`}
     >
       {type === "success" ? (
-        <div className="p-1 bg-green-500 rounded-full text-white">
+        <div className="rounded-full bg-ok p-1 text-accentFg">
           <svg
             className="w-4 h-4"
             fill="none"
@@ -42,7 +40,7 @@ export default function Toast({ message, type, onClose }: ToastProps) {
           </svg>
         </div>
       ) : (
-        <div className="p-1 bg-red-500 rounded-full text-white">
+        <div className="rounded-full bg-bad p-1 text-accentFg">
           <svg
             className="w-4 h-4"
             fill="none"
@@ -58,10 +56,10 @@ export default function Toast({ message, type, onClose }: ToastProps) {
           </svg>
         </div>
       )}
-      <span className="min-w-0 flex-1 text-sm font-semibold">{message}</span>
+      <span className="min-w-0 flex-1 text-[13px] font-semibold text-fg">{message}</span>
       <button
         onClick={onClose}
-        className="text-gray-400 hover:text-gray-600 transition-colors ml-2"
+        className="ml-2 text-faint transition-colors hover:text-fg2"
         aria-label="Fechar notificação"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

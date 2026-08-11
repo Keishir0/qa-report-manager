@@ -18,20 +18,15 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(function Select(
   return (
     <div className="min-w-0 w-full">
       {label && (
-        <label
-          htmlFor={id}
-          className="block text-sm font-semibold text-slate-700 mb-1.5"
-        >
+        <label htmlFor={id} className="label">
           {label}
         </label>
       )}
       <select
         id={id}
         ref={ref}
-        className={`min-w-0 max-w-full w-full px-3.5 py-2 border rounded-lg text-sm bg-white transition-all duration-200 outline-none focus:ring-2 focus:ring-offset-0 ${
-          error
-            ? "border-red-300 focus:border-red-500 focus:ring-red-500/20"
-            : "border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/20"
+        className={`input ${
+          error ? "border-bad focus:border-bad focus:ring-bad/16" : ""
         } ${className}`}
         {...props}
       >
@@ -52,9 +47,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(function Select(
           </>
         )}
       </select>
-      {error && (
-        <p className="mt-1.5 text-xs font-semibold text-red-600">{error}</p>
-      )}
+      {error && <p className="mt-1.5 text-[11.5px] font-semibold text-bad">{error}</p>}
     </div>
   );
 });

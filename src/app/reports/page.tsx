@@ -9,7 +9,7 @@ import {
   TEST_TYPE_OPTIONS,
   TestReportData,
 } from "@/types";
-import StatusBadge from "@/components/ui/StatusBadge";
+import StatusBadge, { getStatusColorVar } from "@/components/ui/StatusBadge";
 import { exportToExcel, exportToPDF } from "@/lib/export";
 import Toast from "@/components/ui/Toast";
 import PageHeader from "@/components/ui/PageHeader";
@@ -19,6 +19,7 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import MultiSelectCreatable from "@/components/ui/MultiSelectCreatable";
+import Pagination from "@/components/ui/Pagination";
 import { useAuthUser } from "@/components/auth/AuthProvider";
 import ReportActionsMenu from "@/components/reports/ReportActionsMenu";
 
@@ -39,48 +40,15 @@ interface PaginatedReportsResponse {
   };
 }
 
-const PAGE_SIZE = 10;
-
-function getPageNumbers(
-  currentPage: number,
-  totalPages: number
-): (number | "...")[] {
-  const siblingCount = 1;
-  const totalNumbers = siblingCount * 2 + 5; // first, last, current, 2 siblings, 2 ellipses
-
-  if (totalPages <= totalNumbers) {
-    return Array.from({ length: totalPages }, (_, index) => index + 1);
-  }
-
-  const leftSibling = Math.max(currentPage - siblingCount, 1);
-  const rightSibling = Math.min(currentPage + siblingCount, totalPages);
-
-  const showLeftEllipsis = leftSibling > 2;
-  const showRightEllipsis = rightSibling < totalPages - 1;
-
-  const pages: (number | "...")[] = [1];
-
-  if (showLeftEllipsis) {
-    pages.push("...");
-  } else {
-    for (let page = 2; page < leftSibling; page++) pages.push(page);
-  }
-
-  for (let page = leftSibling; page <= rightSibling; page++) {
-    if (page !== 1 && page !== totalPages) pages.push(page);
-  }
-
-  if (showRightEllipsis) {
-    pages.push("...");
-  } else {
-    for (let page = rightSibling + 1; page < totalPages; page++)
-      pages.push(page);
-  }
-
-  pages.push(totalPages);
-
-  return pages;
+interface SavedFilter {
+  id: string;
+  name: string;
+  query: string;
+  color: string;
 }
+
+const PAGE_SIZE = 10;
+const SAVED_FILTER_COLORS = ["accent", "ok", "bad", "warn", "neutral"];
 
 export default function ReportsListPage() {
   const user = useAuthUser();
@@ -111,6 +79,14 @@ export default function ReportsListPage() {
   const [tester, setTester] = useState("");
   const [dev, setDev] = useState("");
   const [search, setSearch] = useState("");
+
+  // Painel de filtros e filtros salvos
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
+  const [savedFilters, setSavedFilters] = useState<SavedFilter[]>([]);
+  const [isSavingFilter, setIsSavingFilter] = useState(false);
+  const [newFilterName, setNewFilterName] = useState("");
+  const [newFilterColor, setNewFilterColor] = useState(SAVED_FILTER_COLORS[0]);
+  const [isPersistingFilter, setIsPersistingFilter] = useState(false);
 
   // Debounces locais
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -170,13 +146,42 @@ export default function ReportsListPage() {
     };
   }, []);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadSavedFilters() {
+      try {
+        const response = await fetch("/api/saved-filters", { cache: "no-store" });
+        if (!response.ok) return;
+        const result = await response.json();
+        if (isMounted && Array.isArray(result.data)) {
+          setSavedFilters(result.data);
+        }
+      } catch {
+        if (isMounted) setSavedFilters([]);
+      }
+    }
+
+    loadSavedFilters();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   // Capturar erro vindo do redirecionamento de 404 da página [id] de forma segura no browser
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const errorParam = params.get("error");
+      const searchParam = params.get("search");
       if (errorParam) {
         setToast({ message: errorParam, type: "error" });
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, "", newUrl);
+      }
+      if (searchParam) {
+        setSearch(searchParam);
         const newUrl = window.location.pathname;
         window.history.replaceState({}, "", newUrl);
       }
@@ -288,6 +293,64 @@ export default function ReportsListPage() {
     setTester("");
     setDev("");
     setSearch("");
+  };
+
+  const applySavedFilter = (filter: SavedFilter) => {
+    const params = new URLSearchParams(filter.query);
+    setCreatedFrom(params.get("createdFrom") || "");
+    setCreatedTo(params.get("createdTo") || "");
+    setTestedFrom(params.get("testedFrom") || "");
+    setTestedTo(params.get("testedTo") || "");
+    setBranch(params.get("branch") || "");
+    setStatus(params.get("status") || "");
+    setTestType(params.get("testType") || "");
+    setSystem(params.get("system") || "");
+    setTester(params.get("tester") || "");
+    setDev(params.get("dev") || "");
+    setSearch(params.get("search") || "");
+  };
+
+  const handleSaveCurrentFilter = async () => {
+    const name = newFilterName.trim();
+    if (!name) return;
+
+    setIsPersistingFilter(true);
+    try {
+      const query = buildReportParams().toString();
+      const response = await fetch("/api/saved-filters", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, query, color: newFilterColor }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Erro ao salvar filtro.");
+      }
+
+      const created = await response.json();
+      setSavedFilters((current) => [created, ...current]);
+      setNewFilterName("");
+      setNewFilterColor(SAVED_FILTER_COLORS[0]);
+      setIsSavingFilter(false);
+      setToast({ message: `Filtro "${name}" salvo com sucesso!`, type: "success" });
+    } catch (err: any) {
+      setToast({ message: err.message || "Erro ao salvar filtro.", type: "error" });
+    } finally {
+      setIsPersistingFilter(false);
+    }
+  };
+
+  const handleDeleteSavedFilter = async (id: string) => {
+    try {
+      const response = await fetch(`/api/saved-filters/${id}`, { method: "DELETE" });
+      if (!response.ok) {
+        throw new Error("Erro ao remover filtro.");
+      }
+      setSavedFilters((current) => current.filter((filter) => filter.id !== id));
+    } catch (err: any) {
+      setToast({ message: err.message || "Erro ao remover filtro.", type: "error" });
+    }
   };
 
   const fetchReportsForExport = async () => {
@@ -523,6 +586,40 @@ export default function ReportsListPage() {
     setCurrentPage(nextPage);
   };
 
+  const testerName = tester ? userOptions.find((option) => option.id === tester)?.name || tester : "";
+
+  const activeChips: { key: string; label: string; onRemove: () => void }[] = [
+    search && { key: "search", label: `busca: ${search}`, onRemove: () => setSearch("") },
+    system && { key: "system", label: `sistema: ${system}`, onRemove: () => setSystem("") },
+    testerName && { key: "tester", label: `qa: ${testerName}`, onRemove: () => setTester("") },
+    dev && { key: "dev", label: `dev: ${dev}`, onRemove: () => setDev("") },
+    branch && { key: "branch", label: `branch: ${branch}`, onRemove: () => setBranch("") },
+    status && { key: "status", label: `status: ${status}`, onRemove: () => setStatus("") },
+    testType && { key: "testType", label: `tipo: ${testType}`, onRemove: () => setTestType("") },
+    createdFrom && {
+      key: "createdFrom",
+      label: `criado de: ${format(new Date(`${createdFrom}T00:00:00`), "dd/MM/yyyy")}`,
+      onRemove: () => setCreatedFrom(""),
+    },
+    createdTo && {
+      key: "createdTo",
+      label: `criado ate: ${format(new Date(`${createdTo}T00:00:00`), "dd/MM/yyyy")}`,
+      onRemove: () => setCreatedTo(""),
+    },
+    testedFrom && {
+      key: "testedFrom",
+      label: `testado de: ${format(new Date(`${testedFrom}T00:00:00`), "dd/MM/yyyy")}`,
+      onRemove: () => setTestedFrom(""),
+    },
+    testedTo && {
+      key: "testedTo",
+      label: `testado ate: ${format(new Date(`${testedTo}T00:00:00`), "dd/MM/yyyy")}`,
+      onRemove: () => setTestedTo(""),
+    },
+  ].filter(Boolean) as { key: string; label: string; onRemove: () => void }[];
+
+  const hasActiveFilters = activeChips.length > 0;
+
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       {/* Header */}
@@ -535,12 +632,7 @@ export default function ReportsListPage() {
           onClick={handleExportExcel}
           disabled={isExportingExcel || isLoading || !hasReportsToExport}
           icon={
-            <svg
-              className="w-4 h-4 text-emerald-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg className="w-4 h-4 text-ok" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -557,12 +649,7 @@ export default function ReportsListPage() {
           onClick={handleExportPDF}
           disabled={isExportingPDF || isLoading || !hasReportsToExport}
           icon={
-            <svg
-              className="w-4 h-4 text-rose-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg className="w-4 h-4 text-bad" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -574,188 +661,310 @@ export default function ReportsListPage() {
         >
           {isExportingPDF ? "Exportando..." : "Exportar PDF"}
         </Button>
-        {canWrite && <Link href="/reports/new" passHref legacyBehavior>
-          <Button
-            variant="primary"
-            icon={
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+        {canWrite && (
+          <Link href="/reports/new" passHref legacyBehavior>
+            <Button
+              variant="primary"
+              icon={
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              }
+            >
+              Novo Teste
+            </Button>
+          </Link>
+        )}
+      </PageHeader>
+
+      {/* Busca + chips de filtros ativos */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-1 flex-wrap items-center gap-2">
+          <div className="relative w-full sm:w-72">
+            <svg
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-faint"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"
+              />
+            </svg>
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar por código, tela, funcionalidade..."
+              className="input w-full pl-9"
+            />
+          </div>
+
+          {activeChips.map((chip) => (
+            <span
+              key={chip.key}
+              className="inline-flex items-center gap-1.5 rounded-full border border-line bg-panel2 px-2.5 py-1 font-mono text-[11px] text-fg2"
+            >
+              {chip.label}
+              <button
+                type="button"
+                onClick={chip.onRemove}
+                aria-label={`Remover filtro ${chip.key}`}
+                className="text-faint transition-colors hover:text-bad"
               >
+                &times;
+              </button>
+            </span>
+          ))}
+        </div>
+
+        <div className="flex shrink-0 items-center gap-3">
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={handleClearFilters}
+              className="text-[12px] font-bold text-bad transition-colors hover:opacity-80"
+            >
+              Limpar filtros
+            </button>
+          )}
+          <Button
+            variant="secondary"
+            onClick={() => setIsFilterPanelOpen(true)}
+            icon={
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M12 4v16m8-8H4"
+                  d="M3 4h18M6 12h12M10 20h4"
                 />
               </svg>
             }
           >
-            Novo Teste
+            Filtros{hasActiveFilters ? ` (${activeChips.length})` : ""}
           </Button>
-        </Link>}
-      </PageHeader>
-
-      {/* Painel de Filtros e Busca */}
-      <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-3 shadow-xs sm:space-y-4 sm:p-4 lg:p-5">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <div>
-            <Input
-              label="Busca Rápida"
-              id="searchQuick"
-              placeholder="Buscar por código, tela, funcionalidade ou descrição..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full"
-            />
-          </div>
-          <div>
-            <Input
-              label="Filtrar por Sistema"
-              id="filterSystem"
-              placeholder="Nome do sistema..."
-              value={system}
-              onChange={(e) => setSystem(e.target.value)}
-              className="w-full"
-            />
-          </div>
-          {user?.role !== "QA" && (
-            <div>
-              <Select
-                label="Filtrar por QA"
-                id="filterTester"
-                value={tester}
-                onChange={(e) => setTester(e.target.value)}
-              >
-                <option value="">Todos os QAs</option>
-                {userOptions.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.name}
-                  </option>
-                ))}
-              </Select>
-            </div>
-          )}
-          <div>
-            <Input
-              label="Filtrar por Dev"
-              id="filterDev"
-              placeholder="Dev ou técnico SNDesk..."
-              value={dev}
-              onChange={(e) => setDev(e.target.value)}
-              className="w-full"
-            />
-          </div>
         </div>
-
-        <div className="grid grid-cols-2 gap-3 border-t border-slate-100 pt-3 lg:grid-cols-3 xl:grid-cols-7">
-          {/* Data De */}
-          <div>
-            <Input
-              label="Criado de"
-              id="filterCreatedFrom"
-              type="date"
-              value={createdFrom}
-              onChange={(e) => setCreatedFrom(e.target.value)}
-            />
-          </div>
-
-          {/* Data Até */}
-          <div>
-            <Input
-              label="Criado ate"
-              id="filterCreatedTo"
-              type="date"
-              value={createdTo}
-              onChange={(e) => setCreatedTo(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <Input
-              label="Testado de"
-              id="filterTestedFrom"
-              type="date"
-              value={testedFrom}
-              onChange={(e) => setTestedFrom(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <Input
-              label="Testado ate"
-              id="filterTestedTo"
-              type="date"
-              value={testedTo}
-              onChange={(e) => setTestedTo(e.target.value)}
-            />
-          </div>
-
-          {/* Branch */}
-          <div>
-            <MultiSelectCreatable
-              label="Branch / Ambiente"
-              id="filterBranch"
-              placeholder="Filtrar por branch..."
-              options={BRANCH_OPTIONS}
-              value={branch}
-              onChange={setBranch}
-            />
-          </div>
-
-          {/* Status Geral */}
-          <div>
-            <Select
-              label="Status Geral"
-              id="filterStatus"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              options={GENERAL_STATUS_OPTIONS}
-            />
-          </div>
-
-          {/* Tipo do Teste */}
-          <div className="col-span-2 sm:col-span-1">
-            <Select
-              label="Tipo do Teste"
-              id="filterType"
-              value={testType}
-              onChange={(e) => setTestType(e.target.value)}
-              options={TEST_TYPE_OPTIONS}
-            />
-          </div>
-        </div>
-
-        {(createdFrom || createdTo || testedFrom || testedTo || branch || status || testType || system || tester || dev || search) && (
-          <div className="flex justify-end">
-            <button
-              onClick={handleClearFilters}
-              className="text-xs text-red-500 hover:text-red-700 font-bold transition-colors flex items-center gap-1"
-            >
-              <svg
-                className="w-3.5 h-3.5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                />
-              </svg>
-              Limpar Filtros
-            </button>
-          </div>
-        )}
       </div>
+
+      {/* Painel lateral de filtros */}
+      {isFilterPanelOpen && (
+        <>
+          <button
+            type="button"
+            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[1px]"
+            onClick={() => setIsFilterPanelOpen(false)}
+            aria-label="Fechar filtros"
+          />
+          <aside className="fixed inset-y-0 right-0 z-50 flex w-full max-w-[380px] flex-col overflow-y-auto border-l border-line bg-surface p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-[15px] font-bold text-fg">Filtros</h2>
+              <button
+                type="button"
+                onClick={() => setIsFilterPanelOpen(false)}
+                className="rounded-[8px] p-1.5 text-faint hover:bg-panel2 hover:text-fg2"
+                aria-label="Fechar filtros"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Filtros salvos */}
+            <div className="mb-5 border-b border-hairline pb-5">
+              <span className="label">Filtros salvos</span>
+              {savedFilters.length === 0 ? (
+                <p className="text-[12.5px] text-muted">Nenhum filtro salvo ainda.</p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {savedFilters.map((filter) => (
+                    <li key={filter.id} className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => applySavedFilter(filter)}
+                        className="flex flex-1 items-center gap-2 rounded-[8px] border border-line px-2.5 py-1.5 text-left text-[12.5px] text-fg2 transition-colors hover:bg-panel2"
+                      >
+                        <span
+                          className="h-1.5 w-1.5 shrink-0 rounded-full"
+                          style={{ backgroundColor: `rgb(var(--${filter.color}))` }}
+                        />
+                        <span className="truncate">{filter.name}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteSavedFilter(filter.id)}
+                        aria-label={`Remover filtro salvo ${filter.name}`}
+                        className="rounded-[8px] p-1.5 text-faint transition-colors hover:bg-bad/10 hover:text-bad"
+                      >
+                        &times;
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {isSavingFilter ? (
+                <div className="mt-2.5 space-y-2">
+                  <input
+                    type="text"
+                    value={newFilterName}
+                    onChange={(e) => setNewFilterName(e.target.value)}
+                    placeholder="Nome do filtro"
+                    className="input w-full"
+                    autoFocus
+                  />
+                  <div className="flex items-center gap-1.5">
+                    {SAVED_FILTER_COLORS.map((color) => (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => setNewFilterColor(color)}
+                        aria-label={`Cor ${color}`}
+                        className={`h-5 w-5 rounded-full transition-transform ${
+                          newFilterColor === color ? "scale-110 shadow-[0_0_0_2px_rgb(var(--surface)),0_0_0_3.5px_rgb(var(--line))]" : ""
+                        }`}
+                        style={{ backgroundColor: `rgb(var(--${color}))` }}
+                      />
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="primary"
+                      className="flex-1"
+                      onClick={handleSaveCurrentFilter}
+                      disabled={!newFilterName.trim() || isPersistingFilter}
+                    >
+                      {isPersistingFilter ? "Salvando..." : "Salvar"}
+                    </Button>
+                    <Button variant="secondary" onClick={() => setIsSavingFilter(false)}>
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setIsSavingFilter(true)}
+                  disabled={!hasActiveFilters}
+                  className="mt-2.5 text-[12px] font-bold text-accent transition-colors hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  + Salvar filtros atuais
+                </button>
+              )}
+            </div>
+
+            {/* Campos de filtro */}
+            <div className="space-y-4">
+              <Input
+                label="Filtrar por Sistema"
+                id="filterSystem"
+                placeholder="Nome do sistema..."
+                value={system}
+                onChange={(e) => setSystem(e.target.value)}
+              />
+
+              {user?.role !== "QA" && (
+                <Select
+                  label="Filtrar por QA"
+                  id="filterTester"
+                  value={tester}
+                  onChange={(e) => setTester(e.target.value)}
+                >
+                  <option value="">Todos os QAs</option>
+                  {userOptions.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.name}
+                    </option>
+                  ))}
+                </Select>
+              )}
+
+              <Input
+                label="Filtrar por Dev"
+                id="filterDev"
+                placeholder="Dev ou técnico SNDesk..."
+                value={dev}
+                onChange={(e) => setDev(e.target.value)}
+              />
+
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  label="Criado de"
+                  id="filterCreatedFrom"
+                  type="date"
+                  value={createdFrom}
+                  onChange={(e) => setCreatedFrom(e.target.value)}
+                />
+                <Input
+                  label="Criado ate"
+                  id="filterCreatedTo"
+                  type="date"
+                  value={createdTo}
+                  onChange={(e) => setCreatedTo(e.target.value)}
+                />
+                <Input
+                  label="Testado de"
+                  id="filterTestedFrom"
+                  type="date"
+                  value={testedFrom}
+                  onChange={(e) => setTestedFrom(e.target.value)}
+                />
+                <Input
+                  label="Testado ate"
+                  id="filterTestedTo"
+                  type="date"
+                  value={testedTo}
+                  onChange={(e) => setTestedTo(e.target.value)}
+                />
+              </div>
+
+              <MultiSelectCreatable
+                label="Branch / Ambiente"
+                id="filterBranch"
+                placeholder="Filtrar por branch..."
+                options={BRANCH_OPTIONS}
+                value={branch}
+                onChange={setBranch}
+              />
+
+              <Select
+                label="Status Geral"
+                id="filterStatus"
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                options={GENERAL_STATUS_OPTIONS}
+              />
+
+              <Select
+                label="Tipo do Teste"
+                id="filterType"
+                value={testType}
+                onChange={(e) => setTestType(e.target.value)}
+                options={TEST_TYPE_OPTIONS}
+              />
+            </div>
+
+            <div className="mt-6 flex gap-2">
+              {hasActiveFilters && (
+                <Button variant="secondary" className="flex-1" onClick={handleClearFilters}>
+                  Limpar filtros
+                </Button>
+              )}
+              <Button variant="primary" className="flex-1" onClick={() => setIsFilterPanelOpen(false)}>
+                Aplicar
+              </Button>
+            </div>
+          </aside>
+        </>
+      )}
 
       {reports.length > 0 && (
         <div className="flex items-center justify-between gap-2 lg:hidden">
-          <span className="text-xs font-semibold text-slate-500">
+          <span className="text-[12px] font-semibold text-muted">
             {selectedCount > 0
               ? `${selectedCount} selecionado${selectedCount === 1 ? "" : "s"}`
               : "Nenhum selecionado"}
@@ -765,7 +974,7 @@ export default function ReportsListPage() {
               type="button"
               onClick={toggleVisibleReportsSelection}
               disabled={isLoading || visibleSelectableReports.length === 0}
-              className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 shadow-xs transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-[8px] border border-line bg-panel px-2.5 py-1.5 text-[12px] font-semibold text-fg2 transition-colors hover:bg-panel2 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {areAllVisibleReportsSelected ? "Desmarcar pagina" : "Pagina"}
             </button>
@@ -773,7 +982,7 @@ export default function ReportsListPage() {
               <button
                 type="button"
                 onClick={clearReportSelection}
-                className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 shadow-xs transition-colors hover:bg-slate-50"
+                className="rounded-[8px] border border-line bg-panel px-2.5 py-1.5 text-[12px] font-semibold text-fg2 transition-colors hover:bg-panel2"
               >
                 Limpar
               </button>
@@ -782,10 +991,18 @@ export default function ReportsListPage() {
         </div>
       )}
 
+      {error && (
+        <div
+          role="alert"
+          className="rounded-[9px] border border-bad/30 bg-bad/8 px-4 py-3 text-[13px] font-semibold text-bad"
+        >
+          {error}
+        </div>
+      )}
+
       {/* Tabela de Relatórios */}
       <DataTable
         tableClassName="w-full min-w-[1080px] table-fixed text-left border-collapse"
-        headerCellClassName="px-2 py-2.5"
         headerClassNames={[
           "w-[40px]",
           "w-[112px]",
@@ -814,7 +1031,7 @@ export default function ReportsListPage() {
               disabled={isLoading || visibleSelectableReports.length === 0}
               aria-label="Selecionar pagina atual"
               title="Selecionar pagina atual"
-              className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+              className="h-4 w-4 rounded border-line text-accent focus:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
             />
           </div>,
           "Código",
@@ -831,7 +1048,18 @@ export default function ReportsListPage() {
         ]}
         isLoading={isLoading}
         isEmpty={reports.length === 0}
-        className="[&_td]:px-2 [&_td]:py-3 [&_td]:text-[13px]"
+        footer={
+          totalPages > 1 ? (
+            <Pagination
+              page={currentPage}
+              totalPages={totalPages}
+              totalItems={totalReports}
+              itemLabel="relatórios"
+              onPageChange={goToPage}
+              isLoading={isLoading}
+            />
+          ) : undefined
+        }
         emptyState={
           <EmptyState
             title="Nenhum teste encontrado"
@@ -844,21 +1072,15 @@ export default function ReportsListPage() {
           />
         }
       >
-        {reports.map((report, index) => {
-          const isAlternateRow = index % 2 === 1;
-          const rowHighlightClass = isAlternateRow
-            ? "bg-slate-50/80 hover:bg-slate-100"
-            : "bg-white hover:bg-slate-50";
-
+        {reports.map((report) => {
           const stepsCount = report.steps?.length || 0;
           const isSelected = Boolean(report.id && selectedReportsById[report.id]);
 
           return (
             <tr
               key={report.id}
-              className={`transition-colors text-sm border-b border-slate-100 ${
-                isSelected ? "bg-indigo-50 hover:bg-indigo-100" : rowHighlightClass
-              }`}
+              data-row-accent={getStatusColorVar(report.generalStatus)}
+              className={`text-[13px] transition-colors ${isSelected ? "bg-accent/8" : "hover:bg-panel2"}`}
             >
               <td className="px-2 py-3 text-center">
                 <input
@@ -866,40 +1088,38 @@ export default function ReportsListPage() {
                   checked={isSelected}
                   onChange={() => toggleReportSelection(report)}
                   aria-label={`Selecionar relatorio ${report.code}`}
-                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                  className="h-4 w-4 rounded border-line text-accent focus:ring-accent"
                 />
               </td>
-              <td className="px-2 py-3 font-mono font-bold text-slate-900 whitespace-nowrap">
-                {report.code}
-              </td>
-              <td className="px-2 py-3 text-slate-500 whitespace-nowrap">
+              <td className="whitespace-nowrap px-2 py-3 font-mono font-bold text-fg">{report.code}</td>
+              <td className="whitespace-nowrap px-2 py-3 font-mono text-faint">
                 {format(new Date(report.testDate), "dd/MM/yyyy")}
               </td>
-              <td className="px-2 py-3 text-slate-600 truncate max-w-0" title={report.branch}>
+              <td className="max-w-0 truncate px-2 py-3 font-mono text-fg2" title={report.branch}>
                 {report.branch}
               </td>
-              <td className="px-2 py-3 text-slate-600 truncate max-w-0" title={report.screenPath}>
+              <td className="max-w-0 truncate px-2 py-3 text-fg2" title={report.screenPath}>
                 {report.screenPath}
               </td>
-              <td className="px-2 py-3 text-slate-600 truncate max-w-0" title={report.functionality}>
+              <td className="max-w-0 truncate px-2 py-3 text-fg2" title={report.functionality}>
                 {report.functionality}
               </td>
-              <td className="px-2 py-3 text-slate-600 truncate max-w-0" title={report.testType}>
+              <td className="max-w-0 truncate px-2 py-3 text-fg2" title={report.testType}>
                 {report.testType}
               </td>
-              <td className="px-2 py-3 font-semibold text-slate-800 truncate max-w-0" title={report.testerName || "Nao informado"}>
+              <td className="max-w-0 truncate px-2 py-3 font-semibold text-fg2" title={report.testerName || "Nao informado"}>
                 {report.testerName || "Nao informado"}
               </td>
-              <td className="px-2 py-3 text-slate-600 truncate max-w-0" title={report.sndeskTechnicianName || "Nao informado"}>
+              <td className="max-w-0 truncate px-2 py-3 text-fg2" title={report.sndeskTechnicianName || "Nao informado"}>
                 {report.sndeskTechnicianName || "Nao informado"}
               </td>
-              <td className="px-2 py-3 text-center font-medium text-slate-500 whitespace-nowrap">
+              <td className="whitespace-nowrap px-2 py-3 text-center font-mono text-faint">
                 {stepsCount} {stepsCount === 1 ? "passo" : "passos"}
               </td>
-              <td className="px-2 py-3 whitespace-nowrap">
+              <td className="whitespace-nowrap px-2 py-3">
                 <StatusBadge status={report.generalStatus} size="sm" />
               </td>
-              <td className="px-2 py-3 whitespace-nowrap text-right">
+              <td className="whitespace-nowrap px-2 py-3 text-right">
                 <ReportActionsMenu
                   reportId={report.id!}
                   reportCode={report.code}
@@ -912,56 +1132,6 @@ export default function ReportsListPage() {
           );
         })}
       </DataTable>
-
-      {totalPages > 1 && (
-        <div className="flex flex-col gap-3 px-1 sm:flex-row sm:items-center sm:justify-between">
-          <span className="text-xs font-semibold text-slate-500">
-            Pagina {currentPage} de {totalPages} ({totalReports} relatorios)
-          </span>
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <Button
-              variant="secondary"
-              onClick={() => goToPage(currentPage - 1)}
-              disabled={currentPage === 1 || isLoading}
-              className="px-3 py-1.5 text-xs"
-            >
-              Anterior
-            </Button>
-            {getPageNumbers(currentPage, totalPages).map((page, index) =>
-              page === "..." ? (
-                <span
-                  key={`ellipsis-${index}`}
-                  className="px-1 text-xs font-bold text-slate-400"
-                >
-                  …
-                </span>
-              ) : (
-                <button
-                  key={page}
-                  type="button"
-                  onClick={() => goToPage(page)}
-                  disabled={isLoading}
-                  className={`h-8 min-w-8 rounded-lg border px-2 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-                    page === currentPage
-                      ? "border-indigo-600 bg-indigo-600 text-white"
-                      : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                  }`}
-                >
-                  {page}
-                </button>
-              )
-            )}
-            <Button
-              variant="secondary"
-              onClick={() => goToPage(currentPage + 1)}
-              disabled={currentPage === totalPages || isLoading}
-              className="px-3 py-1.5 text-xs"
-            >
-              Proxima
-            </Button>
-          </div>
-        </div>
-      )}
 
       {/* Renderização do Toast */}
       {toast && (

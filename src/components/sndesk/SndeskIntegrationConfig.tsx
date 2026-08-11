@@ -111,13 +111,11 @@ export default function SndeskIntegrationConfig() {
   }
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+    <section className="card p-4">
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Integracao SNDesk
-          </span>
-          <p className="mt-1 text-sm font-medium text-slate-500">
+          <span className="label mb-0">Integracao SNDesk</span>
+          <p className="mt-1 text-[13px] font-medium text-muted">
             Esses dados ficam salvos no banco em `webhook_settings`.
           </p>
         </div>
@@ -196,7 +194,7 @@ export default function SndeskIntegrationConfig() {
       </div>
 
       <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-wrap gap-4 text-sm font-semibold text-slate-700">
+        <div className="flex flex-wrap gap-4 text-[13px] font-semibold text-fg2">
           <label className="inline-flex items-center gap-2">
             <input
               type="checkbox"
@@ -235,8 +233,8 @@ export default function SndeskIntegrationConfig() {
 
       {message && (
         <p
-          className={`mt-3 text-xs font-bold ${
-            message.type === "success" ? "text-emerald-700" : "text-red-600"
+          className={`mt-3 text-[12px] font-bold ${
+            message.type === "success" ? "text-ok" : "text-bad"
           }`}
         >
           {message.text}

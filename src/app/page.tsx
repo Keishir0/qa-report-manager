@@ -3,7 +3,9 @@ import { format } from "date-fns";
 import prisma from "@/lib/prisma";
 import Button from "@/components/ui/Button";
 import PageHeader from "@/components/ui/PageHeader";
-import DashboardOverview from "@/components/dashboard/DashboardOverview";
+import DashboardOverview, {
+  DashboardSearch,
+} from "@/components/dashboard/DashboardOverview";
 import { requirePageUser, WRITE_ROLES } from "@/lib/auth";
 import { reportAccessWhere } from "@/lib/reports";
 
@@ -47,10 +49,11 @@ export default async function DashboardPage() {
   const approvalTargetReached = approvalRate >= 80;
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 animate-fade-in sm:space-y-8">
+    <div className="mx-auto max-w-7xl space-y-6 sm:space-y-8">
       <PageHeader
         title="Dashboard"
         description="Visão geral da qualidade, cobertura de testes e relatórios recentes."
+        search={<DashboardSearch />}
       >
         {canWrite && (
           <Link href="/reports/new" passHref legacyBehavior>

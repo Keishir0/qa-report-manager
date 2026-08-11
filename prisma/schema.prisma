@@ -21,6 +21,7 @@ model User {
   sessions     AuthSession[]
   aiGenerations AiGenerationLog[]
   testedReports TestReport[]
+  savedFilters SavedFilter[]
 
   @@map("users")
 }
@@ -173,6 +174,19 @@ model QaPendingTicket {
   @@index([state])
   @@index([statusId])
   @@map("qa_pending_tickets")
+}
+
+model SavedFilter {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  query     String
+  color     String   @default("accent")
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("saved_filters")
 }
 
 enum UserRole {

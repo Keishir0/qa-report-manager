@@ -3,6 +3,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useAuthUser } from "@/components/auth/AuthProvider";
 import Button from "@/components/ui/Button";
+import DataTable from "@/components/ui/DataTable";
 import EmptyState from "@/components/ui/EmptyState";
 import Input from "@/components/ui/Input";
 import PageHeader from "@/components/ui/PageHeader";
@@ -240,7 +241,7 @@ export default function UsersClient() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 animate-fade-in sm:space-y-8">
+    <div className="mx-auto max-w-7xl space-y-6 sm:space-y-8">
       <PageHeader
         title="Usuarios"
         description="Cadastre contas e defina o nivel de acesso de cada pessoa."
@@ -250,14 +251,14 @@ export default function UsersClient() {
         </Button>
       </PageHeader>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(320px,430px)_1fr]">
-        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs sm:p-6">
+      <div className="grid gap-6 xl:grid-cols-[320px_1fr]">
+        <section className="card p-5 sm:p-6">
           <div className="mb-5 flex items-start justify-between gap-3">
             <div>
-              <h2 className="text-lg font-extrabold text-slate-900">
+              <h2 className="text-[15px] font-bold text-fg">
                 {isEditing ? "Editar usuario" : "Novo usuario"}
               </h2>
-              <p className="mt-1 text-sm font-medium text-slate-500">
+              <p className="mt-1 text-[12.5px] font-medium text-muted">
                 {isEditing
                   ? "Altere dados, senha, status e perfil conforme sua permissao."
                   : "A senha inicial deve ter pelo menos 8 caracteres."}
@@ -276,7 +277,7 @@ export default function UsersClient() {
           </div>
 
           {editingUser && (
-            <div className="mb-4 rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700">
+            <div className="mb-4 rounded-[9px] border border-accent/25 bg-accent/10 px-3 py-2 text-[12px] font-semibold text-accent">
               Editando {editingUser.name}
             </div>
           )}
@@ -347,7 +348,7 @@ export default function UsersClient() {
               <option value="QA">QA</option>
               <option value="VIEWER">Visualizador</option>
             </Select>
-            <p className="-mt-2 text-xs font-medium text-slate-500">
+            <p className="-mt-2 text-[12px] font-medium text-muted">
               {ROLE_DESCRIPTIONS[form.role]}
             </p>
 
@@ -403,12 +404,12 @@ export default function UsersClient() {
               autoComplete="new-password"
               required={!isEditing}
             />
-            <label className="flex items-center gap-2 text-sm font-semibold text-slate-600">
+            <label className="flex items-center gap-2 text-[13px] font-semibold text-fg2">
               <input
                 type="checkbox"
                 checked={showPassword}
                 onChange={(event) => setShowPassword(event.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                className="h-4 w-4 rounded border-line text-accent focus:ring-accent"
               />
               Mostrar senha
             </label>
@@ -418,96 +419,79 @@ export default function UsersClient() {
           </form>
         </section>
 
-        <section className="min-w-0 rounded-xl border border-slate-200 bg-white shadow-xs">
-          <div className="border-b border-slate-100 px-5 py-4 sm:px-6">
-            <h2 className="font-extrabold text-slate-900">
-              Contas cadastradas
-            </h2>
-            <p className="mt-1 text-xs font-medium text-slate-500">
+        <section className="min-w-0 space-y-3">
+          <div className="px-1">
+            <h2 className="text-[15px] font-bold text-fg">Contas cadastradas</h2>
+            <p className="mt-1 text-[12px] font-medium text-muted">
               {users.length} {users.length === 1 ? "usuario" : "usuarios"}
             </p>
           </div>
 
-          {isLoading ? (
-            <div className="p-10 text-center text-sm font-semibold text-slate-500">
-              Carregando usuarios...
-            </div>
-          ) : users.length === 0 ? (
-            <EmptyState
-              title="Nenhum usuario cadastrado"
-              description="Use o formulario para criar a primeira conta."
-            />
-          ) : (
-            <div className="overflow-x-auto max-lg:overflow-visible">
-              <table className="w-full min-w-[760px] text-left max-lg:block max-lg:min-w-0">
-                <thead className="max-lg:hidden">
-                  <tr className="border-b border-slate-200 bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                    <th className="p-4">Usuario</th>
-                    <th className="p-4">Perfil</th>
-                    <th className="p-4">Status</th>
-                    <th className="p-4">Criado em</th>
-                    <th className="p-4 text-right">Acoes</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 max-lg:block max-lg:space-y-3 max-lg:divide-y-0 max-lg:p-3">
-                  {users.map((user) => (
-                    <tr key={user.id} className="text-sm hover:bg-slate-50/70 max-lg:block max-lg:rounded-xl max-lg:border max-lg:border-slate-200 max-lg:bg-white max-lg:shadow-xs">
-                      <td data-label="Usuario" className="p-4 max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-slate-100 max-lg:text-right max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]">
-                        <div>
-                          <div className="font-bold text-slate-900">{user.name}</div>
-                          <div className="mt-0.5 text-xs font-medium text-slate-500">
-                            {user.email}
-                          </div>
-                          {(user.sndeskUserId || user.sndeskStatusId) && (
-                            <div className="mt-1 flex flex-wrap gap-1">
-                              {user.sndeskUserId && (
-                                <span className="inline-flex rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] font-bold text-slate-500">
-                                  Téc ID: {user.sndeskUserId}
-                                </span>
-                              )}
-                              {user.sndeskStatusId && (
-                                <span className="inline-flex rounded-md bg-indigo-50 px-1.5 py-0.5 font-mono text-[10px] font-bold text-indigo-600">
-                                  Status ID: {user.sndeskStatusId}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td data-label="Perfil" className="p-4 max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-slate-100 max-lg:text-right max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]">
-                        <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-700">
-                          {ROLE_LABELS[user.role]}
-                        </span>
-                      </td>
-                      <td data-label="Status" className="p-4 max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-slate-100 max-lg:text-right max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]">
-                        <span
-                          className={`rounded-full px-2.5 py-1 text-xs font-bold ${
-                            user.active
-                              ? "bg-green-50 text-green-700"
-                              : "bg-slate-100 text-slate-500"
-                          }`}
-                        >
-                          {user.active ? "Ativo" : "Inativo"}
-                        </span>
-                      </td>
-                      <td data-label="Criado em" className="whitespace-nowrap p-4 text-xs font-medium text-slate-500 max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-slate-100 max-lg:text-right max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]">
-                        {formatDate(user.createdAt)}
-                      </td>
-                      <td data-label="Acoes" className="p-4 text-right max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:before:text-left max-lg:before:text-[10px] max-lg:before:font-bold max-lg:before:uppercase max-lg:before:tracking-wider max-lg:before:text-slate-400 max-lg:before:content-[attr(data-label)]">
-                        <Button
-                          variant="secondary"
-                          className="px-3 py-2 text-xs"
-                          onClick={() => startEdit(user)}
-                        >
-                          Editar
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <DataTable
+            headers={["Usuario", "Perfil", "Status", "Criado em", "Acoes"]}
+            isLoading={isLoading}
+            isEmpty={!isLoading && users.length === 0}
+            emptyState={
+              <EmptyState
+                title="Nenhum usuario cadastrado"
+                description="Use o formulario para criar a primeira conta."
+              />
+            }
+          >
+            {users.map((user) => (
+              <tr key={user.id} className="text-[13px] transition-colors hover:bg-panel2">
+                <td data-label="Usuario" className="p-4 max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-hairline max-lg:text-right max-lg:before:text-left max-lg:before:font-mono max-lg:before:text-[10px] max-lg:before:font-medium max-lg:before:uppercase max-lg:before:tracking-[0.12em] max-lg:before:text-faint max-lg:before:content-[attr(data-label)]">
+                  <div>
+                    <div className="font-bold text-fg">{user.name}</div>
+                    <div className="mt-0.5 text-[12px] font-medium text-muted">
+                      {user.email}
+                    </div>
+                    {(user.sndeskUserId || user.sndeskStatusId) && (
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {user.sndeskUserId && (
+                          <span className="inline-flex rounded-md border border-line bg-panel2 px-1.5 py-0.5 font-mono text-[10px] font-bold text-faint">
+                            Téc ID: {user.sndeskUserId}
+                          </span>
+                        )}
+                        {user.sndeskStatusId && (
+                          <span className="inline-flex rounded-md border border-accent/25 bg-accent/10 px-1.5 py-0.5 font-mono text-[10px] font-bold text-accent">
+                            Status ID: {user.sndeskStatusId}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </td>
+                <td data-label="Perfil" className="p-4 max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-hairline max-lg:text-right max-lg:before:text-left max-lg:before:font-mono max-lg:before:text-[10px] max-lg:before:font-medium max-lg:before:uppercase max-lg:before:tracking-[0.12em] max-lg:before:text-faint max-lg:before:content-[attr(data-label)]">
+                  <span className="rounded-full border border-accent/25 bg-accent/10 px-2.5 py-1 text-[12px] font-bold text-accent">
+                    {ROLE_LABELS[user.role]}
+                  </span>
+                </td>
+                <td data-label="Status" className="p-4 max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-hairline max-lg:text-right max-lg:before:text-left max-lg:before:font-mono max-lg:before:text-[10px] max-lg:before:font-medium max-lg:before:uppercase max-lg:before:tracking-[0.12em] max-lg:before:text-faint max-lg:before:content-[attr(data-label)]">
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-bold ${
+                      user.active ? "bg-ok/10 text-ok" : "bg-neutral/10 text-neutral"
+                    }`}
+                  >
+                    <span className={`h-1.5 w-1.5 rounded-full ${user.active ? "bg-ok" : "bg-neutral"}`} />
+                    {user.active ? "Ativo" : "Inativo"}
+                  </span>
+                </td>
+                <td data-label="Criado em" className="whitespace-nowrap p-4 font-mono text-faint max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:border-b max-lg:border-hairline max-lg:text-right max-lg:before:text-left max-lg:before:font-mono max-lg:before:text-[10px] max-lg:before:font-medium max-lg:before:uppercase max-lg:before:tracking-[0.12em] max-lg:before:text-faint max-lg:before:content-[attr(data-label)]">
+                  {formatDate(user.createdAt)}
+                </td>
+                <td data-label="Acoes" className="p-4 text-right max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:before:text-left max-lg:before:font-mono max-lg:before:text-[10px] max-lg:before:font-medium max-lg:before:uppercase max-lg:before:tracking-[0.12em] max-lg:before:text-faint max-lg:before:content-[attr(data-label)]">
+                  <Button
+                    variant="secondary"
+                    className="px-3 py-2 text-xs"
+                    onClick={() => startEdit(user)}
+                  >
+                    Editar
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </DataTable>
         </section>
       </div>
 

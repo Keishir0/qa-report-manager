@@ -7,6 +7,7 @@ import DataTable from "@/components/ui/DataTable";
 import EmptyState from "@/components/ui/EmptyState";
 import Input from "@/components/ui/Input";
 import PageHeader from "@/components/ui/PageHeader";
+import Pagination from "@/components/ui/Pagination";
 import SndeskIntegrationConfig from "@/components/sndesk/SndeskIntegrationConfig";
 
 interface WebhookEvent {
@@ -57,15 +58,29 @@ function formatDate(value: string) {
 function getWebhookStatusColor(status: string) {
   switch (status) {
     case "pendencia_criada":
-      return "bg-amber-50 text-amber-700 border border-amber-100";
+      return "bg-warn/10 text-warn border border-warn/30";
     case "ignorado":
-      return "bg-rose-50 text-rose-700 border border-rose-100";
+      return "bg-bad/10 text-bad border border-bad/30";
     case "recebido":
-      return "bg-emerald-50 text-emerald-700 border border-emerald-100";
+      return "bg-ok/10 text-ok border border-ok/30";
     case "erro":
-      return "bg-rose-50 text-rose-700 border border-rose-100";
+      return "bg-bad/10 text-bad border border-bad/30";
     default:
-      return "bg-slate-50 text-slate-600 border border-slate-200";
+      return "bg-neutral/10 text-neutral border border-neutral/30";
+  }
+}
+
+function getWebhookStatusVar(status: string) {
+  switch (status) {
+    case "pendencia_criada":
+      return "rgb(var(--warn))";
+    case "ignorado":
+    case "erro":
+      return "rgb(var(--bad))";
+    case "recebido":
+      return "rgb(var(--ok))";
+    default:
+      return "rgb(var(--neutral))";
   }
 }
 
@@ -197,7 +212,7 @@ export default function WebhookMonitor() {
   }, [loadEventos, loadSecretStatus]);
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 animate-fade-in sm:space-y-8">
+    <div className="mx-auto max-w-7xl space-y-6 sm:space-y-8">
       <PageHeader
         title="Webhooks"
         description="Monitoramento dos eventos recebidos do sistema externo de chamados."
@@ -208,50 +223,37 @@ export default function WebhookMonitor() {
       </PageHeader>
 
       <section className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(260px,360px)]">
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Endpoint
-          </span>
-          <code className="mt-2 block overflow-x-auto rounded-lg bg-slate-950 px-3 py-2 text-xs font-semibold text-slate-100">
+        <div className="card p-4">
+          <span className="label mb-0">Endpoint</span>
+          <code className="mt-2 block overflow-x-auto rounded-[8px] border border-line bg-panel2 px-3 py-2 text-[12px] font-semibold text-fg2">
             POST {endpointUrl}
           </code>
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Atualizacao
-          </span>
+        <div className="card p-4">
+          <span className="label mb-0">Atualizacao</span>
           <div className="mt-2 flex items-center justify-between gap-3">
-            <span className="text-sm font-semibold text-slate-800">
-              A cada 3 segundos
-            </span>
-            <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
+            <span className="text-[13px] font-semibold text-fg2">A cada 3 segundos</span>
+            <span className="rounded-full border border-ok/30 bg-ok/10 px-2.5 py-1 text-[12px] font-bold text-ok">
               Ativo
             </span>
           </div>
           {lastUpdate && (
-            <p className="mt-2 text-xs font-medium text-slate-500">
+            <p className="mt-2 text-[12px] font-medium text-muted">
               Ultima leitura: {formatDate(lastUpdate.toISOString())}
             </p>
           )}
         </div>
       </section>
 
-      <form
-        onSubmit={saveSecret}
-        className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs"
-      >
+      <form onSubmit={saveSecret} className="card p-4">
         <div className="flex flex-col gap-4">
           <div className="min-w-0 flex-1">
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Secret da webhook
-              </span>
+              <span className="label mb-0">Secret da webhook</span>
               <span
-                className={`rounded-full px-2.5 py-1 text-xs font-bold ${
-                  secretConfigured
-                    ? "bg-emerald-50 text-emerald-700"
-                    : "bg-amber-50 text-amber-700"
+                className={`rounded-full px-2.5 py-1 text-[12px] font-bold ${
+                  secretConfigured ? "bg-ok/10 text-ok" : "bg-warn/10 text-warn"
                 }`}
               >
                 {isSecretLoading
@@ -281,19 +283,15 @@ export default function WebhookMonitor() {
               </Button>
             </div>
             {secretUpdatedAt && (
-              <p className="mt-2 text-xs font-medium text-slate-500">
+              <p className="mt-2 text-[12px] font-medium text-muted">
                 Atualizado em: {formatDate(secretUpdatedAt)}
               </p>
             )}
             {secretMessage && (
-              <p className="mt-2 text-xs font-bold text-emerald-700">
-                {secretMessage}
-              </p>
+              <p className="mt-2 text-[12px] font-bold text-ok">{secretMessage}</p>
             )}
             {secretError && (
-              <p className="mt-2 text-xs font-bold text-red-600">
-                {secretError}
-              </p>
+              <p className="mt-2 text-[12px] font-bold text-bad">{secretError}</p>
             )}
           </div>
         </div>
@@ -302,7 +300,7 @@ export default function WebhookMonitor() {
       <SndeskIntegrationConfig />
 
       {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+        <div className="rounded-[14px] border border-bad/30 bg-bad/8 px-4 py-3 text-[13px] font-semibold text-bad">
           {error}
         </div>
       )}
@@ -318,81 +316,51 @@ export default function WebhookMonitor() {
           />
         }
         className="[&_table]:min-w-[1080px]"
+        footer={
+          <Pagination
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.total}
+            itemLabel="eventos"
+            onPageChange={(nextPage) => setPage(nextPage)}
+            isLoading={isLoading}
+          />
+        }
       >
         {eventos.map((evento) => (
-          <tr key={evento.id} className="text-sm transition-colors hover:bg-slate-50">
+          <tr
+            key={evento.id}
+            data-row-accent={getWebhookStatusVar(evento.status)}
+            className="text-[13px] transition-colors hover:bg-panel2"
+          >
             <td className="p-4">
-              <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-700">
+              <span className="rounded-full border border-accent/25 bg-accent/10 px-2.5 py-1 text-[12px] font-bold text-accent">
                 {evento.event}
               </span>
             </td>
-            <td className="p-4 font-mono font-bold text-slate-900">
-              {evento.idChamado}
-            </td>
-            <td className="p-4 font-mono font-semibold text-slate-700">
-              {evento.idRef}
-            </td>
-            <td className="p-4 whitespace-nowrap text-slate-600">
+            <td className="p-4 font-mono font-bold text-fg">{evento.idChamado}</td>
+            <td className="p-4 font-mono font-semibold text-fg2">{evento.idRef}</td>
+            <td className="whitespace-nowrap p-4 font-mono text-faint">
               {formatDate(evento.receivedAt)}
             </td>
             <td className="p-4">
-              <span
-                className={`rounded-full px-2.5 py-1 text-xs font-bold ${getWebhookStatusColor(
-                  evento.status
-                )}`}>
-                  {evento.status}
+              <span className={`rounded-full px-2.5 py-1 text-[12px] font-bold ${getWebhookStatusColor(evento.status)}`}>
+                {evento.status}
               </span>
             </td>
-            <td className="p-4 text-xs text-slate-500">
+            <td className="p-4 text-[12px] text-muted">
               <div className="max-w-[180px] truncate" title={evento.sourceIp || ""}>
                 {evento.sourceIp || "Nao informado"}
               </div>
             </td>
             <td className="p-4">
-              <pre className="max-h-44 min-w-[360px] overflow-auto rounded-lg bg-slate-950 p-3 text-xs leading-relaxed text-slate-100">
+              <pre className="max-h-44 min-w-[360px] overflow-auto rounded-[8px] border border-line bg-panel2 p-3 text-[12px] leading-relaxed text-fg2">
                 {formatJson(evento.rawPayload)}
               </pre>
             </td>
           </tr>
         ))}
       </DataTable>
-
-      <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-xs sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm font-semibold text-slate-600">
-          {pagination.total === 0
-            ? "Nenhum evento para exibir"
-            : `Mostrando ${(pagination.page - 1) * pagination.limit + 1}-${Math.min(
-                pagination.page * pagination.limit,
-                pagination.total
-              )} de ${pagination.total} eventos`}
-        </p>
-
-        <div className="flex items-center gap-3">
-          <Button
-            variant="secondary"
-            className="px-3 py-2 text-xs"
-            disabled={pagination.page <= 1 || isLoading}
-            onClick={() => setPage((current) => Math.max(current - 1, 1))}
-          >
-            Anterior
-          </Button>
-          <span className="text-xs font-bold text-slate-500">
-            Pagina {pagination.page} de {pagination.totalPages}
-          </span>
-          <Button
-            variant="secondary"
-            className="px-3 py-2 text-xs"
-            disabled={pagination.page >= pagination.totalPages || isLoading}
-            onClick={() =>
-              setPage((current) =>
-                Math.min(current + 1, pagination.totalPages)
-              )
-            }
-          >
-            Proxima
-          </Button>
-        </div>
-      </div>
     </div>
   );
 }

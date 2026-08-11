@@ -87,7 +87,7 @@ export default function LoginForm({ nextPath }: { nextPath: string }) {
       {error && (
         <div
           role="alert"
-          className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"
+          className="rounded-[9px] border border-bad/30 bg-bad/8 px-3 py-2 text-[13px] font-semibold text-bad"
         >
           {error}
         </div>

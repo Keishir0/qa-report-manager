@@ -8,9 +8,11 @@ import Sidebar from "@/components/ui/Sidebar";
 
 export default function AppShell({
   user,
+  theme,
   children,
 }: {
   user: AuthUser | null;
+  theme: "light" | "dark";
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -35,8 +37,8 @@ export default function AppShell({
 
   return (
     <AuthProvider user={user}>
-      <Sidebar user={user} />
-      <main className="app-background min-h-screen min-w-0 px-4 pb-8 pt-20 sm:px-6 lg:ml-60 lg:p-8">
+      <Sidebar user={user} theme={theme} />
+      <main className="min-h-screen min-w-0 bg-surface px-4 pb-8 pt-20 sm:px-6 lg:ml-[232px] lg:p-8">
         {children}
       </main>
     </AuthProvider>

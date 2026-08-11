@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import "@fontsource/open-sans/latin-400.css";
 import "@fontsource/open-sans/latin-500.css";
 import "@fontsource/open-sans/latin-600.css";
@@ -26,11 +27,15 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const user = await getCurrentUser();
+  const cookieStore = await cookies();
+  const theme = cookieStore.get("theme")?.value === "light" ? "light" : "dark";
 
   return (
-    <html lang="pt-BR" className="h-full">
-      <body className="min-h-full bg-slate-50 font-sans">
-        <AppShell user={user}>{children}</AppShell>
+    <html lang="pt-BR" className="h-full" data-theme={theme}>
+      <body className="min-h-full bg-surface font-sans">
+        <AppShell user={user} theme={theme}>
+          {children}
+        </AppShell>
       </body>
     </html>
   );

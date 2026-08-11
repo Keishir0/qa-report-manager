@@ -5,8 +5,30 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { AuthUser } from "@/lib/auth";
 import BrandBugIcon from "@/components/ui/BrandBugIcon";
+import ThemeToggle from "@/components/ui/ThemeToggle";
 
-export default function Sidebar({ user }: { user: AuthUser }) {
+interface SidebarCounts {
+  relatorios?: number;
+  webhooks?: number;
+  pendencias?: number;
+}
+
+function getInitials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+}
+
+export default function Sidebar({
+  user,
+  theme,
+  counts,
+}: {
+  user: AuthUser;
+  theme: "light" | "dark";
+  counts?: SidebarCounts;
+}) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -37,7 +59,7 @@ export default function Sidebar({ user }: { user: AuthUser }) {
       href: "/",
       icon: (
         <svg
-          className="w-5 h-5"
+          className="h-[18px] w-[18px]"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -54,9 +76,10 @@ export default function Sidebar({ user }: { user: AuthUser }) {
     {
       name: "Relatórios",
       href: "/reports",
+      count: counts?.relatorios,
       icon: (
         <svg
-          className="w-5 h-5"
+          className="h-[18px] w-[18px]"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -76,7 +99,7 @@ export default function Sidebar({ user }: { user: AuthUser }) {
       roles: ["ADMIN", "QA"],
       icon: (
         <svg
-          className="w-5 h-5"
+          className="h-[18px] w-[18px]"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -94,9 +117,10 @@ export default function Sidebar({ user }: { user: AuthUser }) {
       name: "Webhooks",
       href: "/webhooks",
       roles: ["ADMIN"],
+      count: counts?.webhooks,
       icon: (
         <svg
-          className="w-5 h-5"
+          className="h-[18px] w-[18px]"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -114,9 +138,10 @@ export default function Sidebar({ user }: { user: AuthUser }) {
       name: "Pendencias",
       href: "/pendencias",
       roles: ["ADMIN", "QA"],
+      count: counts?.pendencias,
       icon: (
         <svg
-          className="w-5 h-5"
+          className="h-[18px] w-[18px]"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -136,7 +161,7 @@ export default function Sidebar({ user }: { user: AuthUser }) {
       roles: ["ADMIN"],
       icon: (
         <svg
-          className="w-5 h-5"
+          className="h-[18px] w-[18px]"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -163,17 +188,17 @@ export default function Sidebar({ user }: { user: AuthUser }) {
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-40 flex h-16 items-center justify-between border-b border-slate-200 bg-white/95 px-4 shadow-sm backdrop-blur lg:hidden">
+      <header className="fixed inset-x-0 top-0 z-40 flex h-16 items-center justify-between border-b border-line bg-panel/95 px-4 backdrop-blur lg:hidden">
         <Link href="/" className="flex min-w-0 items-center gap-2.5">
-          <div className="rounded-lg bg-brand-50 p-2 text-brand">
+          <div className="flex h-9 w-9 items-center justify-center rounded-[9px] bg-accent text-accentFg">
             <BrandBugIcon className="h-5 w-5" />
           </div>
           <div className="min-w-0">
-            <span className="block truncate text-sm font-bold leading-tight text-slate-900">
-              QA Report Manager
+            <span className="block truncate text-sm font-bold leading-tight text-fg">
+              QA Report
             </span>
-            <span className="block text-[10px] font-medium uppercase tracking-wider text-slate-400">
-              Gestão de testes
+            <span className="block font-mono text-[10px] uppercase tracking-[0.12em] text-faint">
+              Manager
             </span>
           </div>
         </Link>
@@ -181,7 +206,7 @@ export default function Sidebar({ user }: { user: AuthUser }) {
         <button
           type="button"
           onClick={() => setIsOpen((open) => !open)}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-[9px] border border-line bg-panel text-fg2 transition-colors hover:bg-panel2"
           aria-label={isOpen ? "Fechar menu" : "Abrir menu"}
           aria-expanded={isOpen}
           aria-controls="main-navigation"
@@ -201,7 +226,7 @@ export default function Sidebar({ user }: { user: AuthUser }) {
       {isOpen && (
         <button
           type="button"
-          className="fixed inset-0 z-40 bg-slate-950/40 backdrop-blur-[1px] lg:hidden"
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[1px] lg:hidden"
           onClick={() => setIsOpen(false)}
           aria-label="Fechar menu"
         />
@@ -209,105 +234,129 @@ export default function Sidebar({ user }: { user: AuthUser }) {
 
       <aside
         id="main-navigation"
-        className={`fixed inset-y-0 left-0 z-50 flex h-dvh w-72 max-w-[85vw] flex-col justify-between border-r border-gray-200 bg-white shadow-xl transition-transform duration-300 lg:z-30 lg:w-60 lg:max-w-none lg:translate-x-0 lg:shadow-none ${
+        className={`fixed inset-y-0 left-0 z-50 flex h-dvh w-72 max-w-[85vw] flex-col justify-between border-r border-line bg-surface transition-transform duration-300 lg:z-30 lg:w-[232px] lg:max-w-none lg:translate-x-0 ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-      <div className="p-5 sm:p-6">
-        {/* Logo */}
-        <div className="mb-8 flex items-center justify-between gap-3">
-          <Link href="/" className="flex items-center gap-3">
-          <div className="p-2 bg-brand-50 rounded-lg text-brand">
-            <BrandBugIcon className="h-6 w-6" />
+        <div className="p-5 sm:p-4">
+          {/* Marca */}
+          <div className="mb-7 flex items-center justify-between gap-3">
+            <Link href="/" className="flex items-center gap-2.5">
+              <div className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[9px] bg-accent text-accentFg">
+                <BrandBugIcon className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <span className="block truncate text-sm font-bold leading-tight text-fg">
+                  QA Report
+                </span>
+                <span className="block font-mono text-[10px] uppercase tracking-[0.12em] text-faint">
+                  Manager
+                </span>
+              </div>
+            </Link>
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-[9px] text-faint hover:bg-panel2 lg:hidden"
+              aria-label="Fechar menu"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
-          <div>
-            <span className="font-bold text-gray-900 block leading-tight text-lg">
-              QA Report
-            </span>
-            <span className="text-xs text-gray-500 block">Manager</span>
-          </div>
-          </Link>
-          <button
-            type="button"
-            onClick={() => setIsOpen(false)}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 lg:hidden"
-            aria-label="Fechar menu"
-          >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+
+          <span className="mb-2 block px-3 font-mono text-[10px] uppercase tracking-[0.12em] text-faint">
+            Operação
+          </span>
+
+          {/* Menu Navigation */}
+          <nav className="space-y-1">
+            {links.map((link) => {
+              const isActive =
+                link.href === "/"
+                  ? pathname === "/"
+                  : link.href === "/reports"
+                  ? pathname.startsWith("/reports") && !pathname.startsWith("/reports/new")
+                  : pathname.startsWith(link.href);
+
+              return (
+                <Link
+                  key={link.name}
+                  href={link.href}
+                  className={`flex items-center gap-3 rounded-[9px] px-3 py-2.5 text-[13.5px] font-semibold transition-colors ${
+                    isActive
+                      ? "bg-panel text-fg shadow-[inset_0_0_0_1px_rgb(var(--line))]"
+                      : "text-muted hover:bg-panel2 hover:text-fg2"
+                  }`}
+                >
+                  {link.icon}
+                  <span className="flex-1 truncate">{link.name}</span>
+                  {typeof link.count === "number" && (
+                    <span className="font-mono text-[10.5px] text-faint">{link.count}</span>
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
         </div>
 
-        {/* Menu Navigation */}
-        <nav className="space-y-1">
-          {links.map((link) => {
-            const isActive =
-              link.href === "/"
-                ? pathname === "/"
-                : link.href === "/reports"
-                ? pathname.startsWith("/reports") && !pathname.startsWith("/reports/new")
-                : pathname.startsWith(link.href);
+        {/* Rodapé */}
+        <div className="border-t border-line p-4">
+          <ThemeToggle initialTheme={theme} />
 
-            return (
-              <Link
-                key={link.name}
-                href={link.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  isActive
-                    ? "bg-brand-50 text-brand-700 font-semibold"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-950"
-                }`}
+          <div className="my-4 border-t border-hairline" />
+
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-panel2 text-[11px] font-bold text-fg2 shadow-[inset_0_0_0_1px_rgb(var(--line))]">
+                {getInitials(user.name)}
+              </div>
+              <div className="min-w-0">
+                <div className="truncate text-[13px] font-semibold text-fg">{user.name}</div>
+                <div className="truncate font-mono text-[10px] uppercase tracking-[0.08em] text-accent">
+                  {user.role}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex shrink-0 items-center gap-1">
+              {user.role === "ADMIN" && (
+                <Link
+                  href="/logs"
+                  className="rounded-[8px] p-1.5 text-faint transition-colors hover:bg-panel2 hover:text-fg2"
+                  title="Logs do Sistema"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                  </svg>
+                </Link>
+              )}
+              <button
+                type="button"
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                title="Sair"
+                aria-label="Sair"
+                className="rounded-[8px] p-1.5 text-faint transition-colors hover:bg-panel2 hover:text-bad disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {link.icon}
-                {link.name}
-              </Link>
-            );
-          })}
-        </nav>
-      </div>
-
-      {/* Footer */}
-      <div className="border-t border-gray-100 bg-gray-50/50 p-5">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <div className="truncate text-sm font-bold text-slate-800">{user.name}</div>
-            <div className="truncate text-xs font-medium text-slate-500">{user.email}</div>
-            <div className="mt-1 text-[10px] font-bold uppercase tracking-wider text-indigo-600">
-              {user.role}
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                  />
+                </svg>
+              </button>
             </div>
           </div>
-          {user.role === "ADMIN" && (
-            <Link
-              href="/logs"
-              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
-              title="Logs do Sistema"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
-            </Link>
-          )}
         </div>
-        <button
-          type="button"
-          onClick={handleLogout}
-          disabled={isLoggingOut}
-          className="mt-4 flex w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {isLoggingOut ? "Saindo..." : "Sair"}
-        </button>
-      </div>
       </aside>
     </>
   );

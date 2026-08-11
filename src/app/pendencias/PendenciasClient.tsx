@@ -6,6 +6,7 @@ import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import EmptyState from "@/components/ui/EmptyState";
 import PageHeader from "@/components/ui/PageHeader";
+import Pagination from "@/components/ui/Pagination";
 import Toast from "@/components/ui/Toast";
 
 interface SndeskConfigView {
@@ -84,7 +85,7 @@ function getTicketStateColor(state: string) {
   const normalizedState = state.toLowerCase();
 
   if (normalizedState.includes("aprovado")) {
-    return "bg-emerald-50 text-emerald-700 border border-emerald-100";
+    return "bg-ok/10 text-ok border border-ok/30";
   }
 
   if (
@@ -92,10 +93,25 @@ function getTicketStateColor(state: string) {
     normalizedState.includes("negado") ||
     normalizedState.includes("reprovado")
   ) {
-    return "bg-rose-50 text-rose-700 border border-rose-100";
+    return "bg-bad/10 text-bad border border-bad/30";
   }
 
-  return "bg-slate-100 text-slate-700 border border-slate-200";
+  return "bg-neutral/10 text-neutral border border-neutral/30";
+}
+
+function getTicketStateVar(state: string) {
+  const normalizedState = state.toLowerCase();
+
+  if (normalizedState.includes("aprovado")) return "rgb(var(--ok))";
+  if (
+    normalizedState.includes("recusado") ||
+    normalizedState.includes("negado") ||
+    normalizedState.includes("reprovado")
+  ) {
+    return "rgb(var(--bad))";
+  }
+
+  return "rgb(var(--neutral))";
 }
 
 function PendingTicketActionsMenu({
@@ -173,7 +189,7 @@ function PendingTicketActionsMenu({
       ref={menuRef}
       role="menu"
       aria-label={`Acoes da pendencia ${ticket.idChamado}`}
-      className="fixed z-[100] w-44 overflow-hidden rounded-xl border border-slate-200 bg-white py-1.5 shadow-xl shadow-slate-900/10"
+      className="fixed z-[100] w-44 overflow-hidden rounded-[10px] border border-line bg-panel py-1.5 shadow-lg"
       style={{ top: position.top, left: position.left }}
     >
       <button
@@ -184,7 +200,7 @@ function PendingTicketActionsMenu({
           closeMenu();
           onView(ticket);
         }}
-        className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm font-semibold text-indigo-600 transition-colors hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-60"
+        className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[13px] font-semibold text-accent transition-colors hover:bg-accent/10 disabled:cursor-not-allowed disabled:opacity-60"
       >
         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -195,7 +211,7 @@ function PendingTicketActionsMenu({
 
       {ticket.reportId && (
         <>
-          <div className="mx-2 my-1 border-t border-slate-100" />
+          <div className="mx-2 my-1 border-t border-hairline" />
           <button
             type="button"
             role="menuitem"
@@ -205,7 +221,7 @@ function PendingTicketActionsMenu({
               closeMenu();
               onApprove(ticket.id);
             }}
-            className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm font-semibold text-emerald-600 transition-colors hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[13px] font-semibold text-ok transition-colors hover:bg-ok/10 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -221,14 +237,14 @@ function PendingTicketActionsMenu({
               closeMenu();
               onReject(ticket.id);
             }}
-            className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm font-semibold text-rose-600 transition-colors hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[13px] font-semibold text-bad transition-colors hover:bg-bad/10 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
             Recusar
           </button>
-          <div className="mx-2 my-1 border-t border-slate-100" />
+          <div className="mx-2 my-1 border-t border-hairline" />
           <button
             type="button"
             role="menuitem"
@@ -237,7 +253,7 @@ function PendingTicketActionsMenu({
               closeMenu();
               onDeleteReport(ticket);
             }}
-            className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[13px] font-semibold text-bad transition-colors hover:bg-bad/10 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -259,7 +275,7 @@ function PendingTicketActionsMenu({
         aria-expanded={isOpen}
         disabled={isLoading}
         onClick={() => setIsOpen((open) => !open)}
-        className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 disabled:cursor-not-allowed disabled:opacity-60"
+        className="flex h-9 w-9 items-center justify-center rounded-[9px] border border-line text-muted transition-colors hover:border-accent/40 hover:bg-accent/10 hover:text-accent focus:outline-none focus:ring-[3px] focus:ring-accent/30 disabled:cursor-not-allowed disabled:opacity-60"
       >
         <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <circle cx="5" cy="12" r="1.8" />
@@ -486,7 +502,7 @@ export default function PendenciasClient() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 animate-fade-in sm:space-y-8">
+    <div className="mx-auto max-w-7xl space-y-6 sm:space-y-8">
       <PageHeader
         title="Pendencias de Teste"
         description="Chamados do SNDesk aguardando validacao de QA."
@@ -497,41 +513,39 @@ export default function PendenciasClient() {
       </PageHeader>
 
       <section>
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Configuracao SNDesk
-          </span>
-          <div className="mt-3 grid gap-3 text-sm text-slate-700 md:grid-cols-3">
+        <div className="card p-4">
+          <span className="label mb-0">Configuracao SNDesk</span>
+          <div className="mt-3 grid gap-3 text-[13px] text-fg2 md:grid-cols-3">
             <div>
-              <span className="block text-xs font-bold text-slate-400">Dominio</span>
+              <span className="block text-[11px] font-bold text-faint">Dominio</span>
               <span className="font-semibold">{config?.baseUrl || "Nao configurado"}</span>
             </div>
             <div>
-              <span className="block text-xs font-bold text-slate-400">Token API</span>
+              <span className="block text-[11px] font-bold text-faint">Token API</span>
               <span className="font-semibold">
                 {config?.tokenConfigured ? "Configurado" : "Nao configurado"}
               </span>
             </div>
             <div>
-              <span className="block text-xs font-bold text-slate-400">Status pendentes</span>
+              <span className="block text-[11px] font-bold text-faint">Status pendentes</span>
               <span className="font-semibold">
                 {config?.pendingStatusIds?.join(", ") || "Nao configurado"}
               </span>
             </div>
             <div>
-              <span className="block text-xs font-bold text-slate-400">Usuario padrao</span>
+              <span className="block text-[11px] font-bold text-faint">Usuario padrao</span>
               <span className="font-semibold">{config?.defaultUserId || "Nao configurado"}</span>
             </div>
             <div>
-              <span className="block text-xs font-bold text-slate-400">Aprovacao</span>
+              <span className="block text-[11px] font-bold text-faint">Aprovacao</span>
               <span className="font-semibold">{config?.approveStatusId || "Nao configurado"}</span>
             </div>
             <div>
-              <span className="block text-xs font-bold text-slate-400">Recusa</span>
+              <span className="block text-[11px] font-bold text-faint">Recusa</span>
               <span className="font-semibold">{config?.rejectStatusId || "Nao configurado"}</span>
             </div>
           </div>
-          <p className="mt-3 text-xs font-medium text-slate-500">
+          <p className="mt-3 text-[12px] font-medium text-muted">
             O token SNDesk nunca e exibido depois de salvo. Informe um novo token
             somente quando quiser substituir o atual.
           </p>
@@ -539,27 +553,27 @@ export default function PendenciasClient() {
       </section>
 
       <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-xs sm:px-5">
-          <div className="flex items-center gap-2 text-sm font-semibold text-slate-600">
+        <div className="card flex flex-wrap items-center justify-between gap-4 px-4 py-3 sm:px-5">
+          <div className="flex items-center gap-2 text-[13px] font-semibold text-fg2">
             {!autoRefreshEnabled ? (
               <>
-                <span className="h-2.5 w-2.5 rounded-full bg-slate-400" />
+                <span className="h-2.5 w-2.5 rounded-full bg-neutral" />
                 Atualizacao automatica pausada
               </>
             ) : (
               <>
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                <span className="h-2.5 w-2.5 rounded-full bg-ok" />
                 Atualizacao automatica ativa
               </>
             )}
           </div>
           <div className="flex flex-wrap items-center gap-5">
             {lastTicketsRefresh && (
-              <span className="text-xs font-semibold text-slate-400">
+              <span className="text-[12px] font-semibold text-faint">
                 Ultima leitura: {formatDate(lastTicketsRefresh.toISOString())}
               </span>
             )}
-            <label className="inline-flex cursor-pointer items-center gap-3 text-xs font-bold text-slate-600">
+            <label className="inline-flex cursor-pointer items-center gap-3 text-[12px] font-bold text-fg2">
               <span>Auto atualizar</span>
               <button
                 type="button"
@@ -567,11 +581,11 @@ export default function PendenciasClient() {
                 aria-checked={autoRefreshEnabled}
                 onClick={() => setAutoRefreshEnabled((current) => !current)}
                 className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full p-1 transition-colors ${
-                  autoRefreshEnabled ? "bg-emerald-500" : "bg-slate-300"
+                  autoRefreshEnabled ? "bg-ok" : "bg-panel2"
                 }`}
               >
                 <span
-                  className={`h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
+                  className={`h-4 w-4 rounded-full bg-panel shadow-sm transition-transform ${
                     autoRefreshEnabled ? "translate-x-5" : "translate-x-0"
                   }`}
                 />
@@ -581,9 +595,9 @@ export default function PendenciasClient() {
         </div>
 
         {/* Filtros Avançados */}
-        <div className="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-xs md:grid-cols-3">
+        <div className="card grid gap-4 p-4 md:grid-cols-3">
           <div>
-            <label htmlFor="filter-search" className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+            <label htmlFor="filter-search" className="label">
               Pesquisar
             </label>
             <input
@@ -592,19 +606,19 @@ export default function PendenciasClient() {
               placeholder="ID, título, cliente ou status..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+              className="input w-full"
             />
           </div>
 
           <div>
-            <label htmlFor="filter-status" className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+            <label htmlFor="filter-status" className="label">
               Status SNDesk
             </label>
             <select
               id="filter-status"
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none bg-white"
+              className="input w-full"
             >
               <option value="">Todos</option>
               {uniqueStatuses.map((status) => (
@@ -616,14 +630,14 @@ export default function PendenciasClient() {
           </div>
 
           <div>
-            <label htmlFor="filter-state" className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+            <label htmlFor="filter-state" className="label">
               Estado do Teste
             </label>
             <select
               id="filter-state"
               value={selectedState}
               onChange={(e) => setSelectedState(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none bg-white"
+              className="input w-full"
             >
               <option value="">Todos</option>
               <option value="pendente">pendente</option>
@@ -632,10 +646,9 @@ export default function PendenciasClient() {
             </select>
           </div>
         </div>
- 
+
         <DataTable
         tableClassName="w-full min-w-[1040px] table-fixed text-left border-collapse"
-        headerCellClassName="px-4 py-3"
         headerClassNames={[
           "w-[7%]",
           "w-[27%]",
@@ -658,6 +671,18 @@ export default function PendenciasClient() {
         ]}
         isLoading={isLoading}
         isEmpty={!isLoading && filteredTickets.length === 0}
+        footer={
+          totalPages > 1 ? (
+            <Pagination
+              page={currentPage}
+              totalPages={totalPages}
+              totalItems={filteredTickets.length}
+              itemLabel="chamados"
+              onPageChange={goToPage}
+              isLoading={isLoading}
+            />
+          ) : undefined
+        }
         emptyState={
           tickets.length === 0 ? (
             <EmptyState
@@ -665,8 +690,8 @@ export default function PendenciasClient() {
               description="Quando o SNDesk enviar um status configurado para teste, a pendencia aparecera aqui."
             />
           ) : (
-            <div className="p-12 text-center text-slate-500 flex flex-col items-center justify-center">
-              <p className="text-sm font-semibold text-slate-600">
+            <div className="flex flex-col items-center justify-center p-12 text-center">
+              <p className="text-[13px] font-semibold text-fg2">
                 Nenhuma pendência corresponde aos filtros aplicados.
               </p>
               <button
@@ -676,7 +701,7 @@ export default function PendenciasClient() {
                   setSelectedStatus("");
                   setSelectedState("");
                 }}
-                className="mt-3 text-xs font-bold text-indigo-600 hover:text-indigo-800 hover:underline"
+                className="mt-3 text-[12px] font-bold text-accent hover:underline"
               >
                 Limpar todos os filtros
               </button>
@@ -685,34 +710,38 @@ export default function PendenciasClient() {
         }
       >
         {paginatedTickets.map((ticket) => (
-          <tr key={ticket.id} className="text-sm transition-colors hover:bg-slate-50">
-            <td className="p-4 whitespace-nowrap align-middle">
-              <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 font-mono text-[11px] font-bold text-slate-600">
+          <tr
+            key={ticket.id}
+            data-row-accent={getTicketStateVar(ticket.state)}
+            className="text-[13px] transition-colors hover:bg-panel2"
+          >
+            <td className="whitespace-nowrap p-4 align-middle">
+              <span className="inline-flex rounded-full border border-line bg-panel2 px-2 py-0.5 font-mono text-[11px] font-bold text-fg2">
                 #{ticket.idChamado}
               </span>
             </td>
-            <td className="p-4 min-w-[320px]">
+            <td className="min-w-[320px] p-4">
               <div
-                className="line-clamp-2 max-w-[380px] text-sm font-bold leading-snug text-slate-900"
+                className="line-clamp-2 max-w-[380px] text-[13px] font-bold leading-snug text-fg"
                 title={getChamadoTitle(ticket)}
               >
                 {getChamadoTitle(ticket)}
               </div>
               {ticket.lastError && (
-                <div className="mt-1 max-w-[260px] truncate text-xs font-bold text-red-600">
+                <div className="mt-1 max-w-[260px] truncate text-[12px] font-bold text-bad">
                   {ticket.lastError}
                 </div>
               )}
             </td>
-            <td className="p-4 truncate text-slate-700" title={getCliente(ticket)}>
+            <td className="truncate p-4 text-fg2" title={getCliente(ticket)}>
               {getCliente(ticket)}
             </td>
             <td className="p-4 text-center">
               <span
                 className="inline-flex min-w-[112px] max-w-[160px] items-center justify-center whitespace-nowrap rounded-full px-3 py-1.5 text-center text-[11px] font-bold leading-none"
                 style={{
-                  backgroundColor: ticket.statusCor || "#e2e8f0",
-                  color: "#0f172a",
+                  backgroundColor: ticket.statusCor || "rgb(var(--neutral) / 0.15)",
+                  color: "rgb(var(--fg))",
                 }}
               >
                 {ticket.statusDescricao || ticket.statusId || "Nao informado"}
@@ -724,12 +753,12 @@ export default function PendenciasClient() {
                   <button
                     type="button"
                     onClick={() => viewTicket(ticket)}
-                    className="inline-flex items-center rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700 transition-colors hover:bg-indigo-100"
+                    className="inline-flex items-center rounded-full border border-accent/25 bg-accent/10 px-3 py-1 text-[12px] font-bold text-accent transition-colors hover:bg-accent/20"
                     title="Abrir relatorio vinculado"
                   >
                     {ticket.reportCode || "Relatorio criado"}
                   </button>
-                  <span className="text-[11px] font-bold text-slate-500">
+                  <span className="text-[11px] font-bold text-faint">
                     {ticket.pendingStepsCount ?? 0} pendente(s) SNDesk
                   </span>
                 </div>
@@ -745,11 +774,11 @@ export default function PendenciasClient() {
               )}
             </td>
             <td className="p-4">
-              <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${getTicketStateColor(ticket.state)}`}>
+              <span className={`rounded-full px-2.5 py-1 text-[12px] font-bold ${getTicketStateColor(ticket.state)}`}>
                 {ticket.state}
               </span>
             </td>
-            <td className="p-4 whitespace-nowrap text-slate-600">
+            <td className="whitespace-nowrap p-4 font-mono text-faint">
               {formatDate(ticket.updatedAt)}
             </td>
             <td className="p-4 text-right">
@@ -765,49 +794,6 @@ export default function PendenciasClient() {
           </tr>
         ))}
         </DataTable>
-
-        {totalPages > 1 && (
-          <div className="flex flex-col gap-3 px-1 sm:flex-row sm:items-center sm:justify-between mt-2">
-            <span className="text-xs font-semibold text-slate-500">
-              Pagina {currentPage} de {totalPages} ({filteredTickets.length} chamados)
-            </span>
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              <Button
-                variant="secondary"
-                onClick={() => goToPage(currentPage - 1)}
-                disabled={currentPage === 1 || isLoading}
-                className="px-3 py-1.5 text-xs"
-              >
-                Anterior
-              </Button>
-              {Array.from({ length: totalPages }, (_, index) => index + 1).map(
-                (page) => (
-                  <button
-                    key={page}
-                    type="button"
-                    onClick={() => goToPage(page)}
-                    disabled={isLoading}
-                    className={`h-8 min-w-8 rounded-lg border px-2 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-                      page === currentPage
-                        ? "border-indigo-600 bg-indigo-600 text-white"
-                        : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                    }`}
-                  >
-                    {page}
-                  </button>
-                )
-              )}
-              <Button
-                variant="secondary"
-                onClick={() => goToPage(currentPage + 1)}
-                disabled={currentPage === totalPages || isLoading}
-                className="px-3 py-1.5 text-xs"
-              >
-                Proxima
-              </Button>
-            </div>
-          </div>
-        )}
       </div>
 
       {toast && (

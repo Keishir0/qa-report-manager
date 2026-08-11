@@ -3,7 +3,7 @@ import React from "react";
 interface MetricCardProps {
   title: string;
   value: string | number;
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
   trend?: {
     label: string;
     value: string;
@@ -14,62 +14,71 @@ interface MetricCardProps {
   isActive?: boolean;
 }
 
+type Color = "accent" | "ok" | "bad" | "warn" | "neutral";
+
+const STATUS_COLOR_MAP: Record<NonNullable<MetricCardProps["statusColor"]>, Color> = {
+  brand: "accent",
+  green: "ok",
+  red: "bad",
+  amber: "warn",
+  slate: "neutral",
+};
+
+const DOT_CLASS: Record<Color, string> = {
+  accent: "bg-accent",
+  ok: "bg-ok",
+  bad: "bg-bad",
+  warn: "bg-warn",
+  neutral: "bg-neutral",
+};
+
+const TEXT_CLASS: Record<Color, string> = {
+  accent: "text-accent",
+  ok: "text-ok",
+  bad: "text-bad",
+  warn: "text-warn",
+  neutral: "text-neutral",
+};
+
 export default function MetricCard({
   title,
   value,
-  icon,
   trend,
   statusColor = "brand",
   onClick,
   isActive = false,
 }: MetricCardProps) {
-  const iconColors = {
-    brand: "bg-indigo-50 text-indigo-600 border border-indigo-100",
-    green: "bg-green-50 text-green-600 border border-green-100",
-    red: "bg-red-50 text-red-600 border border-red-100",
-    amber: "bg-amber-50 text-amber-600 border border-amber-100",
-    slate: "bg-slate-50 text-slate-600 border border-slate-100",
-  };
-
+  const color = STATUS_COLOR_MAP[statusColor];
   const isInteractive = Boolean(onClick);
+
   const card = (
     <div
-      className={`flex min-h-[125px] flex-col justify-between rounded-xl border border-slate-200 bg-white p-5 shadow-xs transition-all duration-200 ${
+      className={`flex min-h-[125px] flex-col justify-between rounded-[14px] border bg-panel p-[18px] transition-colors duration-200 ${
         isActive
-          ? "-translate-y-0.5 border-indigo-500 shadow-md ring-2 ring-indigo-500/20"
+          ? "border-accent ring-[3px] ring-accent/20"
           : isInteractive
-          ? "group-hover:-translate-y-0.5 group-hover:border-indigo-200 group-hover:shadow-md group-focus-visible:border-indigo-400 group-focus-visible:ring-2 group-focus-visible:ring-indigo-500/25"
-          : ""
+          ? "border-line group-hover:border-accent/40 group-focus-visible:border-accent group-focus-visible:ring-[3px] group-focus-visible:ring-accent/20"
+          : "border-line"
       }`}
     >
-      <div className="flex justify-between items-start">
-        <div>
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-            {title}
-          </span>
-          <span className="text-3xl font-extrabold text-slate-900 leading-none">
-            {value}
-          </span>
-        </div>
-        <div className={`p-2.5 rounded-lg ${iconColors[statusColor]}`}>{icon}</div>
+      <div className="flex items-start justify-between gap-2">
+        <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-faint">
+          {title}
+        </span>
+        <span className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${DOT_CLASS[color]}`} />
       </div>
 
-      {trend && (
-        <div className="mt-3 flex items-center gap-1 text-xs">
-          <span
-            className={`font-bold ${
-              trend.isPositive === undefined
-                ? "text-slate-500"
-                : trend.isPositive
-                ? "text-green-600"
-                : "text-red-500"
-            }`}
-          >
-            {trend.value}
-          </span>
-          <span className="text-slate-400 font-medium">{trend.label}</span>
-        </div>
-      )}
+      <div className="mt-3">
+        <span className="block text-[34px] font-extrabold leading-none tracking-[-0.03em] text-fg">
+          {value}
+        </span>
+        {trend && (
+          <div className="mt-2 flex items-center gap-1 text-[11.5px]">
+            <span className={`font-bold ${TEXT_CLASS[color]}`}>{trend.value}</span>
+            <span className="font-medium text-faint">{trend.label}</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 
@@ -78,7 +87,7 @@ export default function MetricCard({
       <button
         type="button"
         onClick={onClick}
-        className="group w-full cursor-pointer rounded-xl text-left outline-none"
+        className="group w-full cursor-pointer rounded-[14px] text-left outline-none"
         aria-label={`Filtrar dashboard por ${title}`}
         aria-pressed={isActive}
         title={`Filtrar dashboard por ${title}`}

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
 import { TestReportData, TestStepData } from "@/types";
-import StatusBadge from "@/components/ui/StatusBadge";
+import StatusBadge, { getStatusColorVar } from "@/components/ui/StatusBadge";
 import ReportForm from "@/components/reports/ReportForm";
 import StepRow from "@/components/reports/StepRow";
 import StepForm from "@/components/reports/StepForm";
@@ -408,12 +408,8 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-slate-500 gap-2 h-96">
-        <svg
-          className="animate-spin h-8 w-8 text-indigo-600"
-          fill="none"
-          viewBox="0 0 24 24"
-        >
+      <div className="flex h-96 flex-col items-center justify-center gap-2 p-12 text-muted">
+        <svg className="h-8 w-8 animate-spin text-accent" fill="none" viewBox="0 0 24 24">
           <circle
             className="opacity-25"
             cx="12"
@@ -435,9 +431,9 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
 
   if (error && !report) {
     return (
-      <div className="bg-red-50 border border-red-200 p-12 text-center rounded-xl max-w-lg mx-auto mt-12 shadow-xs">
-        <h3 className="text-lg font-bold text-red-700 mb-2">Erro</h3>
-        <p className="text-sm text-slate-750 mb-6 font-medium">{error}</p>
+      <div className="mx-auto mt-12 max-w-lg rounded-[14px] border border-bad/30 bg-bad/8 p-12 text-center">
+        <h3 className="mb-2 text-[15px] font-bold text-bad">Erro</h3>
+        <p className="mb-6 text-[13px] font-medium text-fg2">{error}</p>
         <Link href="/reports" passHref legacyBehavior>
           <Button variant="primary">Voltar para Lista</Button>
         </Link>
@@ -459,13 +455,16 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
       ? Math.max(...sortedSteps.map((s) => s.stepNumber)) + 1
       : 1;
 
+  const showSndeskSidebar =
+    Boolean(report.sndeskChamadoId) && (user?.role === "ADMIN" || user?.role === "QA");
+
   return (
-    <div className="mx-auto max-w-6xl space-y-6 animate-fade-in sm:space-y-8">
+    <div className="mx-auto max-w-6xl space-y-6 sm:space-y-8">
       {/* Breadcrumb e Ações Principais */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <Link
           href="/reports"
-          className="text-xs font-bold text-slate-500 hover:text-slate-905 transition-colors flex items-center gap-1"
+          className="flex items-center gap-1 text-[12px] font-bold text-muted transition-colors hover:text-fg2"
         >
           <svg
             className="w-3.5 h-3.5"
@@ -489,7 +488,7 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
             onClick={handleExportExcel}
             disabled={isExportingExcel || isSaving}
             icon={
-              <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-ok" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             }
@@ -501,7 +500,7 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
             onClick={handleExportPDF}
             disabled={isExportingPDF || isSaving}
             icon={
-              <svg className="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-bad" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
               </svg>
             }
@@ -513,7 +512,7 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
             onClick={handleDuplicateReport}
             disabled={isSaving}
             icon={
-              <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-ok" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
               </svg>
             }
@@ -525,22 +524,26 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
       </div>
 
       {/* Seção Principal: Card de Detalhes ou Formulário de Edição */}
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs sm:p-6">
+      <div className={`grid grid-cols-1 gap-4 sm:gap-5 ${showSndeskSidebar ? "lg:grid-cols-[1fr_320px]" : ""}`}>
+        <div
+          className="card p-4 sm:p-6"
+          style={isEditing ? undefined : { borderLeft: `4px solid ${getStatusColorVar(report.generalStatus)}` }}
+        >
         {isEditing && canWrite ? (
           <div>
-            <div className="mb-6 flex flex-col gap-2 border-b border-slate-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
-              <h2 className="text-lg font-bold text-slate-800">
+            <div className="mb-6 flex flex-col gap-2 border-b border-hairline pb-4 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="text-[15px] font-bold text-fg">
                 Editar Relatório: {report.code}
               </h2>
               <button
                 onClick={handleCancelEditing}
-                className="text-xs text-slate-500 hover:text-slate-700 font-bold"
+                className="text-[12px] font-bold text-muted hover:text-fg2"
               >
                 Cancelar Edição
               </button>
             </div>
             {error && (
-              <div className="mb-4 bg-red-50 text-red-700 text-xs p-3 rounded-lg border border-red-100 font-medium">
+              <div className="mb-4 rounded-[9px] border border-bad/30 bg-bad/8 p-3 text-[12px] font-medium text-bad">
                 {error}
               </div>
             )}
@@ -553,18 +556,18 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
         ) : (
           <div>
             {/* Cabeçalho do Relatório */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-100 pb-6 mb-6 gap-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-hairline pb-6 mb-6 gap-4">
               <div>
                 <div className="flex items-center gap-3">
-                  <span className="font-mono text-xl font-bold bg-slate-100 text-slate-800 px-2.5 py-1 rounded-lg border border-slate-200">
+                  <span className="rounded-[8px] bg-panel2 px-3 py-1.5 font-mono text-[18px] font-bold text-fg">
                     {report.code}
                   </span>
-                  <StatusBadge status={report.generalStatus} />
+                  <StatusBadge status={report.generalStatus} variant="pill" />
                 </div>
-                <h1 className="text-xl font-extrabold text-slate-900 mt-4 leading-tight">
+                <h1 className="mt-4 text-[24px] font-bold leading-tight text-fg">
                   {report.functionality}
                 </h1>
-                <p className="text-sm text-slate-500 font-semibold mt-1">
+                <p className="mt-1 text-[13.5px] font-medium text-muted">
                   {report.systemName} &bull; {report.screenPath}
                 </p>
               </div>
@@ -575,7 +578,7 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
                   onClick={() => setIsEditing(true)}
                   disabled={isSaving}
                   icon={
-                    <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                     </svg>
                   }
@@ -597,81 +600,27 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
               </div>}
             </div>
 
-            {/* Grid de Metadados Estilizados */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <div className="bg-slate-50/50 border border-slate-100 rounded-xl p-4">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Data do Teste
-                </span>
-                <span className="text-sm font-extrabold text-slate-800">
-                  {format(new Date(report.testDate), "dd/MM/yyyy")}
-                </span>
-              </div>
-              <div className="bg-slate-50/50 border border-slate-100 rounded-xl p-4">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Branch / Ambiente
-                </span>
-                <span className="text-sm font-extrabold text-slate-800">
-                  {report.branch}
-                </span>
-              </div>
-              <div className="bg-slate-50/50 border border-slate-100 rounded-xl p-4">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Tipo de Teste
-                </span>
-                <span className="text-sm font-extrabold text-slate-800">
-                  {report.testType}
-                </span>
-              </div>
-              <div className="bg-slate-50/50 border border-slate-100 rounded-xl p-4">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Criado em
-                </span>
-                <span className="text-sm font-extrabold text-slate-800">
-                  {report.createdAt
-                    ? format(new Date(report.createdAt), "dd/MM/yyyy HH:mm")
-                    : "-"}
-                </span>
-              </div>
+            {/* Faixa de Metadados */}
+            <div className="mb-6 grid grid-cols-2 border border-hairline rounded-[10px] sm:grid-cols-5">
+              {[
+                { label: "Data", value: format(new Date(report.testDate), "dd/MM/yyyy") },
+                { label: "Branch", value: report.branch },
+                { label: "Tipo", value: report.testType },
+                { label: "QA", value: report.testerName || "—" },
+                { label: "Dev", value: report.sndeskTechnicianName || "—" },
+              ].map((item, index) => (
+                <div key={item.label} className="border-r border-hairline px-4 py-3.5 last:border-r-0">
+                  <span className="label mb-1">{item.label}</span>
+                  <span className="block truncate text-[13.5px] font-semibold text-fg2" title={item.value}>
+                    {item.value}
+                  </span>
+                </div>
+              ))}
             </div>
 
-            {/* Descrição do Bug */}
-            {report.sndeskChamadoId && user?.role === "ADMIN" && (
-              <div className="mb-6 rounded-xl border border-indigo-100 bg-indigo-50/30 p-4">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                  <div className="min-w-0 flex-1">
-                    <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider block mb-1">
-                      Chamado SNDesk
-                    </span>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-mono text-sm font-extrabold text-slate-900">
-                        #{report.sndeskChamadoId}
-                      </span>
-                      {pendingTicket && (
-                        <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-slate-700">
-                          {pendingTicket.statusDescricao || pendingTicket.state}
-                        </span>
-                      )}
-                    </div>
-                    <p className="mt-1 text-xs font-medium text-slate-500">
-                      A pendencia e atualizada automaticamente ao abrir a tela.
-                    </p>
-                    {pendingTicket?.lastError && (
-                      <p className="mt-2 text-xs font-bold text-red-600">
-                        {pendingTicket.lastError}
-                      </p>
-                    )}
-                  </div>
-
-                </div>
-              </div>
-            )}
-
             <div className="space-y-2 mb-6">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                Descrição do Bug / Comportamento Incorreto
-              </span>
-              <div className="bg-rose-50/10 text-sm text-slate-700 p-4 rounded-xl border border-rose-100/50 break-words whitespace-pre-line leading-relaxed font-medium">
+              <span className="label">Descrição do Bug / Comportamento Incorreto</span>
+              <div className="whitespace-pre-line break-words rounded-[10px] border border-bad/20 bg-bad/8 p-4 text-[13.5px] font-medium leading-relaxed text-fg2">
                 {report.bugDescription}
               </div>
             </div>
@@ -679,11 +628,82 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
             {/* Observações */}
             {report.notes && (
               <div className="space-y-2">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Observações / Notas Adicionais
-                </span>
-                <div className="bg-slate-50/70 text-sm text-slate-600 p-4 rounded-xl border border-slate-200 break-words whitespace-pre-line leading-relaxed font-medium">
+                <span className="label">Observações / Notas Adicionais</span>
+                <div className="whitespace-pre-line break-words rounded-[10px] border border-line bg-panel2 p-4 text-[13.5px] font-medium leading-relaxed text-fg2">
                   {report.notes}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        </div>
+
+        {!isEditing && showSndeskSidebar && (
+          <div className="space-y-4">
+            {report.sndeskChamadoId && user?.role === "ADMIN" && (
+              <div className="card p-5">
+                <span className="label">Chamado SNDesk</span>
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-[15px] font-bold text-fg">
+                    #{report.sndeskChamadoId}
+                  </span>
+                  {pendingTicket && (
+                    <span className="rounded-full border border-line bg-panel2 px-2.5 py-1 text-[11px] font-bold text-fg2">
+                      {pendingTicket.statusDescricao || pendingTicket.state}
+                    </span>
+                  )}
+                </div>
+                <p className="mt-2 text-[12px] font-medium text-muted">
+                  A pendencia e atualizada automaticamente ao abrir a tela.
+                </p>
+                {pendingTicket?.lastError && (
+                  <p className="mt-2 text-[12px] font-bold text-bad">{pendingTicket.lastError}</p>
+                )}
+              </div>
+            )}
+
+            {report.sndeskChamadoId && (user?.role === "ADMIN" || user?.role === "QA") && (
+              <div className="card p-5">
+                <span className="label">Finalizar pendência no SNDesk</span>
+                <h3 className="mt-1 text-[14px] font-bold text-fg">
+                  Aprove ou recuse depois de registrar os passos do teste.
+                </h3>
+                <p className="mt-1 text-[12.5px] font-medium text-muted">
+                  Chamado #{report.sndeskChamadoId}
+                  {pendingTicket
+                    ? ` • ${pendingTicket.statusDescricao || pendingTicket.state}`
+                    : " • pendencia ainda nao carregada"}
+                </p>
+                <p className="mt-2 text-[12px] font-bold text-fg2">
+                  {sndeskPendingStepsCount} passo(s) pendente(s) para o SNDesk
+                  {sndeskPendingStepsCount > 0
+                    ? ` (${sndeskNewStepsCount} novo(s), ${sndeskChangedStepsCount} alterado(s))`
+                    : ""}
+                </p>
+                {sndeskPendingStepsCount === 0 && (
+                  <p className="mt-2 text-[12px] font-bold text-warn">
+                    Adicione ou altere pelo menos um passo antes de aprovar ou recusar.
+                  </p>
+                )}
+                {pendingTicket?.lastError && (
+                  <p className="mt-2 text-[12px] font-bold text-bad">{pendingTicket.lastError}</p>
+                )}
+
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <Button
+                    variant="primary"
+                    onClick={() => sendSndeskDecision("aprovar")}
+                    disabled={!pendingTicket || sndeskPendingStepsCount === 0 || isSndeskLoading}
+                  >
+                    Aprovar
+                  </Button>
+                  <Button
+                    variant="danger"
+                    onClick={() => sendSndeskDecision("recusar")}
+                    disabled={!pendingTicket || sndeskPendingStepsCount === 0 || isSndeskLoading}
+                  >
+                    Recusar
+                  </Button>
                 </div>
               </div>
             )}
@@ -695,8 +715,8 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
       <div className="space-y-4">
         <div className="flex flex-col gap-3 px-1 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-lg font-extrabold text-slate-800">Passos do Teste ({sortedSteps.length})</h2>
-            <p className="text-xs text-slate-500 font-medium mt-0.5">
+            <h2 className="text-[15px] font-bold text-fg">Passos do Teste ({sortedSteps.length})</h2>
+            <p className="mt-0.5 text-[12px] font-medium text-muted">
               Etapas detalhadas e validadas durante a execução deste caso.
             </p>
           </div>
@@ -726,7 +746,7 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
                     setShowAddStep(false);
                   }}
                   icon={
-                    <svg className="h-4 w-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="h-4 w-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3l1.4 4.1L17.5 8.5l-4.1 1.4L12 14l-1.4-4.1-4.1-1.4 4.1-1.4L12 3zm6 10l.9 2.6 2.6.9-2.6.9L18 20l-.9-2.6-2.6-.9 2.6-.9L18 13z" />
                     </svg>
                   }
@@ -764,13 +784,11 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
         )}
 
         {/* Tabela de Passos */}
-        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
+        <div className="card">
           {sortedSteps.length === 0 ? (
-            <div className="p-12 text-center text-slate-400">
-              <p className="font-bold text-sm text-slate-700">
-                Nenhum passo cadastrado ainda.
-              </p>
-              <p className="text-xs mt-1 mb-5 font-medium">
+            <div className="p-12 text-center">
+              <p className="text-[13px] font-bold text-fg">Nenhum passo cadastrado ainda.</p>
+              <p className="mb-5 mt-1 text-[12px] font-medium text-muted">
                 Adicione os passos de validação executados para completar este relatório.
               </p>
               {canWrite && !showAddStep && (
@@ -786,12 +804,12 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
             <div className="overflow-x-auto overscroll-x-contain max-lg:overflow-visible">
               <table className="w-full min-w-[860px] text-left border-collapse max-lg:block max-lg:min-w-0">
                 <thead className="max-lg:hidden">
-                  <tr className="bg-slate-50 text-slate-500 font-bold text-[10px] border-b border-slate-200 uppercase tracking-wider">
+                  <tr className="text-faint">
                     {canWrite && (
-                      <th className="p-4 w-10 text-center">
+                      <th className="w-10 p-4 text-center">
                         <input
                           type="checkbox"
-                          className="h-4 w-4 rounded border-slate-300"
+                          className="h-4 w-4 rounded border-line text-accent focus:ring-accent"
                           checked={
                             sortedSteps.length > 0 &&
                             selectedStepIds.length === sortedSteps.length
@@ -800,15 +818,15 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
                         />
                       </th>
                     )}
-                    <th className="p-4 w-16 text-center">#</th>
-                    <th className="p-4">Ação / Passo</th>
-                    <th className="p-4">Resultado Esperado</th>
-                    <th className="p-4">Resultado Obtido</th>
-                    <th className="p-4 w-32">Status</th>
-                    <th className="p-4 w-32 text-right">Ações</th>
+                    <th className="w-16 p-4 text-center font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-faint">#</th>
+                    <th className="p-4 font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-faint">Ação / Passo</th>
+                    <th className="p-4 font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-faint">Resultado Esperado</th>
+                    <th className="p-4 font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-faint">Resultado Obtido</th>
+                    <th className="w-32 p-4 font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-faint">Status</th>
+                    <th className="w-32 p-4 text-right font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-faint">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 max-lg:block max-lg:space-y-3 max-lg:divide-y-0 max-lg:p-3">
+                <tbody className="max-lg:block max-lg:space-y-3 max-lg:p-3">
                   {sortedSteps.map((step) => (
                     <StepRow
                       key={step.id}
@@ -828,7 +846,7 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
 
         {/* Formulário de Adição de Passo */}
         {canWrite && showAddStep && (
-          <div className="animate-fade-in">
+          <div>
             <StepForm
               reportId={id}
               stepNumber={nextStepNumber}
@@ -836,60 +854,6 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
               onSuccess={handleStepCreateSuccess}
               onCancel={() => setShowAddStep(false)}
             />
-          </div>
-        )}
-
-        {report.sndeskChamadoId && (user?.role === "ADMIN" || user?.role === "QA") && (
-          <div className="rounded-xl border border-indigo-100 bg-white p-4 shadow-xs sm:p-5">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-500">
-                  Finalizar pendencia no SNDesk
-                </span>
-                <h3 className="mt-1 text-base font-extrabold text-slate-900">
-                  Aprove ou recuse depois de registrar os passos do teste.
-                </h3>
-                <p className="mt-1 text-sm font-medium text-slate-500">
-                  Chamado #{report.sndeskChamadoId}
-                  {pendingTicket
-                    ? ` • ${pendingTicket.statusDescricao || pendingTicket.state}`
-                    : " • pendencia ainda nao carregada"}
-                </p>
-                <p className="mt-2 text-xs font-bold text-slate-600">
-                  {sndeskPendingStepsCount} passo(s) pendente(s) para o SNDesk
-                  {sndeskPendingStepsCount > 0
-                    ? ` (${sndeskNewStepsCount} novo(s), ${sndeskChangedStepsCount} alterado(s))`
-                    : ""}
-                </p>
-                {sndeskPendingStepsCount === 0 && (
-                  <p className="mt-2 text-xs font-bold text-amber-700">
-                    Adicione ou altere pelo menos um passo antes de aprovar ou recusar.
-                  </p>
-                )}
-                {pendingTicket?.lastError && (
-                  <p className="mt-2 text-xs font-bold text-red-600">
-                    {pendingTicket.lastError}
-                  </p>
-                )}
-              </div>
-
-              <div className="grid gap-2 sm:grid-cols-2 lg:min-w-[240px]">
-                <Button
-                  variant="primary"
-                  onClick={() => sendSndeskDecision("aprovar")}
-                  disabled={!pendingTicket || sndeskPendingStepsCount === 0 || isSndeskLoading}
-                >
-                  Aprovar
-                </Button>
-                <Button
-                  variant="danger"
-                  onClick={() => sendSndeskDecision("recusar")}
-                  disabled={!pendingTicket || sndeskPendingStepsCount === 0 || isSndeskLoading}
-                >
-                  Recusar
-                </Button>
-              </div>
-            </div>
           </div>
         )}
       </div>

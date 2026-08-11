@@ -180,13 +180,13 @@ export default function AiStepAssistant({
   };
 
   return (
-    <div className="rounded-xl border border-indigo-200 bg-indigo-50/30 p-4 shadow-xs sm:p-5">
-      <div className="flex flex-col gap-3 border-b border-indigo-100 pb-4 sm:flex-row sm:items-start sm:justify-between">
+    <div className="rounded-[14px] border border-accent/35 bg-[linear-gradient(180deg,rgb(var(--panel-2)),rgb(var(--panel)))] p-4 sm:p-5">
+      <div className="flex flex-col gap-3 border-b border-accent/20 pb-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h3 className="text-sm font-extrabold text-indigo-900">
+          <h3 className="text-[13px] font-bold text-fg">
             Assistente de passos com IA
           </h3>
-          <p className="mt-1 text-xs font-medium text-indigo-700">
+          <p className="mt-1 text-[12px] font-medium text-muted">
             O relatório atual será usado como contexto. Revise as sugestões antes
             de salvar.
           </p>
@@ -197,7 +197,7 @@ export default function AiStepAssistant({
             setError("");
             onClose();
           }}
-          className="text-xs font-bold text-slate-500 transition-colors hover:text-slate-800"
+          className="text-[12px] font-bold text-muted transition-colors hover:text-fg2"
         >
           Fechar
         </button>
@@ -211,17 +211,17 @@ export default function AiStepAssistant({
           value={instructions}
           onChange={(event) => setInstructions(event.target.value)}
           placeholder="Ex: crie passos para validar o parâmetro desativado e ativado, incluindo abertura e interação do chamado."
-          className="bg-white"
+          className="bg-panel"
         />
 
         {error && (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">
+          <div className="rounded-[9px] border border-bad/30 bg-bad/8 px-3 py-2 text-[12px] font-semibold text-bad">
             {error}
           </div>
         )}
 
         {providerNotice && (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
+          <div className="rounded-[9px] border border-warn/30 bg-warn/8 px-3 py-2 text-[12px] font-semibold text-warn">
             {providerNotice}
           </div>
         )}
@@ -239,13 +239,13 @@ export default function AiStepAssistant({
         </div>
 
         {suggestedSteps.length > 0 && (
-          <div className="space-y-3 border-t border-indigo-100 pt-4">
+          <div className="space-y-3 border-t border-accent/20 pt-4">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h4 className="text-sm font-extrabold text-slate-800">
+                <h4 className="text-[13px] font-bold text-fg">
                   Prévia das sugestões
                 </h4>
-                <p className="text-xs font-medium text-slate-500">
+                <p className="text-[12px] font-medium text-muted">
                   {suggestedSteps.length}{" "}
                   {suggestedSteps.length === 1 ? "passo gerado" : "passos gerados"}
                 </p>
@@ -256,42 +256,42 @@ export default function AiStepAssistant({
               {suggestedSteps.map((step, index) => (
                 <div
                   key={`${step.stepNumber}-${index}`}
-                  className="rounded-lg border border-slate-200 bg-white p-3"
+                  className="rounded-[10px] border border-line bg-panel p-3"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-mono text-xs font-bold text-indigo-700">
+                        <span className="font-mono text-[12px] font-bold text-accent">
                           #{step.stepNumber}
                         </span>
                         <StatusBadge status={step.status} size="sm" />
                       </div>
-                      <p className="mt-2 text-sm font-bold text-slate-800">
+                      <p className="mt-2 text-[13px] font-bold text-fg">
                         {step.action}
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={() => handleRemoveStep(index)}
-                      className="shrink-0 text-xs font-bold text-red-500 hover:text-red-700"
+                      className="shrink-0 text-[12px] font-bold text-bad hover:opacity-80"
                     >
                       Remover
                     </button>
                   </div>
-                  <div className="mt-3 grid gap-3 text-xs sm:grid-cols-2">
+                  <div className="mt-3 grid gap-3 text-[12px] sm:grid-cols-2">
                     <div>
-                      <span className="font-bold uppercase tracking-wider text-slate-400">
+                      <span className="font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-faint">
                         Esperado
                       </span>
-                      <p className="mt-1 font-medium text-slate-600">
+                      <p className="mt-1 font-medium text-fg2">
                         {step.expectedResult}
                       </p>
                     </div>
                     <div>
-                      <span className="font-bold uppercase tracking-wider text-slate-400">
+                      <span className="font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-faint">
                         Obtido
                       </span>
-                      <p className="mt-1 font-medium text-slate-600">
+                      <p className="mt-1 font-medium text-fg2">
                         {step.actualResult}
                       </p>
                     </div>
@@ -300,7 +300,7 @@ export default function AiStepAssistant({
               ))}
             </div>
 
-            <div className="flex flex-col gap-2 border-t border-indigo-100 pt-4 sm:flex-row sm:justify-end">
+            <div className="flex flex-col gap-2 border-t border-accent/20 pt-4 sm:flex-row sm:justify-end">
               <Button
                 type="button"
                 variant="primary"

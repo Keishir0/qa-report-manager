@@ -59,12 +59,12 @@ export default function NewReportPage() {
   };
 
   return (
-    <div className="mx-auto min-w-0 max-w-5xl space-y-6 animate-fade-in">
+    <div className="mx-auto min-w-0 max-w-5xl space-y-6">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2">
         <Link
           href="/reports"
-          className="text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors flex items-center gap-1"
+          className="flex items-center gap-1 text-[12px] font-bold text-muted transition-colors hover:text-fg2"
         >
           <svg
             className="w-3.5 h-3.5"
@@ -91,14 +91,14 @@ export default function NewReportPage() {
 
       {/* Alerta de erro */}
       {error && (
-        <div className="bg-red-50 text-red-700 text-sm p-4 rounded-xl border border-red-100 shadow-xs animate-fade-in font-medium">
+        <div className="rounded-[14px] border border-bad/30 bg-bad/8 p-4 text-[13px] font-medium text-bad">
           <p className="font-bold">Falha ao salvar</p>
-          <p className="text-xs mt-1 font-medium">{error}</p>
+          <p className="mt-1 text-[12px] font-medium">{error}</p>
         </div>
       )}
 
       {/* Formulário */}
-      <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-xs sm:p-6">
+      <div className="card min-w-0 p-4 sm:p-6">
         <ReportForm onSubmit={handleSubmit} isLoading={isLoading} />
       </div>
 

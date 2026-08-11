@@ -85,17 +85,17 @@ export default function StepForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="card mt-4 space-y-4 border-2 border-dashed border-slate-300 bg-slate-50 p-4 sm:p-5"
+      className="mt-4 space-y-4 rounded-[14px] border-2 border-dashed border-line bg-panel2 p-4 sm:p-5"
     >
-      <div className="flex items-center justify-between border-b border-gray-200 pb-2 mb-2">
-        <h4 className="font-semibold text-gray-800 text-sm">
+      <div className="mb-2 flex items-center justify-between border-b border-hairline pb-2">
+        <h4 className="text-[13px] font-semibold text-fg">
           Adicionar Passo #{num}
         </h4>
-        <span className="text-xs text-gray-500">Novo Passo</span>
+        <span className="text-[12px] text-muted">Novo Passo</span>
       </div>
 
       {error && (
-        <div className="bg-red-50 text-red-700 text-xs p-3 rounded-lg border border-red-100">
+        <div className="rounded-[9px] border border-bad/30 bg-bad/8 p-3 text-[12px] text-bad">
           {error}
         </div>
       )}
@@ -104,19 +104,19 @@ export default function StepForm({
         {/* Nº do Passo */}
         <div>
           <label className="label" htmlFor="stepNumberInput">
-            Nº do Passo <span className="text-red-500">*</span>
+            Nº do Passo <span className="text-bad">*</span>
           </label>
           <input
             type="number"
             id="stepNumberInput"
             min={1}
-            className={`input ${validationErrors.stepNumber ? "border-red-500" : ""}`}
+            className={`input ${validationErrors.stepNumber ? "border-bad" : ""}`}
             placeholder="Ex: 1"
             value={num}
             onChange={(e) => setNum(e.target.value === "" ? "" : Number(e.target.value))}
           />
           {validationErrors.stepNumber && (
-            <p className="mt-1 text-xs text-red-500">
+            <p className="mt-1 text-xs text-bad">
               {validationErrors.stepNumber}
             </p>
           )}
@@ -125,7 +125,7 @@ export default function StepForm({
         {/* Status do Passo */}
         <div>
           <label className="label" htmlFor="stepStatus">
-            Status do Passo <span className="text-red-500">*</span>
+            Status do Passo <span className="text-bad">*</span>
           </label>
           <select
             id="stepStatus"
@@ -144,18 +144,18 @@ export default function StepForm({
         {/* Ação */}
         <div className="md:col-span-2">
           <label className="label" htmlFor="stepAction">
-            Ação / Passo <span className="text-red-500">*</span>
+            Ação / Passo <span className="text-bad">*</span>
           </label>
           <textarea
             id="stepAction"
             rows={2}
-            className={`input ${validationErrors.action ? "border-red-500" : ""}`}
+            className={`input ${validationErrors.action ? "border-bad" : ""}`}
             placeholder="Descreva a ação a ser executada no teste (Ex: Acessar página de login)"
             value={action}
             onChange={(e) => setAction(e.target.value)}
           />
           {validationErrors.action && (
-            <p className="mt-1 text-xs text-red-500">
+            <p className="mt-1 text-xs text-bad">
               {validationErrors.action}
             </p>
           )}
@@ -164,20 +164,20 @@ export default function StepForm({
         {/* Resultado Esperado */}
         <div>
           <label className="label" htmlFor="stepExpected">
-            Resultado Esperado <span className="text-red-500">*</span>
+            Resultado Esperado <span className="text-bad">*</span>
           </label>
           <textarea
             id="stepExpected"
             rows={2}
             className={`input ${
-              validationErrors.expectedResult ? "border-red-500" : ""
+              validationErrors.expectedResult ? "border-bad" : ""
             }`}
             placeholder="Descreva o resultado esperado (Ex: Tela de login exibida)"
             value={expectedResult}
             onChange={(e) => setExpectedResult(e.target.value)}
           />
           {validationErrors.expectedResult && (
-            <p className="mt-1 text-xs text-red-500">
+            <p className="mt-1 text-xs text-bad">
               {validationErrors.expectedResult}
             </p>
           )}
@@ -186,27 +186,27 @@ export default function StepForm({
         {/* Resultado Obtido */}
         <div>
           <label className="label" htmlFor="stepActual">
-            Resultado Obtido / Atual <span className="text-red-500">*</span>
+            Resultado Obtido / Atual <span className="text-bad">*</span>
           </label>
           <textarea
             id="stepActual"
             rows={2}
             className={`input ${
-              validationErrors.actualResult ? "border-red-500" : ""
+              validationErrors.actualResult ? "border-bad" : ""
             }`}
             placeholder="Descreva o resultado realmente obtido (Ex: Tela aberta corretamente)"
             value={actualResult}
             onChange={(e) => setActualResult(e.target.value)}
           />
           {validationErrors.actualResult && (
-            <p className="mt-1 text-xs text-red-500">
+            <p className="mt-1 text-xs text-bad">
               {validationErrors.actualResult}
             </p>
           )}
         </div>
       </div>
 
-      <div className="flex flex-col-reverse gap-2 border-t border-gray-200 pt-3 sm:flex-row sm:justify-end">
+      <div className="flex flex-col-reverse gap-2 border-t border-hairline pt-3 sm:flex-row sm:justify-end">
         <button
           type="button"
           disabled={isLoading}
