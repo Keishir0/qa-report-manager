@@ -15,6 +15,7 @@ import Button from "@/components/ui/Button";
 import PageHeader from "@/components/ui/PageHeader";
 import { useAuthUser } from "@/components/auth/AuthProvider";
 import AiStepAssistant from "@/components/reports/AiStepAssistant";
+import Select from "@/components/ui/Select";
 
 interface ReportDetailPageProps {
   params: {
@@ -51,6 +52,8 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
   const [isExportingPDF, setIsExportingPDF] = useState(false);
   const [pendingTicket, setPendingTicket] = useState<PendingTicket | null>(null);
   const [isSndeskLoading, setIsSndeskLoading] = useState(false);
+  const [qaTransferOptions, setQaTransferOptions] = useState<{ id: string; name: string }[]>([]);
+  const [transferTargetId, setTransferTargetId] = useState("");
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [selectedStepIds, setSelectedStepIds] = useState<string[]>([]);
   const [isDeletingSteps, setIsDeletingSteps] = useState(false);
@@ -101,11 +104,24 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
     }
   }, [id]);
 
+  const loadQaTransferOptions = useCallback(async () => {
+    const response = await fetch("/api/users/options", { cache: "no-store" });
+    const result = await response.json();
+    if (!response.ok || !result.success) return;
+
+    const options = (result.data as any[])
+      .filter((option) => option.role === "QA" && option.sndeskStatusId)
+      .map((option) => ({ id: option.id, name: option.name }));
+
+    setQaTransferOptions(options);
+  }, []);
+
   useEffect(() => {
     if (report?.sndeskChamadoId && (user?.role === "ADMIN" || user?.role === "QA")) {
       loadReportPending();
+      loadQaTransferOptions();
     }
-  }, [loadReportPending, report?.sndeskChamadoId, user?.role]);
+  }, [loadReportPending, loadQaTransferOptions, report?.sndeskChamadoId, user?.role]);
 
   // Capturar parâmetro de query "edit" para abrir em modo de edição
   useEffect(() => {
@@ -406,6 +422,36 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
     }
   };
 
+  const transferSndeskTicket = async () => {
+    if (!pendingTicket || !transferTargetId) return;
+
+    setIsSndeskLoading(true);
+    try {
+      const response = await fetch(
+        `/api/sndesk/pendencias/${pendingTicket.id}/transferir`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ targetUserId: transferTargetId }),
+        }
+      );
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Nao foi possivel transferir no SNDesk.");
+      }
+
+      setPendingTicket(result.data);
+      setTransferTargetId("");
+      await Promise.all([fetchReport(), loadReportPending()]);
+      setToast({ message: "Chamado transferido no SNDesk.", type: "success" });
+    } catch (err: any) {
+      setToast({ message: err.message || "Erro ao transferir no SNDesk.", type: "error" });
+    } finally {
+      setIsSndeskLoading(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-96 flex-col items-center justify-center gap-2 p-12 text-muted">
@@ -638,7 +684,7 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
         )}
         </div>
 
-        {!isEditing && showSndeskSidebar && (
+        {showSndeskSidebar && (
           <div className="space-y-4">
             {report.sndeskChamadoId && user?.role === "ADMIN" && (
               <div className="card p-5">
@@ -707,6 +753,37 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
                 </div>
               </div>
             )}
+
+            {report.sndeskChamadoId &&
+              (user?.role === "ADMIN" || user?.role === "QA") &&
+              qaTransferOptions.filter((qa) => qa.id !== report.testerId).length > 0 && (
+                <div className="card p-5">
+                  <span className="label">Transferir chamado no SNDesk</span>
+                  <h3 className="mt-1 text-[14px] font-bold text-fg">
+                    Passe o teste para outro QA sem sair do relatório.
+                  </h3>
+                  <p className="mt-1 text-[12.5px] font-medium text-muted">
+                    A transferência muda o status do chamado no SNDesk e atualiza o QA responsável aqui.
+                  </p>
+
+                  <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                    <Select
+                      value={transferTargetId}
+                      onChange={(e) => setTransferTargetId(e.target.value)}
+                      options={qaTransferOptions
+                        .filter((qa) => qa.id !== report.testerId)
+                        .map((qa) => ({ value: qa.id, label: qa.name }))}
+                    />
+                    <Button
+                      variant="secondary"
+                      onClick={transferSndeskTicket}
+                      disabled={!pendingTicket || !transferTargetId || isSndeskLoading}
+                    >
+                      Transferir
+                    </Button>
+                  </div>
+                </div>
+              )}
           </div>
         )}
       </div>

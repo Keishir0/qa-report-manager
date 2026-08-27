@@ -765,6 +765,78 @@ export async function sendPendingDecision(
   return refreshPendingTicket(id);
 }
 
+export async function transferPendingTicket(
+  id: string,
+  targetUserId: string,
+  activeUser?: AuthUser | null
+) {
+  const [ticket] = await prisma.$queryRaw<PendingTicketRow[]>`
+    SELECT
+      p."id",
+      p."idChamado",
+      p."statusId",
+      p."statusDescricao",
+      p."statusCor",
+      p."chamadoSnapshot",
+      p."reportId",
+      r."code" AS "reportCode",
+      r."tester_id" AS "reportTesterId",
+      p."state",
+      p."lastError",
+      p."createdAt",
+      p."updatedAt"
+    FROM "qa_pending_tickets" p
+    LEFT JOIN "test_reports" r ON r."id" = p."reportId"
+    WHERE p."id" = ${id}
+    LIMIT 1
+  `;
+
+  if (!ticket) throw new Error("Pendencia nao encontrada.");
+
+  const targetUser = await prisma.user.findUnique({
+    where: { id: targetUserId },
+    select: { id: true, name: true, role: true, active: true, sndeskStatusId: true },
+  });
+
+  if (!targetUser || !targetUser.active || targetUser.role !== "QA") {
+    throw new SndeskDecisionValidationError("QA de destino invalido.");
+  }
+
+  const targetStatusId = Number(targetUser.sndeskStatusId?.trim());
+  if (!Number.isInteger(targetStatusId)) {
+    throw new SndeskDecisionValidationError(
+      "O QA de destino nao possui um status do SNDesk configurado."
+    );
+  }
+
+  const config = await getSndeskConfig();
+  assertSndeskConfig(config);
+
+  const sndeskUserId = activeUser?.sndeskUserId || config.defaultUserId;
+  if (!sndeskUserId) {
+    throw new Error(
+      "Configure o ID do tecnico no seu perfil ou defina o usuario padrao nas configuracoes."
+    );
+  }
+
+  await callSndesk(config, "/api/chamado/interacao", {
+    method: "POST",
+    body: JSON.stringify({
+      iduser: Number(sndeskUserId),
+      idchamado: Number(ticket.idChamado),
+      descricao: `Chamado transferido para ${targetUser.name} via QA Report Manager.`,
+      interacao_status: targetStatusId,
+      solucao: false,
+      visivelcliente: config.visibleClient,
+      enviaemailcliente: false,
+      enviaemailtecnico: config.emailTechnician,
+      enviainteracoesos: true,
+    }),
+  });
+
+  return refreshPendingTicket(id);
+}
+
 export async function markPendingError(id: string, error: unknown) {
   const message = sanitizeSensitiveText(
     error instanceof Error ? error.message : "Erro desconhecido."

@@ -32,6 +32,7 @@ interface PendingTicket {
   chamadoSnapshot: any;
   reportId: string | null;
   reportCode: string | null;
+  reportTesterId?: string | null;
   state: string;
   lastError: string | null;
   updatedAt: string;
@@ -41,13 +42,20 @@ interface PendingTicket {
   changedStepsCount?: number;
 }
 
+interface QaTransferOption {
+  id: string;
+  name: string;
+}
+
 interface PendingTicketActionsMenuProps {
   ticket: PendingTicket;
   isLoading: boolean;
+  qaTransferOptions: QaTransferOption[];
   onView: (ticket: PendingTicket) => void;
   onDeleteReport: (ticket: PendingTicket) => void;
   onApprove: (ticketId: string) => void;
   onReject: (ticketId: string) => void;
+  onTransfer: (ticketId: string, targetUserId: string) => void;
 }
 
 const ACTIONS_MENU_WIDTH = 176;
@@ -117,18 +125,28 @@ function getTicketStateVar(state: string) {
 function PendingTicketActionsMenu({
   ticket,
   isLoading,
+  qaTransferOptions,
   onView,
   onDeleteReport,
   onApprove,
   onReject,
+  onTransfer,
 }: PendingTicketActionsMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0 });
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const menuHeight = ticket.reportId
-    ? ACTIONS_MENU_HEIGHT
-    : ACTIONS_VIEW_ONLY_HEIGHT;
+  const transferTargets = qaTransferOptions.filter(
+    (qa) => qa.id !== ticket.reportTesterId
+  );
+  const transferExtraHeight = transferOpen
+    ? 40 + Math.min(transferTargets.length, 4) * 36
+    : 0;
+  const menuHeight =
+    (ticket.reportId ? ACTIONS_MENU_HEIGHT : ACTIONS_VIEW_ONLY_HEIGHT) +
+    (transferTargets.length > 0 ? 36 : 0) +
+    transferExtraHeight;
   const pendingStepsCount = ticket.pendingStepsCount ?? ticket.stepsCount ?? 0;
 
   useEffect(() => {
@@ -182,7 +200,10 @@ function PendingTicketActionsMenu({
     };
   }, [isOpen, menuHeight]);
 
-  const closeMenu = () => setIsOpen(false);
+  const closeMenu = () => {
+    setIsOpen(false);
+    setTransferOpen(false);
+  };
 
   const menu = (
     <div
@@ -208,6 +229,43 @@ function PendingTicketActionsMenu({
         </svg>
         Ver
       </button>
+
+      {transferTargets.length > 0 && (
+        <>
+          <div className="mx-2 my-1 border-t border-hairline" />
+          <button
+            type="button"
+            role="menuitem"
+            disabled={isLoading}
+            onClick={() => setTransferOpen((open) => !open)}
+            className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[13px] font-semibold text-fg2 transition-colors hover:bg-accent/10 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4M16 17H4m0 0l4 4m-4-4l4-4" />
+            </svg>
+            Transferir
+          </button>
+          {transferOpen && (
+            <div className="max-h-36 overflow-y-auto border-t border-hairline bg-bg/40 py-1">
+              {transferTargets.map((qa) => (
+                <button
+                  key={qa.id}
+                  type="button"
+                  role="menuitem"
+                  disabled={isLoading}
+                  onClick={() => {
+                    closeMenu();
+                    onTransfer(ticket.id, qa.id);
+                  }}
+                  className="flex w-full items-center gap-2.5 px-5 py-2 text-left text-[13px] font-medium text-fg2 transition-colors hover:bg-accent/10 hover:text-accent disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {qa.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </>
+      )}
 
       {ticket.reportId && (
         <>
@@ -292,6 +350,7 @@ function PendingTicketActionsMenu({
 export default function PendenciasClient() {
   const [config, setConfig] = useState<SndeskConfigView | null>(null);
   const [tickets, setTickets] = useState<PendingTicket[]>([]);
+  const [qaTransferOptions, setQaTransferOptions] = useState<QaTransferOption[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 10;
   const [searchTerm, setSearchTerm] = useState("");
@@ -386,16 +445,29 @@ export default function PendenciasClient() {
     setLastTicketsRefresh(new Date());
   }, []);
 
+  const loadQaTransferOptions = useCallback(async () => {
+    const response = await fetch("/api/users/options", { cache: "no-store" });
+    const result = await response.json();
+
+    if (!response.ok || !result.success) return;
+
+    const options = (result.data as any[])
+      .filter((user) => user.role === "QA" && user.sndeskStatusId)
+      .map((user) => ({ id: user.id, name: user.name }));
+
+    setQaTransferOptions(options);
+  }, []);
+
   const loadAll = useCallback(async () => {
     setIsLoading(true);
     try {
-      await Promise.all([loadConfig(), loadTickets()]);
+      await Promise.all([loadConfig(), loadTickets(), loadQaTransferOptions()]);
     } catch (error: any) {
       setToast({ message: error.message || "Erro ao carregar dados.", type: "error" });
     } finally {
       setIsLoading(false);
     }
-  }, [loadConfig, loadTickets]);
+  }, [loadConfig, loadTickets, loadQaTransferOptions]);
 
   useEffect(() => {
     loadAll();
@@ -499,6 +571,14 @@ export default function PendenciasClient() {
   async function reject(ticketId: string) {
     const data = await callPendingAction(ticketId, "/recusar", { method: "POST" });
     if (data) setToast({ message: "Recusa enviada ao SNDesk.", type: "success" });
+  }
+
+  async function transfer(ticketId: string, targetUserId: string) {
+    const data = await callPendingAction(ticketId, "/transferir", {
+      method: "POST",
+      body: JSON.stringify({ targetUserId }),
+    });
+    if (data) setToast({ message: "Chamado transferido no SNDesk.", type: "success" });
   }
 
   return (
@@ -785,10 +865,12 @@ export default function PendenciasClient() {
               <PendingTicketActionsMenu
                 ticket={ticket}
                 isLoading={actionId === ticket.id}
+                qaTransferOptions={qaTransferOptions}
                 onView={viewTicket}
                 onDeleteReport={deleteLinkedReport}
                 onApprove={approve}
                 onReject={reject}
+                onTransfer={transfer}
               />
             </td>
           </tr>
