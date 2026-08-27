@@ -110,7 +110,7 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
     if (!response.ok || !result.success) return;
 
     const options = (result.data as any[])
-      .filter((option) => option.role === "QA" && option.sndeskStatusId)
+      .filter((option) => (option.role === "QA" || option.role === "ADMIN") && option.sndeskStatusId)
       .map((option) => ({ id: option.id, name: option.name }));
 
     setQaTransferOptions(options);

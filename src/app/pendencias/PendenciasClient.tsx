@@ -452,7 +452,7 @@ export default function PendenciasClient() {
     if (!response.ok || !result.success) return;
 
     const options = (result.data as any[])
-      .filter((user) => user.role === "QA" && user.sndeskStatusId)
+      .filter((user) => (user.role === "QA" || user.role === "ADMIN") && user.sndeskStatusId)
       .map((user) => ({ id: user.id, name: user.name }));
 
     setQaTransferOptions(options);

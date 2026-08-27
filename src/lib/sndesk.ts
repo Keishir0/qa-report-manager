@@ -162,7 +162,7 @@ async function syncLinkedReportTesterWithStatus(ticket: PendingTicketRow) {
   const assignedQa = await prisma.user.findFirst({
     where: {
       active: true,
-      role: "QA",
+      role: { in: ["QA", "ADMIN"] },
       sndeskStatusId: String(ticket.statusId),
     },
     select: {
@@ -798,14 +798,18 @@ export async function transferPendingTicket(
     select: { id: true, name: true, role: true, active: true, sndeskStatusId: true },
   });
 
-  if (!targetUser || !targetUser.active || targetUser.role !== "QA") {
-    throw new SndeskDecisionValidationError("QA de destino invalido.");
+  if (
+    !targetUser ||
+    !targetUser.active ||
+    (targetUser.role !== "QA" && targetUser.role !== "ADMIN")
+  ) {
+    throw new SndeskDecisionValidationError("Usuario de destino invalido.");
   }
 
   const targetStatusId = Number(targetUser.sndeskStatusId?.trim());
   if (!Number.isInteger(targetStatusId)) {
     throw new SndeskDecisionValidationError(
-      "O QA de destino nao possui um status do SNDesk configurado."
+      "O usuario de destino nao possui um status do SNDesk configurado."
     );
   }
 
