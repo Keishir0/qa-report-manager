@@ -665,7 +665,7 @@ export default function PendenciasClient() {
                 }`}
               >
                 <span
-                  className={`h-4 w-4 rounded-full bg-panel shadow-sm transition-transform ${
+                  className={`h-4 w-4 rounded-full bg-panel shadow-sm [transition:transform_150ms,background-color_200ms_ease] ${
                     autoRefreshEnabled ? "translate-x-5" : "translate-x-0"
                   }`}
                 />

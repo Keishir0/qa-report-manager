@@ -234,7 +234,7 @@ export default function Sidebar({
 
       <aside
         id="main-navigation"
-        className={`fixed inset-y-0 left-0 z-50 flex h-dvh w-72 max-w-[85vw] flex-col justify-between border-r border-line bg-surface transition-transform duration-300 lg:z-30 lg:w-[232px] lg:max-w-none lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex h-dvh w-72 max-w-[85vw] flex-col justify-between border-r border-line bg-surface [transition:transform_300ms,background-color_200ms_ease,border-color_200ms_ease] lg:z-30 lg:w-[232px] lg:max-w-none lg:translate-x-0 ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
