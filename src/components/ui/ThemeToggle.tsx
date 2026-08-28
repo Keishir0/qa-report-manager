@@ -55,7 +55,7 @@ export default function ThemeToggle({ initialTheme }: { initialTheme: Theme }) {
         role="radio"
         aria-checked={theme === "light"}
         onClick={() => select("light")}
-        className={`flex h-full flex-1 items-center justify-center gap-1.5 rounded-[8px] text-[11.5px] font-semibold transition-colors ${
+        className={`flex h-full flex-1 items-center justify-center gap-1.5 rounded-[8px] text-[11.5px] font-semibold transition-[color,background-color,box-shadow] duration-200 ${
           theme === "light"
             ? "bg-panel text-fg shadow-[inset_0_0_0_1px_rgb(var(--line))]"
             : "text-faint hover:text-muted"
@@ -69,7 +69,7 @@ export default function ThemeToggle({ initialTheme }: { initialTheme: Theme }) {
         role="radio"
         aria-checked={theme === "dark"}
         onClick={() => select("dark")}
-        className={`flex h-full flex-1 items-center justify-center gap-1.5 rounded-[8px] text-[11.5px] font-semibold transition-colors ${
+        className={`flex h-full flex-1 items-center justify-center gap-1.5 rounded-[8px] text-[11.5px] font-semibold transition-[color,background-color,box-shadow] duration-200 ${
           theme === "dark"
             ? "bg-panel text-fg shadow-[inset_0_0_0_1px_rgb(var(--line))]"
             : "text-faint hover:text-muted"

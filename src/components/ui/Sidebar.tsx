@@ -284,7 +284,7 @@ export default function Sidebar({
                 <Link
                   key={link.name}
                   href={link.href}
-                  className={`flex items-center gap-3 rounded-[9px] px-3 py-2.5 text-[13.5px] font-semibold transition-colors ${
+                  className={`flex items-center gap-3 rounded-[9px] px-3 py-2.5 text-[13.5px] font-semibold transition-[color,background-color,box-shadow] duration-200 ${
                     isActive
                       ? "bg-panel text-fg shadow-[inset_0_0_0_1px_rgb(var(--line))]"
                       : "text-muted hover:bg-panel2 hover:text-fg2"
