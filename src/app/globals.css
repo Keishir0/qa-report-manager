@@ -51,7 +51,7 @@
 *,
 *::before,
 *::after {
-  transition-property: background-color, border-color, color;
+  transition-property: background-color, border-color, color, box-shadow;
   transition-timing-function: ease;
   transition-duration: 200ms;
 }
