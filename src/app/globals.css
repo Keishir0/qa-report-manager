@@ -56,6 +56,24 @@
   transition-duration: 200ms;
 }
 
+/* Nas tabelas o mesmo conjunto de propriedades sai caro: sao dezenas de linhas
+   repintando a borda ao mesmo tempo, e as linhas terminavam a troca de tema
+   cerca de 80ms depois do restante da tela. A borda aqui e um filete de 1px de
+   baixo contraste, entao ela troca direto e o resto continua acompanhando.
+   O !important e necessario porque as linhas usam a classe "transition-colors"
+   do Tailwind (que inclui border-color e dura 150ms), e classe tem precedencia
+   sobre seletor de elemento. O background-color continua na lista, entao o
+   efeito de hover das linhas segue funcionando normalmente. */
+table,
+thead,
+tbody,
+tr,
+td,
+th {
+  transition-property: background-color, color !important;
+  transition-duration: 200ms !important;
+}
+
 @layer components {
   .btn-primary {
     @apply bg-accent text-accentFg rounded-[9px] px-[15px] py-[9px] text-[12.5px] font-bold transition-all duration-200 hover:opacity-90 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2;

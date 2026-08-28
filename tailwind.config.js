@@ -46,6 +46,12 @@ module.exports = {
         warn: "rgb(var(--warn) / <alpha-value>)",
         neutral: "rgb(var(--neutral) / <alpha-value>)",
       },
+      // O padrao do Tailwind e 150ms. A troca de tema usa 200ms (globals.css),
+      // entao classes como "transition-colors" sem duracao explicita terminavam
+      // 50ms antes do resto da tela. Alinhar o padrao mantem tudo em sincronia.
+      transitionDuration: {
+        DEFAULT: "200ms",
+      },
       // opacidades usadas pelo redesign (fundos/bordas translúcidas dos tokens de status)
       opacity: {
         8: "0.08",
