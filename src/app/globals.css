@@ -48,6 +48,14 @@
   --neutral: 139 149 171;
 }
 
+*,
+*::before,
+*::after {
+  transition-property: background-color, border-color, color, fill, stroke, box-shadow;
+  transition-timing-function: ease;
+  transition-duration: 200ms;
+}
+
 @layer components {
   .btn-primary {
     @apply bg-accent text-accentFg rounded-[9px] px-[15px] py-[9px] text-[12.5px] font-bold transition-all duration-200 hover:opacity-90 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2;
